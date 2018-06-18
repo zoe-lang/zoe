@@ -1,0 +1,17 @@
+#(?
+
+  Memory is like javascript or java ; everything is a reference. Or at least, everything looks like one.
+
+  Since the memory model is this simplistic approach, it can be optimized :
+    - Will have to perform escape analysis on arrays to know when they can safely be "inlined"
+
+  There are pointers.
+  Unless the pointer is marked as "unsafe", no arithmetic can be performed on them.
+  Unless a pointer is unsafe or is | null, it points to a valid memory location.
+#)
+
+fn main() {
+  const myarr = [1, 2, 3, 4] # int[]
+  const myarr2 = [1, 2, 3., 4] # (int | float)[]
+  const myobjs = [Obj(), Obj(), Obj()] # Obj[]
+}

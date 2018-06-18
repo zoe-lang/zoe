@@ -1,0 +1,283 @@
+#(
+  ...
+#)
+
+# Special type
+null # Null is a value and a type. It can be affected to variables
+void # void can't have a value and can't be put into a variable
+
+never # A special type that can't be a value but that is factored out when used in unions.
+  # it means the block itself will never be valued typically because the function
+  # it resides in will be returned from before the variable it was meant to be assigned to
+  # would receive its value.
+
+#?     VAR
+var a Int # A variable may be freely assigned to
+var b = \b
+
+#?
+#?      BASIC TYPE STUFF
+#?
+
+
+#? Type alias
+type MyAlias is AnotherType
+# The type alias embarks all methods and implements from the original type
+
+### Basic types
+
+#? Structs
+type MyType is struct (
+  hello String
+  world Int
+)
+
+
+#? Unions
+# leading | is mandatory
+# Properties and implements that are common to all the types
+# are forwarded to the union type and is dispatched appropriately
+type SomeUnion is
+  | Doudou
+  | Dada
+
+
+#? Generics
+# Generic types must begin with $, which marks the fact that they're not runtime values.
+type MyType<$T, $U> is struct (
+  field $T
+  field2 $U
+)
+# Generic types may have bounds which limits what type can be used and give informations
+# to the compiler about the types used
+where $T is TSomeTrait + TSomeStruct
+  and $U is TSomeOtherTrait<$T>
+
+
+#? Null
+# null is a special type that represents nothing
+# A function that does not return anything returns "null"
+# It is commonly used in unions and is their default value when available
+fn main() -> null {
+  # Which means that a function returning null *must* return null.
+  # The return statement does not have a form without a value
+  return null
+}
+# Alternatively
+type Test is struct (
+  ref &OtherType | null
+)
+# A variable may not have null as its only type.
+var myvar null # This is an error
+
+
+
+#? Any
+# The any type is a special type that is the union of anything.
+# Generic types beginning with $ with no where clauses assume the type is any
+# for runtime purposes.
+fn doSomething(val any) -> null { }
+# One can thus try to cast any to any type. However, any is not introspectable
+# at runtime ; introspection may only happen during compilation.
+
+
+
+# Generic types may reuse other generic types.
+# Where clauses do not have to be re-specified, but errors may be triggered
+# upon using the new type in ways that don't validate the underlying type's where clauses.
+type MyType<$Type> is AnotherType<$Type>
+
+
+type TSomeTrait is trait (
+  fn doStuff() -> Int
+  fn doMoreStuff() -> Void
+)
+# A trait may require the presence of other traits to be used
+# These trait's methods will be available in the implement block of this trait if it exists
+where TSomeTrait is TTrait1 + TTrait2
+# A trait may give implementations which are functions allowed to use itself
+# and its requires
+implements {
+  local fn hello() -> Int {
+    return 4
+    stop
+  }
+
+  fn someMoreSutff() -> Int {
+
+  }
+}
+
+#? Function pointers are simply a prototype without a name
+type FnSomething is fn(a Int) -> null
+
+#?
+#?  DEFAULT VALUES
+#?
+
+# When an variable or field is declared, it may leave the value out
+# In this case, it is assigned its default value, unless there is no
+# possible default value.
+
+# All numeric types have 0 assigned to them, this includes pointers, which are numeric types.
+var a Int # a = 0
+var b *MyStruct # b = 0
+# Unions having null in their possible types are assigned null by default
+var b Float | null # b is null
+# Unions without null may not have a default value
+var c Float | Int # Compile error
+# Struct default values are the struct with all its members assigned their default values
+# If one of the field of the struct does not have a default value, it fails.
+var b MyStruct # May be alright.
+
+#?
+#?   THIS
+#?
+# Inside an implement block, this is a special variable that accesses
+# the current object as a reference.
+
+
+#?
+#?   SLICES
+#?
+# A slice is a view on an array
+# It has compiler support in that the [] construct maps to the Slice type, and [ ] permits both
+# access and setting an index.
+# For reference, here is its definition
+type Slice<$T> = struct (
+  len Int
+  ptr *$T
+)
+# It has a default value, which is the empty slice.
+
+#?
+#?   POINTERS AND REFERENCES
+#?
+
+#(
+  # /!\ Important ; will need tracking of pointers to middle of structures or arrays that would be something
+  like (*pointer, *pointer_to_beginning) with special handling to avoid having to check for memory range
+  instead of just beginning of block.
+#)
+
+#(
+  By default, Zoe passes everything by value.
+#)
+
+#(
+  Pointers are just integers. When deferenced, they try to access the part of memory they point to.
+  They are UNSAFE, and as such, may only be dereferenced and manipulated in functions explicitely marked
+  as unsafe.
+
+  Their only practical use is for arrays and whatever comes from C. They have to be wrapped as soon as possible
+  into references, which are safe, or unions including null.
+
+  LOTS OF REALLY BAD IDEAS HERE PROBABLY.
+#)
+# A pointer is declared in its type with a preceding *
+var my_ptr *SomeStruct = &some_struct
+# It is dereferenced with a terminating
+var my_value SomeStruct = my_ptr
+# Pointer arithmetic can be done. Here, my_ptr moves by (4 * sizeof(SomeStruct)) before being dereferenced for writing.
+# warning ; this is ambiguous as we begin by a parenthesized expression, which can be confused with a function call.
+(my_ptr + 4).* = some_struct
+# Pointers may be dereferenced and referenced only from unsafe functions. It is the responsability of the implementor
+# that they don't go around trashing memory.
+
+# Pointers may access subfields without dereferencing
+my_ptr.field = 3
+
+# A pointer may be assigned an unsigned integer value. It is valid, but very dangerous.
+# Only in safe mode though. Maybe add more guards to prevent that as much as we can ?
+my_ptr = 0x10002030
+
+# A pointer may be managed or unmanaged.
+# TODO define what managed / unmanaged means.
+
+#(
+  References are like pointers in that implementation-wise, they're pointers.
+  However, references cannot point to anything else than a valid piece of memory the size
+  their type is supposed to be.
+
+  References have no arithmetic. References may not be converted to pointers.
+#)
+var my_ref &SomeStruct = &SomeStruct(2, "hello !")
+my_ref.* = SomeStruct(3, "world !")
+my_ref.field = 3 # Perfectly possible, without a need to explicitely dereference.
+
+#?
+#?   CASTING AND COERCION
+#?
+
+# Let's consider these types
+type Foo is struct (
+  field String
+)
+type Bar is struct (
+  field2 String
+)
+type FooBar is Foo + Bar
+
+# Types are coerced when variables are being assigned to a receiver of another type
+var a Int64
+var b Int32 = a # a is coerced
+var c FooBar
+var d &Bar = &c # d contains the Bar part of c
+var e &Foo = &c # e contains the Foo part of c
+
+fn useBar(b &Bar) -> null { }
+useBar(&c)
+
+# The cast operator is @
+# It keeps the "referenceness" of the original variable
+var u = 15@Int64
+var v = a@Int32
+var w = c@Bar # w is &Bar
+
+# A type that has several traits or several structs can specify which it wants to use
+# before a method or field access
+type MyType = Struct1 + Struct2
+implements TDoesStuff, TDoesMoreStuff
+var c = MyType()
+c@Struct1.field
+callFuncExpectingStruct1(c@Struct1)
+
+
+###################### PLAYGROUND ###############################
+
+# A type does not need a backing store and can just be itself
+namespace Card {
+
+  namespace Color {
+    type Spades
+    type Hearts
+    type Treble
+    type Diamonds
+  }
+
+  type Color is
+    | Color::Spades
+    | Color::Hearts
+    | Color::Treble
+    | Color::Diamonds
+
+  type Ace is Color
+  type King is Color
+  type Queen is Color
+  type Jack is Color
+  type Unit is (Int[1:10], Color)
+}
+
+type Card is
+  | Card::Ace
+  | Card::King
+  | Card::Queen
+  | Card::Jack
+  | Card::Unit
+
+# Nope.
+var c = Card::Unit(3, Card::Color::Spades)
+#(?
+  c2 kicks ass.
+#)
+var c2 = Card::Ace("hello !")

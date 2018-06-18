@@ -1,0 +1,55 @@
+
+type Predicate<T> = (item: T) => Boolean
+
+type Array<T> {
+  size: Int
+  alloc_size: Int
+  ptr: Pointer<T>
+}
+
+implement Array<T> {
+
+  #(!
+    Find an item and return its position in the array if found, or -1 if not found.
+  #)
+  findItem(item: T): Int {
+
+  }
+
+  find(predicate: (item: T) => Boolean): Int {
+
+  }
+
+  findItemAll(item: T): Int[] {
+
+  }
+
+  findAll(predicate: (item: T) => Boolean)
+
+  containsItem(item: T): Boolean {
+    this.findItem(item) > -1
+  }
+
+  shift(): T {
+
+  }
+
+  unshift(this: This, item: T) {
+    this.checkSize()
+  }
+
+  push(this: This, item: T) {
+    this.checkSize()
+  }
+
+  pop(): T {
+
+  }
+
+  checkSize() {
+    if (this.size == this.alloc_size) {
+      let new_ptr = Pointer.new(this.alloc_size + ALLOC_SIZE)
+    }
+  }
+
+}

@@ -1,0 +1,13 @@
+#(
+  EXPERIMENTAL
+
+  Ints or floats could have domains, which would make things somewhat clearer
+  to prevent "panics" on out of bounds access and division by 0.
+
+  If an Int can be 0, the compiler must prevent a division by this integer where 0 is unchecked.
+  If an Int is "unchecked".
+
+  Also, floats can be non-zero.
+
+  Or just handle NaN ?
+#)

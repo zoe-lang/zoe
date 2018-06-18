@@ -1,0 +1,44 @@
+#(?
+  Namespaces are a way of organizing code so that symbols
+  may not all appear at the root of a module. They are simply a way
+  of grouping code by domain.
+
+  Usually, the need is to static functions, constants and subtypes
+  related to a given type.
+#)
+
+# A namespace is not a symbol, but is most often grafted onto one.
+# Any symbol can have an associated namespace.
+type MyType = Int
+namespace MyType {
+  const variable = 2
+}
+
+const hello = MyType::var
+
+# On a trait
+trait @Trait {
+  someMethod() -> Void
+}
+namespace @Trait {
+  const SOME_CONSTANT = 2
+}
+@Trait::SOME_CONSTANT # is valid
+
+# On a variable
+const my_var = &SomeType()
+namespace my_var {
+  # ...
+}
+
+# A namespace may exist without a corresponding symbol, in which case
+# its name may only be cased like a variable.
+namespace io {
+  # ...
+}
+
+# Namespaces are affected by the local keyword.
+# When added onto a symbol, a namespace may not have a different locality
+# from its attached symbol.
+local type MyType = Int
+namespace MyType { #( ... #) } # this is invalid, the namespace must be local as well.

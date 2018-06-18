@@ -1,0 +1,190 @@
+package zoe
+
+type LexerError struct {
+	Filename string
+	Message  string
+	Line     int
+	Column   int
+	Offset   int
+}
+
+func (l LexerError) Error() string {
+	return l.Message
+}
+
+// Lex
+func (z *ZoeContext) Lex() error {
+	/*!types:re2c*/
+	data, length := z.data, len(z.data)
+	offset := 0
+	start := 0
+	line := 1
+	col := 1
+	cond := yyctop
+	comment := 0 // recursive comments
+	doc_comment := false
+
+	var marker int
+
+	var updateLines = func() {
+		for i := start; i < offset; i++ {
+			char := data[i]
+			if char == '\n' {
+				line++
+				col = 1
+			} else {
+				col++
+			}
+		}
+	}
+
+	var err = func() error {
+		offset--
+		updateLines()
+		return LexerError{Message: "invalid input '" + string(data[offset]) + "'", Line: line, Column: col, Offset: offset, Filename: z.Filename}
+	}
+
+	var addToken = func(kind TokenKind) {
+		n := &Token{}
+		// n.Value = string(value)
+		n.Context = z
+		n.Start = start
+		n.End = offset
+		n.Kind = kind
+		n.Line = line
+		n.Column = col
+		updateLines()
+
+		start = offset
+		n.EndLine = line
+		n.EndColumn = col
+
+		// count lines and columns before adding
+
+		if z.End == nil {
+			z.Start = n
+			z.End = n
+		} else {
+			z.End.Next = n
+			n.Prev = z.End
+			z.End = n
+		}
+	}
+
+	/*!re2c
+			re2c:eof = 0;
+			re2c:define:YYGETCONDITION = "cond";
+			re2c:define:YYSETCONDITION = "cond = @@";
+	    re2c:define:YYCTYPE = byte;          // configuration
+	    re2c:define:YYPEEK = "data[offset]";  // configuration
+	  	re2c:define:YYSKIP = "offset += 1";  // configuration
+	  	re2c:define:YYBACKUP = "marker = offset";
+	  	re2c:define:YYRESTORE = "offset = marker";
+	  	re2c:define:YYLESSTHAN = "offset >= length - 1";
+	    re2c:yyfill:enable = 0;              // configuration
+	    // re2c:flags:nested-ifs = 1;           // configuration
+
+			// keywords
+			<top> $ { return nil }
+			<top> * { return err() }
+
+			<top> [\n\t ]+ { addToken(TK_WHITESPACE); goto yyc_top }
+
+			<top> "namespace" => top { addToken(KW_NAMESPACE); goto yyc_top }
+			<top> "import"    => top { addToken(KW_IMPORT); goto yyc_top }
+			<top> "export"    => top { addToken(KW_EXPORT); goto yyc_top }
+			<top> "as"        => top { addToken(KW_AS); goto yyc_top }
+
+			<top> "local"     => top { addToken(KW_LOCAL); goto yyc_top }
+
+	  	<top> "var"       => top { addToken(KW_VAR); goto yyc_top }
+			<top> "const"     => top { addToken(KW_CONST); goto yyc_top }
+			<top> "type"      => top { addToken(KW_TYPE); goto yyc_top }
+	  	<top> "fn"        => top { addToken(KW_FN); goto yyc_top }
+			<top> "enum"      => top { addToken(KW_ENUM); goto yyc_top }
+			<top> "trait"     => top { addToken(KW_TRAIT); goto yyc_top }
+			<top> "struct"    => top { addToken(KW_STRUCT); goto yyc_top }
+
+			<top> "for"       => top { addToken(KW_FOR); goto yyc_top }
+			<top> "in"        => top { addToken(KW_IN); goto yyc_top }
+			<top> "while"     => top { addToken(KW_WHILE); goto yyc_top }
+			<top> "if"        => top { addToken(KW_IF); goto yyc_top }
+			<top> "else"      => top { addToken(KW_ELSE); goto yyc_top }
+
+			<top> "typeof"    => top { addToken(KW_TYPEOF); goto yyc_top }
+			<top> "is"        => top { addToken(KW_IS); goto yyc_top }
+			<top> "return"    => top { addToken(KW_RETURN); goto yyc_top }
+			<top> "yield"     => top { addToken(KW_YIELD); goto yyc_top }
+
+	  	<top> [$A-Za-z_] [_$A-Za-z0-9]* => top { addToken(TK_ID); goto yyc_top }
+			<top> [0-9]+ => top { addToken(TK_NUMBER); goto yyc_top }
+
+			<top> "\\" ("\\" [anbtsfvxr] | [^\n \a\t\b\v\r])  { addToken(TK_CHAR); goto yyc_top }
+
+			<top> "("   { addToken(TK_LPAREN); goto yyc_top }
+			<top> ")"   { addToken(TK_RPAREN); goto yyc_top }
+			<top> "["   { addToken(TK_LBRACE); goto yyc_top }
+			<top> "]"   { addToken(TK_RBRACE); goto yyc_top }
+			<top> "{"   { addToken(TK_LBRACKET); goto yyc_top }
+			<top> "}"   { addToken(TK_RBRACKET); goto yyc_top }
+			<top> "<"   { addToken(TK_LT); goto yyc_top }
+			<top> ">"   { addToken(TK_GT); goto yyc_top }
+			<top> "|"   { addToken(TK_PIPE); goto yyc_top }
+			<top> "/"   { addToken(TK_DIV); goto yyc_top }
+			<top> "/="  { addToken(TK_DIVEQ); goto yyc_top }
+			<top> "..." { addToken(TK_ELLIPSIS); goto yyc_top }
+			<top> "."   { addToken(TK_DOT); goto yyc_top }
+			<top> ","   { addToken(TK_COMMA); goto yyc_top }
+			<top> ":"   { addToken(TK_COLON); goto yyc_top }
+			<top> "::"  { addToken(TK_COLCOL); goto yyc_top }
+			<top> ";"   { addToken(TK_SEMICOLON); goto yyc_top }
+			<top> "+"   { addToken(TK_PLUS); goto yyc_top }
+			<top> "+="  { addToken(TK_PLUSEQ); goto yyc_top }
+			<top> "++"  { addToken(TK_PLUSPLUS); goto yyc_top }
+			<top> "-"   { addToken(TK_MIN); goto yyc_top }
+			<top> "-="  { addToken(TK_MINEQ); goto yyc_top }
+			<top> "--"  { addToken(TK_MINMIN); goto yyc_top }
+			<top> "*"   { addToken(TK_STAR); goto yyc_top }
+			<top> "*="  { addToken(TK_STAREQ); goto yyc_top }
+			<top> "&"   { addToken(TK_AMP); goto yyc_top }
+			<top> "&="  { addToken(TK_AMPEQ); goto yyc_top }
+			<top> "%"   { addToken(TK_MOD); goto yyc_top }
+			<top> "%="  { addToken(TK_MODEQ); goto yyc_top }
+			<top> "="   { addToken(TK_EQ); goto yyc_top }
+			<top> "=="  { addToken(TK_EQEQ); goto yyc_top }
+			<top> "=>"  { addToken(TK_FATARROW); goto yyc_top }
+			<top> "->"  { addToken(TK_ARROW); goto yyc_top }
+			<top> "!="  { addToken(TK_NOTEQ); goto yyc_top }
+			<top> "@"   { addToken(TK_AT); goto yyc_top }
+			<top> "?"   { addToken(TK_QUESTION); goto yyc_top }
+			<top> "?."  { addToken(TK_QUESTIONDOT); goto yyc_top }
+			<top> "?="  { addToken(TK_QUESTIONEQ); goto yyc_top }
+
+			<top> "#(" { doc_comment = false; comment++; goto yyc_comment }
+			<top> "#(?" { doc_comment = true; comment++; goto yyc_comment }
+			<top> "#" [^\n]* { addToken(TK_COMMENT); goto yyc_top }
+			<top> "\"" => str { addToken(TK_QUOTE); goto yyc_str }
+			<top> "'" ([^'] | "\\'")* "'" { addToken(TK_RAWSTR); goto yyc_top }
+
+			<comment> [^#]+ :=> comment
+			<comment> "#" :=> comment
+			<comment> "#(" { comment++; goto yyc_comment }
+			<comment> "#)" { comment--; if comment == 0 {
+				if doc_comment {
+					addToken(TK_DOCCOMMENT)
+				} else {
+					addToken(TK_COMMENT)
+				}
+				goto yyc_top
+				} else { goto yyc_comment } }
+			<comment> $ { err() }
+
+	  	<str> "\"" => top { addToken(TK_QUOTE); goto yyc_top }
+			<str> [^"]+ => str { addToken(TK_INSTR); goto yyc_str }
+
+			<str> * { return err() }
+			<str> $ { return err() }
+	*/
+
+	return nil
+}

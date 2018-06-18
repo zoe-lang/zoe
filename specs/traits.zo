@@ -1,0 +1,132 @@
+#(?
+  Structural traits ?
+  Allow one or more traits (and have fat fat ... pointers ?) => Automatic interface creation that implements both. ?
+#)
+
+# Several traits can be required at once. This creates an anonymous trait.
+fn test(val @Node<Any>@Printable) -> Void {
+
+}
+
+# At it's simplest, a trait is an interface. It defines a set of methods that will
+# have to be implemented on the types that declare they implement the trait.
+trait @SomeTrait {
+
+  # This has to be implemented
+  fromBytes(bytes: Bytes[]) -> Error | Void
+
+  # although contrary to pure interfaces, a trait may have an implementation for
+  # some of the methods it defines
+  fromString(string: String) -> Error | Void {
+    return this.fromBytes(string.asBytes())
+  }
+
+}
+
+# A trait may implement another trait. Defining the original trait now gives
+# the type
+trait @Something { ... }
+implement @Something@SomeOtherTrait {
+  # ...
+}
+
+type MyConcreteType = struct {
+  some_var: SomeType # let's suppose SomeType implements @SomeOtherTrait
+}
+# An implement block must be in the same module as the type it's from.
+# If in a different module, a new type has to be created to accomodate it.
+implement MyConcreteType {
+  # In an implement block, methods coming from another implement block
+  # that fit the signature of an asked method of the same name do not have
+  # to be respecified.
+}
+
+implement @SomeTrait for MyConcreteType {
+
+  # In a trait implementation, types may not be specified, as they are known.
+  fromBytes(bytes) {
+    return void
+  }
+
+  # Existing methods may also be overridden.
+  fromString(string) { #( ... #) }
+}
+
+# If wanted, a type that has implements can have them overriden when recreating a new type
+type MyConcreteType2 = MyConcreteType
+implement @SomeTrait for MyConcreteType2 {
+  # This definition would override @SomeTrait from the original MyConcreteType
+}
+
+# A trait may be generic. A generic trait may be implemented several times on a type.
+# Warning ; when doing so, using a method with '.' will always try to use the last
+# one defined. THERE IS NO OVERLOADING.
+trait @Gen<T> {
+  doStuff() -> T { }
+}
+
+trait @Name1 {
+  method() -> Void
+}
+trait @Name2 {
+  otherMethod() -> Void
+}
+
+type SomeType = struct { #(...#) }
+implement SomeType {
+  method() -> Void {
+    # ...
+  }
+}
+implement @Gen<Int> for SomeType {
+  doStuff() -> Int { 1 }
+}
+implement @Gen<Float> for SomeType {
+  doStuff() -> Float { 1.23 }
+}
+implement @Name1 for SomeType { #( already satisfied #) }
+implement @Name2 for SomeType { otherMethod = this.method }
+# ...
+implement @Trait3 for SomeType ( theMethod = this@Name1.method )
+
+let s = SomeType()
+s.doStuff() # This is the float version
+s@Gen<Int>.doStuff() # this is how to call s@Gen<Int>. Note that @Gen must be in scope.
+
+# Should traits be generic ?
+# No, because that would mean a trait could be implemented several times onto a type (unless disallowed, but then
+# that's kind of sad).
+trait @Readable {
+  read(@FromBytes[]) -> Int | Eof | @Error
+  close() -> Ok | @Error
+  isClosed() -> Bool
+}
+
+trait @Writable {
+  close() -> Ok | @Error
+}
+
+import 'math' { max }
+
+trait @Tree<T> {
+  children: this[] | null
+
+  visit() -> Void
+  maxDepth() -> Int = 1 + max(...(this.children?.map(c => c.maxDepth() or [0])))
+}
+
+struct Test {
+  children: this[] | null
+}
+
+implement Test {
+  doStuff() -> Void { stub }
+}
+
+implement Test@Tree<this> {
+
+}
+
+implement Test@Readable {
+
+}

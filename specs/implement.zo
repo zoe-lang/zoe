@@ -1,0 +1,58 @@
+#(?
+  Any type, traits included, may have an implement block.
+#)
+
+## mytype.zo
+
+type MyType = struct {
+  str: String
+  num: Int = 1
+ } implements {
+  # Methods available on a type always follow
+  pure method1() -> String = "{this.num}: {this.str}"
+  pure method2() -> Number = this.num * 2
+ }
+
+
+# mytype2.zo
+import "./mytype" { MyType as BaseMyType }
+
+# This is a type alias
+type MyType = BaseMyType implements {
+  # This statement will hide method2 from this MyType version
+  # It does not provide a new definition for the method, so it is usable by
+  # the other methods in the implement
+  local method2
+  local num # Suddenly, the num field does not appear anymore outside this type.
+
+  # A method redefinition does not need to respect the original's signature
+  # implements are not interface ; they are just VTables that the compiler see.
+  method1(arg: String) -> String = "{this.num}:{this.arg}: {this.str}"
+  method4() -> Number = this.method2() * 4
+}
+
+
+
+# main.zo
+
+import "./mytype" { MyType as MyTypeOrig }
+import "./mytype2" { MyType as MyTypeAugmented }
+
+fn doStuff(m: *MyTypeAugmented) {
+  log.print(m.method1("hey"))
+}
+
+fn main() {
+  let m1 = MyType{}
+  m1.method1() # Valid
+  m1.method4() # does not exist
+  let m2: MyTypeAugmented = m1 # Perfectly valid
+  m2.method2()
+  doStuff(m1) # Works too, will however call the MyTypeAugmented.method1(), not MyType.method1()
+}
+
+
+####
+import "time" { Date, Time, Interval }
+Date::parseIso("2020-05-01") # Defaults to local timezone
+Interval::parse("2 days")

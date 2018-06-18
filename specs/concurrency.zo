@@ -1,0 +1,38 @@
+#(?
+  Zoe adopts a coroutine approach for concurrency, where coroutines may be scheduled
+  onto different threads (m x n concurrency model).
+
+  As such, it will provide concurrency primitives (locks/mutexes and the likes) and should
+  include the https://github.com/google/sanitizers library for race detection.
+  Zoe does not aim to create a "bulletproof" model for concurrency but should try to provide
+  tools for making it a little simpler (pure data types ?)
+
+  The key is that concurrency should be transparent ; threads are blocked when awaiting
+  on stuff.
+
+  ----
+
+  What about thread ownership ?
+   -> The memory model would then mostly worry about thread local variables, pausing a single
+     thread whenever it needs to free memory for it. This would also allow the GC to move
+     stuff around since it would *know* which memory parts can not be accessed by another thread.
+
+     A special case would be made for "shared" variables, that would need to be allocated elsewhere and
+     for which locks would have to be acquired (or maybe have the GC "stop the world", but only
+     for those threads that are actively using shared variables ?)
+
+     There could also be something about "handing over" memory, where one thread is the "main" user
+     of some data...
+#)
+
+# A future may be awaited
+type Future = struct {
+
+}
+
+# Empty struct
+type Ok = struct {  }
+
+# ??
+type Result<T> = T
+

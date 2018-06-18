@@ -1,0 +1,53 @@
+#(?
+  Types are meant to be augmented in Zoe.
+
+  If a particular package lacks some features deemed essential, Zoe offers an augmentation mechanism,
+  where methods can be added or shadowed to a given type.
+
+  Augmentations also can remove methods from the existing ones for API purposes.
+
+  Modules then have to re-export the newly created type, as they are not grafted onto the original ones.
+
+  Hiding methods may be used to create a type in a package, then shadowing it in the index.zo before
+  reexporting it to the outside world, thus marking part of the API as part of the package only.
+  Or inversely, a PublicType may be created and an InternalType used inside the API with more methods.
+
+  QUESTION: how does one discourage from accessing the underlying implement ? What is the link with struct
+  fields ?
+#)
+
+import 'std/string' ( String as BaseString )
+#> type BaseString = __fd0s98u12::String
+
+# This type stays entirely compatible with the original String type and values may
+# be freely assigned from one type to the other.
+type String = BaseString
+implements {
+
+  #(?
+    add a replaceCustom()
+    In its implementation, replaceCustom may use methods hidden
+  #)
+  doStuff() -> String {
+    return BaseString.replace(this, 'a', 'aa')
+  }
+
+  #? replace shadows the original replace() signature, but does not disable it entirely.
+  replace(arg1 String, arg2 String) -> String {
+    # We can always cast back to this
+    return this@BaseString.replace(arg1, arg2 + '/')
+  }
+}
+
+#(?
+  If the type alias is for a subdomain of values that should not be interchangeably
+  used, what should we do ?
+#)
+type String2 = BaseString
+implements {
+  # Hide BaseString's methods from the resulting type.
+  local BaseString
+
+  # Or, just hide some methods that we don't want reexported
+  local field@BaseString
+}

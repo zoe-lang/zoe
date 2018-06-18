@@ -1,0 +1,8 @@
+
+type Toto is
+  | Test
+  | Test2
+  | Test3
+  | null
+
+type Toto2 is Hey | null

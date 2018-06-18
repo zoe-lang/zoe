@@ -1,0 +1,9 @@
+var a = 1
+var a: String = "toto"
+fn test(a: String, b: ...String = 2,) -> void {
+  return a + a
+}
+
+fn test2(a: String = 2, z = 3) -> void {
+
+}

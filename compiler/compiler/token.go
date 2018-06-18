@@ -1,0 +1,91 @@
+package zoe
+
+import "encoding/json"
+
+type TokenKind int
+
+type Position struct {
+	// should I include the source code as well ?
+	Context   *ZoeContext
+	Start     int
+	End       int
+	Line      int
+	Column    int
+	EndLine   int
+	EndColumn int
+}
+
+func (p *Position) String() string {
+	return string(p.Context.data[p.Start:p.End])
+}
+
+type Token struct {
+	Position
+	Kind TokenKind
+	Next *Token
+	Prev *Token
+}
+
+func (t *Token) MarshalJSON() ([]byte, error) {
+	if t == nil {
+		return []byte("<nil>"), nil
+	}
+	return json.Marshal(map[string]interface{}{
+		"Value": t.String(),
+	})
+}
+
+func (t *Token) Is(tk TokenKind) bool {
+	if t != nil && t.Kind == tk {
+		return true
+	}
+	return false
+}
+
+func (t *Token) IsSkippable() bool {
+	kind := t.Kind
+	return kind == TK_WHITESPACE || kind == TK_COMMENT
+}
+
+// NextMeaningfulToken returns the next non-skippable token
+func (t *Token) NextMeaningfulToken() *Token {
+	iter := t.Next
+	for iter != nil {
+		if !iter.IsSkippable() {
+			return iter
+		}
+		iter = iter.Next
+	}
+	return nil
+}
+
+func (t *Token) String() string {
+	if t == nil {
+		return "<nil>"
+	}
+	if t.Kind < 0 {
+		return "ERROR"
+	}
+	if t.Kind == TK_EOF {
+		// return "EOF"
+		return "*"
+	}
+	// return fmt.Sprintf("%#v", string(z.Context.data[z.Start:z.End]))
+	return t.Position.String()
+}
+
+func (t *Token) Debug() string {
+	return t.String()
+	// if z == nil {
+	// 	return "<nil nil>"
+	// }
+	// return z.KindStr() + " " + z.String()
+}
+
+func (t *Token) KindStr() string {
+	if t.Kind == -1 {
+		return "FAKE"
+	}
+	return tokstr[t.Kind]
+
+}

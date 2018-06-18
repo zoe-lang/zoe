@@ -1,0 +1,60 @@
+#(
+  Zoe first compiles to a Middle Intermediate Representation, before
+  trying to compile code with LLVM.
+
+  There are no operators, only function calls.
+#)
+
+fn test(arr Slice<Int32>) -> Void {
+  for var i = 0; i < l; i++ {
+    arr[i] = i * 2
+  }
+}
+#>>>>
+fn test(arr Slice<Int32>) -> Void {
+  # how does test know about arr ?
+  # what about debug symbols
+  var i Int32
+  var _cond Boolean
+
+  %loop
+
+  Int32.lt(_cond, i, l)
+  gotoif _cond, %loopend
+  # That or i = Int32.add(i, 1)
+  Int32.add(i, i, 1)
+  goto %loop
+
+  %loopend
+}
+
+fn test2(arr Slice<Int32>) -> Slice<Boolean> {
+  # Creates a Slice<Boolean>
+  var test = for var i, elt in arr {
+    elt == 32 # Do we need to return something ?
+  }
+
+  return test
+}
+#>>>>
+fn test2(arr Slice<Int32>) -> Slice<Boolean> {
+  var _test_len Size = Slice<Int32>@Iterator::KnownSize.getSize(arr)
+  var test Slice<Boolean> = Slice::create<Boolean>(_test_len)
+
+  var _iter SliceIterator<Int32> = Slice<Int32>@Iterator<(Size, Int32)>.iterator(arr)
+  var _cond Boolean
+  var i = 0
+  var _bool Boolean
+  %loop:
+  _cond = SliceIterator<Int32>.isDone(_iter) # Condition will be inlined
+  gotoif _cond, %loopend
+  _val = SliceIterator<Int32>.next(_iter) # So will the recuperation of the values
+  i = _val.i
+  elt = _val.elt
+  _bool = Int32.equals(elt, 32)
+  Slice<Boolean>.push(test, _bool)
+  goto %loop
+
+  %loopend:
+  return test
+}

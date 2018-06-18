@@ -1,0 +1,58 @@
+#(
+  There are generics in Zoe, though they're simple.
+#)
+
+$if $.target == 'windows' {
+  type MyType<T> = struct {
+
+  }
+}
+
+type MyType:$T = struct {
+  field $T
+}
+
+# Generics may require the type they handle implement traits
+type MyType2 : $T@Readable = struct {
+}
+
+# Multiple types may be specified
+type MyType3 : $T : $U@Printable = struct {
+
+}
+
+# Generic arguments may also receive the result of a valid expression
+type Yes : $T : $expr = struct {
+  field: $T
+  field2: Int32 = $expr
+}
+let v = Yes::new:String()
+
+
+############ Compile time
+# Objectives :
+#   - introspect types statically, before compilation, to create different behaviours in generic functions
+#   - compile time must be clearly different from runtime code to indicate the staticity
+#   - there are restrictions on what is creatable at compile time...
+
+# At compile time, types are introspectable. These statements are inlined
+fn toString:$U (u $U) -> String {
+  $.log('this method is deprecated') # compile time log
+  if $.hasTrait(u, @Stringable) { # if is inline since it only contains comptime expressions
+    return u@Stringable.toString()
+  }
+
+  let res = StringBuffer()
+
+  if let $cvar = $.asTrait($U) { # Probably should be some compiler intrinsics instead...
+    res.write("{$.name($U)}\{")
+    for $method in $.methods($cvar) { # for is inlined
+      res.write("{$.name($method)}({
+        $method.args.map($a => "{$.name($a)}: {$.name($.type($a)}").join(', ')
+        }) -> {$method.return_type}")
+      )
+    }
+  }
+
+  return res.getString()
+}

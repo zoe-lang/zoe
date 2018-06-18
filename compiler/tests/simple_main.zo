@@ -1,0 +1,13 @@
+import 'io' as io
+import 'mod1' ( val )
+import 'fmt' ( hello, world as ok )
+
+var a: String, b: String
+var b = 2
+var c, d = "a", 3
+
+fn main() -> void {
+  var a = 23
+  io::print(5 + 2)
+  callfn(4, 3, 2 + 1)
+}

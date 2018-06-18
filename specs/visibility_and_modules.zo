@@ -1,0 +1,53 @@
+#(
+  Import statements
+#)
+
+# absolute names starting with an URL resolve to a package location
+import 'github.com/ceymard/package' ( CONSTANT, variable, Type )
+# Absolute names are from the standard library
+import 'net/http' ( HTTPServer )
+# Importing a local package is done with relative paths
+import './my_package' ( MyType )
+# Inside the current package, imports may also use the URL version of the package
+# if it is defined in zoe.toml
+
+# Import specific symbols and optionally rename them internally
+import 'net' ( Datagram, Ipv4 as Ip )
+# Import a whole module as a namespace
+# modules may only be imported using variable case names.
+import 'net/http' as http
+# There is *no* import everything into local scope, as it goes against the "everything is resolvable inside the file" principle
+
+# everything is exported by default from a module
+const VAR = 3
+let my_value = Ipv4::new(...)
+
+# Prefix with local to hide symbols from being exported
+local const NAME = 'hello'
+# This implementation is local to this package
+local implement String ( )
+
+# Imports are local by default. Re-exporting them has to be done explicitely
+export './my_package' ( MyType, myVar )
+
+# This is a compile error, as there is already an HTTPServer symbol exported by the implement
+export 'net/http' ( HTTPServer )
+
+#(?
+  Namespaces may import / export symbols the same way modules do (modules ARE namespaces)
+  A namespace is itself a symbol, optionally grafted onto
+  Any symbol can have a namespace. The visibility of the namespace is then the same as the one of the symbol.
+#)
+
+namespace MyNamespace (
+  # symbol1 and symbol2 are local
+  import SomeType::namespace ( symbol1, symbol2 )
+  const my_var = 2
+)
+
+
+
+type MyType = struct ( )
+namespace MyType (
+
+)

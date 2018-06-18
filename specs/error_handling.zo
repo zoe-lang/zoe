@@ -1,0 +1,45 @@
+#(
+  Zoe uses error by values.
+  Errors are handled specially by the compiler.
+#)
+
+# somewhere, in the compiler
+type Error is struct (
+  message String
+  $if $.options.full_errors { # true in debug mode, can be kept in production code if desired
+    filename String = $.vars.current_file
+    line Size = $.vars.current_line
+    column Size = $.vars.current_column
+    wrapped &error | null # null by default.
+  }
+)
+implements {
+  wrap(err error) -> error {
+    err.wrapped = &this
+    err
+  }
+}
+
+type FileError is Error + struct (
+  filename String
+)
+
+# The compiler knows that FileError is an error, and thus allows for it to be used in try blocks
+fn test() -> Int32 | FileError {
+  if some_condition {
+    return 32
+  }
+  return FileError(message = 'Something happened', filename = 'Yes')
+}
+
+# error is like any, except it's only error types
+fn test2() -> SomeResult {
+  var te = try test() catch 43
+  # or
+  var te = try test() catch (err) {
+    return err.wrap(SomeError('yo.', field = 'doing stuff', other_info = 3432))
+  }
+
+  # try catch with a block is not implemented because we want to force the hand
+  # of the programmer to explicitely handle errors.
+}

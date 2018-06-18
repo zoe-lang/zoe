@@ -1,0 +1,2 @@
+var toto = 1
+"toto is {1 + 3}"

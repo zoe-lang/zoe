@@ -1,0 +1,29 @@
+#(
+  A module is basically a big namespace, except the imports are done
+  on strings
+#)
+
+# Import modules from std
+import 'http' as http
+import 'http' ( Server )
+
+# Import modules in downloadable packages
+# Downloadable packages are recognizable by the fact that they have a '.' somewhere
+# in their name.
+import 'github.com/ceymard/myproject' ( SomeExport )
+
+# Import local module, from a cache managed by zoe.
+# It is not possible to do ../module, root imports are required for this.
+import '.mod1/hey' as hey
+
+# Import from the root of the package, ie the closest parent folder where zoe.toml is found
+# It is an error if no package is found.
+import '//parser/types' ( Ast, Node )
+
+# Any module can contain a main() function
+# main takes no params and returns Void.
+# For exit status, use os.exit(Int) or os.exitError(Int, Error)
+# The main function chosen for the executable is the one of the targeted module.
+fn main() -> Void {
+
+}
