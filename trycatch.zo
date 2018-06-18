@@ -1,0 +1,17 @@
+
+
+function main() {
+	try {
+		// This is a comment.
+		const var = "hello !"
+		const my_array = ["haha", "hoho"]
+		let pouet = fs.write("file.txt", "pouet", "utf-8")
+		// Hey...
+			or fs.IOError(e) return MyError.new(e.message)
+
+		my_array.push("hey")
+
+	} match error with
+		| fs.IOError(e) => MyError.new("Could not write the file")
+		| _ => ()
+}

@@ -1,0 +1,40 @@
+
+// Different problems
+//   - Data races
+//   - Deadlocks
+
+import task
+
+function main(argv: String[]) {
+
+  /**
+    Whenever st is used, a lock is issued on him.
+
+   */
+  let shared st = MyStruct.new("hello !")
+
+  readonly lock st {
+
+    task.schedule(async a => {
+      // what happens if we use st here ?
+      // for all we know, this might actually be run at the very
+      // same time as this function.
+    })
+
+    // wait for when this task will be done ?
+    await task.schedule(async a => {
+      // ...
+    })
+
+  }
+
+  lock st {
+    // In this block, st is no longer shared. Since we're locked,
+    // we're ok !
+  }
+
+  task.schedule(async a => {
+
+  })
+
+}

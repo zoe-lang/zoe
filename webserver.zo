@@ -1,0 +1,21 @@
+
+import {
+  App,
+  Route,
+  Method as M,
+  render_file
+} from web
+
+
+/**
+ */
+function main() {
+
+  const server = App.new()
+
+  server.routes([
+    Route.new(M.ALL, "index.html", render_file("/index.html")),
+    Route.new(M.GET, "api/method", my_method)
+  ])
+
+}
