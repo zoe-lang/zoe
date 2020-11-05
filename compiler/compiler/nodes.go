@@ -42,14 +42,16 @@ const (
 	NODE_TERMINAL = "terminal" // Id, Easy strings, Number, Boolean
 	NODE_ERROR    = "error"
 
+	NODE_FNDECL = "fndecl"
+	NODE_VAR    = "var"
+	NODE_TYPE   = "type"
+
 	NODE_FNDEF  = "fndef"
 	NODE_FNCALL = "call"
 	NODE_LOCAL  = "local"
-	NODE_VAR    = "var"
 	NODE_CONST  = "const"
 	NODE_IMPORT = "import"
 	NODE_RETURN = "return"
-	NODE_TYPE   = "type"
 
 	// NODE_LIST denotes that the node's children are a list
 	NODE_NAMESPACE_ACCESS = "::"
@@ -73,13 +75,12 @@ const (
 	NODE_FOR       = "for"
 	NODE_IF        = "if"
 
-	NODE_STR      = "str"
-	NODE_LIST     = "lst"
-	NODE_SEMILIST = "block"
-	NODE_UNION    = "union"
-	NODE_INDEX    = "index"
-	NODE_BLOCK    = "block"
-	NODE_DECLS    = "decls"
+	NODE_STR   = "str"
+	NODE_LIST  = "lst"
+	NODE_UNION = "union"
+	NODE_INDEX = "index"
+	NODE_BLOCK = "block"
+	NODE_DECLS = "decls"
 )
 
 func NewTerminalNode(tk *Token) *Node {

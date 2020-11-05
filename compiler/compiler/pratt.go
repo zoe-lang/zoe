@@ -129,7 +129,13 @@ func terminal(tk ...TokenKind) {
 	}
 }
 
-func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKind) {
+// Group expression between two surrounding tokens
+// nk : the node of the list returned when nud
+// lednk : the node of the list returned when led
+// opening : the opening token
+// closing : the closing token
+// reduce : whether it is allowed to reduce the list to the single expression
+func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKind, reduce bool) {
 	s := &syms[opening]
 	s.lbp = lbp
 	s.led = func(c *ZoeContext, tk *Token, left *Node) *Node {
@@ -141,7 +147,7 @@ func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKi
 			}
 			contents = append(contents, c.Expression(0))
 		}
-		if len(contents) == 1 && contents[0].Kind == NODE_LIST {
+		if reduce && len(contents) == 1 && !c.Peek(TK_ARROW, TK_FATARROW) {
 			contents[0].Token = tk
 			return contents[0]
 		}
@@ -157,7 +163,7 @@ func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKi
 			}
 			contents = append(contents, c.Expression(0))
 		}
-		if len(contents) == 1 && !c.Peek(TK_ARROW, TK_FATARROW) {
+		if reduce && len(contents) == 1 && !c.Peek(TK_ARROW, TK_FATARROW) {
 			contents[0].Token = tk
 			return contents[0]
 		}

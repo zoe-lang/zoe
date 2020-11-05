@@ -41,8 +41,8 @@ func (c *ZoeContext) testFileAst(n *Node) {
 		color.NoColor = p
 
 		if string(test) != string(str) {
-			log.Print("orig:     ", yel(string(test)))
-			log.Print("compared: ", red(string(str)))
+			log.Print("expected: ", yel(string(str)))
+			log.Print("result:   ", red(string(test)))
 			log.Print("NEQ")
 		} else {
 			log.Print("EQ: ", green(string(str)))

@@ -1,9 +1,5 @@
 package zoe
 
-import (
-	"fmt"
-)
-
 var lbp_equal = 0
 var lbp_commas = 0
 var rbp_arrow = 0
@@ -88,12 +84,12 @@ func init() {
 	lbp += 2
 
 	// When used right next to an expression, then paren is a function call
-	surrounding(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN)
+	surrounding(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
 
 	lbp += 2
 
-	surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET)
-	surrounding(NODE_LIST, NODE_INDEX, TK_LBRACE, TK_RBRACE)
+	surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET, false)
+	surrounding(NODE_LIST, NODE_INDEX, TK_LBRACE, TK_RBRACE, false)
 
 	lbp += 2
 	rbp_arrow = lbp - 1
@@ -208,72 +204,9 @@ func parseFn(c *ZoeContext, tk *Token, _ int) *Node {
 		if c.Peek(TK_FATARROW) {
 			// fn a => ..., we have to reset the parser
 			c.Current = idtk
-			return NewNode(NODE_FNDEF, tk.Position, c.Expression(0))
+			return NewNode(NODE_FNDECL, tk.Position, c.Expression(0))
 		}
-		return NewNode(NODE_FNDEF, tk.Position, id, c.Expression(0))
+		return NewNode(NODE_FNDECL, tk.Position, id, c.Expression(0))
 	}
 	return c.Expression(0) //NewNode(NODE_FNDEF, tk.Position, c.Expression(0))
-}
-
-//////////////////////// KWPARSER //////////////////////////
-// The kwParser is just a tool to help us parse the beginning of a definition
-// since the keywords could appear in a funny order or be used incorrectly,
-// which it should check
-
-var kwDeclaration = newKwParser(KW_VAR, KW_FN, KW_LOCAL, KW_TYPE)
-
-func newKwParser(kws ...TokenKind) func() *kwParser {
-	allowed := make(map[TokenKind]struct{})
-	for _, k := range kws {
-		allowed[k] = struct{}{}
-	}
-	return func() *kwParser {
-		return &kwParser{
-			mp:      make(map[TokenKind]*Token),
-			allowed: allowed,
-			dups:    make([]*Token, 0),
-		}
-	}
-}
-
-type kwParser struct {
-	mp      map[TokenKind]*Token
-	allowed map[TokenKind]struct{}
-	dups    []*Token
-}
-
-func (k *kwParser) isAllowed(tk *Token) bool {
-	if _, ok := k.allowed[tk.Kind]; ok {
-		return true
-	}
-	return false
-}
-
-func (k *kwParser) addToken(c *ZoeContext, tk *Token) bool {
-	if k.isAllowed(tk) {
-		if _, ok := k.mp[tk.Kind]; ok {
-			k.dups = append(k.dups, tk)
-			c.reportError(tk.Position, fmt.Sprintf(`unnecessary '%s'`, tk.String()))
-		} else {
-			k.mp[tk.Kind] = tk
-		}
-		return true
-	}
-	return false
-}
-
-func (k *kwParser) parse(c *ZoeContext) {
-	for c.Current != nil {
-		if !k.addToken(c, c.Current) {
-			break
-		}
-		c.advance()
-	}
-}
-
-func (k *kwParser) has(tk TokenKind) bool {
-	if _, ok := k.mp[tk]; ok {
-		return true
-	}
-	return false
 }
