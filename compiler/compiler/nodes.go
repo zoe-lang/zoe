@@ -224,6 +224,12 @@ func (n *Node) Debug() string {
 	}
 }
 
+func (n *Node) String() string {
+	c := n.Position.Context
+	p := n.Position
+	return string(c.data[p.Start:p.End])
+}
+
 // func (n *Node) WriteTree(w *ZoeWriter, indent string) {
 // 	l := len(n.Children)
 // 	// lst := "└ "

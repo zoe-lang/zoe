@@ -43,9 +43,9 @@ func (c *ZoeContext) testFileAst(n *Node) {
 		if string(test) != string(str) {
 			log.Print("expected: ", yel(string(str)))
 			log.Print("result:   ", red(string(test)))
-			log.Print("NEQ")
+			log.Print("src: ", n.String())
 		} else {
-			log.Print("EQ: ", green(string(str)))
+			log.Print("ok: ", green(string(str)))
 		}
 	}
 
