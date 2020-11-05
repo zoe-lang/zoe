@@ -157,7 +157,7 @@ func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKi
 			}
 			contents = append(contents, c.Expression(0))
 		}
-		if len(contents) == 1 && contents[0].Kind == NODE_LIST {
+		if len(contents) == 1 && !c.Peek(TK_ARROW, TK_FATARROW) {
 			contents[0].Token = tk
 			return contents[0]
 		}
