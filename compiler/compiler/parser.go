@@ -14,13 +14,6 @@ func init() {
 		syms[i].led = ledError
 	}
 
-	// @ in first position, typically after the fn keyword
-	// nud(TK_AT, func(c *ZoeContext, tk *Token, rbp int) *Node {
-	// 	if c.Peek(TK_LT) { //
-
-	// 	}
-	// })
-
 	nud(TK_LBRACKET, func(c *ZoeContext, tk *Token, rbp int) *Node {
 		res := make([]*Node, 0)
 
@@ -221,7 +214,7 @@ func normalizeVarDecls(node *Node) *Node {
 		for i, c := range node.Children {
 			vars[i] = normalizeVarDeclNode(c)
 		}
-		return NewNode(NODE_LIST, node.Position, vars...)
+		return NewNode(NODE_FRAGMENT, node.Position, vars...)
 	}
 	return normalizeVarDeclNode(node)
 }

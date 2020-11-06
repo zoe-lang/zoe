@@ -1,24 +1,21 @@
 #(?
-  (var (= b
-      (fndef (lst) 2)
-  ))
+  (decl:var
+    b
+    (infer)
+    (fndef (signature [] (infer)) {2})
+  )
 #)
 var b = fn () => 2
 
 #(?
-
-  (var (= b
+  (decl:var
+    b
+    (infer)
     (fndef
-      (proto
-        (lst)
-        (lst (var (":" a String)))
-        String
-      )
-      (block
-        (return a)
-      )
+      ( signature [(: a String)] String )
+      {(return a)})
     )
-  ))
+  )
 
 #)
 var b = fn (a: String) -> String => { return a }
