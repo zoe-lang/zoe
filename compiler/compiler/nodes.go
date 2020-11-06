@@ -41,16 +41,17 @@ const (
 	NODE_ERROR    = "error"
 
 	NODE_FNDECL    = "decl:fn"
-	NODE_VAR       = "decl:var"
-	NODE_TYPE      = "decl:type"
+	NODE_VARDECL   = "decl:var"
+	NODE_TYPEDECL  = "decl:type"
 	NODE_NAMESPACE = "decl:namespace"
 
-	NODE_FNDEF  = "fndef"
-	NODE_FNCALL = "call"
-	NODE_LOCAL  = "local"
-	NODE_CONST  = "const"
-	NODE_IMPORT = "import"
-	NODE_RETURN = "return"
+	NODE_TEMPLATE = "template"
+	NODE_FNDEF    = "fndef"
+	NODE_FNCALL   = "call"
+	NODE_LOCAL    = "local"
+	NODE_CONST    = "const"
+	NODE_IMPORT   = "import"
+	NODE_RETURN   = "return"
 
 	// NODE_LIST denotes that the node's children are a list
 	NODE_NAMESPACE_ACCESS = "::"
@@ -135,6 +136,13 @@ func (n *Node) IsValidVariableName() bool {
 	return unicode.IsLower(run)
 }
 
+func (n *Node) EnsureList() *Node {
+	if !n.Is(NODE_LIST) {
+		return WrapNode(NODE_LIST, n)
+	}
+	return n
+}
+
 func (n *Node) Is(nk NodeKind) bool {
 	return nk == n.Kind
 }
@@ -185,41 +193,41 @@ func (z *ZoeWriter) Write(strs ...string) {
 	}
 }
 
+func (n *Node) debugChildren() string {
+	if len(n.Children) == 0 {
+		return ""
+	}
+	strs := make([]string, len(n.Children))
+	for i, chld := range n.Children {
+		strs[i] = chld.Debug()
+	}
+	return strings.Join(strs, " ")
+}
+
 func (n *Node) Debug() string {
 	switch n.Kind {
 	case NODE_ERROR:
 		rest := ""
 		if len(n.Children) > 0 {
-			strs := make([]string, len(n.Children))
-			for i, chld := range n.Children {
-				strs[i] = chld.Debug()
-			}
-			rest = " ..." + strings.Join(strs, " ")
+			rest = " ..." + n.debugChildren()
 		}
 		return fmt.Sprintf("(%s %#v%s)", red(NODE_ERROR), n.Token.String(), rest)
 	case NODE_TERMINAL:
 		tkd := n.Token.Kind
 		switch tkd {
 		case TK_ID:
-			return mag(n.Token.String())
+			return cyan(n.Token.String())
 		case TK_RAWSTR:
 			return green(n.Token.String())
 		default:
 			return yel(n.Token.String())
 		}
+	case NODE_BLOCK:
+		return fmt.Sprint(mag("{"), n.debugChildren(), mag("}"))
+	case NODE_LIST:
+		return fmt.Sprint(mag("["), n.debugChildren(), mag("]"))
 	default:
-		strs := make([]string, len(n.Children))
-		for i, chld := range n.Children {
-			strs[i] = chld.Debug()
-		}
-
-		kind := string(n.Kind)
-		switch kind {
-		default:
-			kind = cyan(kind)
-		}
-
-		return fmt.Sprintf("(%s %s)", cyan(n.Kind), strings.Join(strs, " "))
+		return fmt.Sprint(grey("("), n.Kind, " ", n.debugChildren(), grey(")"))
 	}
 }
 

@@ -1,5 +1,20 @@
-fn main() -> void { }
-fn test@[$T](a: $T) -> { }
+#(?
+  (decl:fn test
+    (template
+      [$T]
+      (fndef (signature [(: arg $T)] $T) {})
+    )
+  )
+#)
+template $T
+fn test(arg: $T) -> $T { }
+
+#(?
+  (decl:type Cbk
+    (signature [String Int] void)
+  )
+#)
+type Cbk is fn(String, Int) -> void
 
 var a = fn (a: String = "") -> String { a }
 
@@ -8,8 +23,7 @@ var a = fn (a: String = "") -> String { a }
   (decl:var a
     (fndef
       (signature
-        (lst)
-        (lst (: a (infer)) (: b (infer)) )
+        [(: a (infer)) (: b (infer))]
         (infer)
       )
       (+ a c)
@@ -23,33 +37,17 @@ var a = fn (a, b) => a + c
     ba
     (fndef
       (signature
-        (lst $T $U)
-        (lst (: a String) (: b $T))
+        [$T $U]
+        [(: a String) (: b $T)]
         $U
       )
-      (block
+      {
         (return (. a b))
-      )
+      }
     )
   )
 #)
 fn ba@<$T, $U>(a: String, b: $T) -> $U { return a.b }
-
-#(?
-  (decl-var (= b
-    (fndef
-      (signature
-        (lst $T $U)
-        (lst (: a String) (: b $T))
-        (infer)
-      )
-      (block
-        (@ toto $U)
-      )
-    )
-  ))
-#)
-var b = fn @[$T, $U](a: String, b: $T) => toto@$U
 
 var map = fn @[$T, $U](a: Iterable<$T>, func: fn (arg: $T) -> $U) -> Slice<$U> {
   var res = Slice::create@$U(a.length ?? 0)
@@ -63,8 +61,7 @@ var map = fn @[$T, $U](a: Iterable<$T>, func: fn (arg: $T) -> $U) -> Slice<$U> {
     (. a map)
     (fndef
       (signature
-        (lst)
-        (lst (: a (infer)))
+        [(: a (infer))]
         (infer)
       )
       (block

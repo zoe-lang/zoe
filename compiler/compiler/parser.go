@@ -51,7 +51,7 @@ func init() {
 
 	nud(KW_FOR, parseFor)
 	nud(KW_IF, parseIf)
-	unary(NODE_VAR, KW_VAR)
+	unary(NODE_VARDECL, KW_VAR)
 	nud(KW_IMPORT, parseImport)
 
 	lbp += 2
@@ -60,7 +60,33 @@ func init() {
 
 	lbp += 2
 
-	unary(NODE_TYPE, KW_TYPE)
+	nud(KW_TEMPLATE, func(c *ZoeContext, tk *Token, rbp int) *Node {
+		args := c.Expression(0).EnsureList()
+		// Where clause would come here, most likely
+		templated := c.Expression(0)
+		if templated.Is(NODE_TYPEDECL) || templated.Is(NODE_FNDECL) {
+			exp := templated.Children[1]
+			tpl := NewNode(NODE_TEMPLATE, tk.Position, args, exp)
+			tpl.UpdatePosition()
+			templated.Children[1] = tpl
+			templated.UpdatePosition()
+			return templated
+		}
+		c.reportError(tk.Position, `template must precede a 'type' or 'fn' declaration`)
+		// this is an error
+		return NewNode(NODE_TEMPLATE, tk.Position, args, templated)
+	})
+
+	// unary(NODE_TYPE, KW_TYPE)
+	nud(KW_TYPE, func(c *ZoeContext, tk *Token, rbp int) *Node {
+		name := c.Expect(TK_ID)
+		if !c.Consume(KW_IS) {
+			c.reportErrorAtCurrentPosition(`expected 'is' after type name`)
+		}
+		typdef := c.Expression(0)
+		return NewNode(NODE_TYPEDECL, tk.Position, NewTerminalNode(name), typdef)
+	})
+
 	list(TK_SEMICOLON, NODE_BLOCK, false) // cannot start with a semicolon
 	list(TK_COMMA, NODE_LIST, false, TK_RPAREN, TK_RBRACKET)
 
@@ -201,13 +227,7 @@ func parseLbraceLed(c *ZoeContext, tk *Token, left *Node) *Node {
 		c.reportError(c.Current.Position, `expected ']'`)
 		return NewNode(NODE_LIST, tk.Position, xp)
 	}
-	next := c.Expression(0)
-	if !next.Is(NODE_FNDEF) {
-		// c.reportError(c.Current.Position, `expected a function prototype`)
-		return NewNode(NODE_LIST, tk.Position, xp)
-	}
-	next.Children = append([]*Node{next}, next.Children...)
-	return next
+	return NewNode(NODE_INDEX, tk.Position, left, xp)
 }
 
 // Handle import

@@ -99,6 +99,7 @@ func (z *ZoeContext) Lex() error {
 
 	  	<top> "var"       => top { addToken(KW_VAR); goto yyc_top }
 			<top> "const"     => top { addToken(KW_CONST); goto yyc_top }
+			<top> "template"  => top { addToken(KW_TEMPLATE); goto yyc_top }
 			<top> "type"      => top { addToken(KW_TYPE); goto yyc_top }
 	  	<top> "fn"        => top { addToken(KW_FN); goto yyc_top }
 			<top> "enum"      => top { addToken(KW_ENUM); goto yyc_top }

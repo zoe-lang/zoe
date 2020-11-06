@@ -37,9 +37,6 @@ func (c *ZoeContext) EOF() *Node {
 }
 
 func (c *ZoeContext) Expect(tk TokenKind) *Token {
-	// if c.Current == nil {
-	// 	c.reportError()
-	// }
 	if c.Current.Kind != tk {
 		c.reportError(c.Current.Position, fmt.Sprintf(`unexpected '%s'`, c.Current.String()))
 		return nil

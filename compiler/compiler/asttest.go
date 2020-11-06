@@ -10,9 +10,11 @@ import (
 
 var reNoSuperflousSpace = regexp.MustCompilePOSIX(`[ \n\t\r]+`)
 var reBeforeSpace = regexp.MustCompilePOSIX(` \)`)
+var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
 func cleanup(str []byte) []byte {
-	s := reNoSuperflousSpace.ReplaceAllFunc(str, func(b []byte) []byte {
+	s := reAstComments.ReplaceAllLiteral(str, []byte{})
+	s = reNoSuperflousSpace.ReplaceAllFunc(str, func(b []byte) []byte {
 		return []byte{' '}
 	})
 	s = reBeforeSpace.ReplaceAllFunc(s, func(b []byte) []byte {
