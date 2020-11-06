@@ -1,6 +1,9 @@
 package zoe
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type TokenKind int
 
@@ -75,7 +78,7 @@ func (t *Token) String() string {
 }
 
 func (t *Token) Debug() string {
-	return t.String()
+	return fmt.Sprint(t.String(), ":", t.KindStr())
 	// if z == nil {
 	// 	return "<nil nil>"
 	// }

@@ -148,7 +148,6 @@ func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKi
 			contents = append(contents, c.Expression(0))
 		}
 		if reduce && len(contents) == 1 && !c.Peek(TK_ARROW, TK_FATARROW) {
-			contents[0].Token = tk
 			return contents[0]
 		}
 		return NewNode(lednk, tk.Position, left, NewNode(nk, tk.Position, contents...))
@@ -164,7 +163,6 @@ func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKi
 			contents = append(contents, c.Expression(0))
 		}
 		if reduce && len(contents) == 1 && !c.Peek(TK_ARROW, TK_FATARROW) {
-			contents[0].Token = tk
 			return contents[0]
 		}
 		return NewNode(nk, tk.Position, contents...)

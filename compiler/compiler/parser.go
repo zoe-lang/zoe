@@ -1,5 +1,7 @@
 package zoe
 
+import "log"
+
 var lbp_equal = 0
 var lbp_commas = 0
 var rbp_arrow = 0
@@ -89,7 +91,10 @@ func init() {
 	lbp += 2
 
 	surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET, false)
-	surrounding(NODE_LIST, NODE_INDEX, TK_LBRACE, TK_RBRACE, false)
+
+	nud(TK_LBRACE, parseLbraceNud)
+	// led(TK_RBRACE, parseLbraceLed)
+	// surrounding(NODE_LIST, NODE_INDEX, TK_LBRACE, TK_RBRACE, false)
 
 	lbp += 2
 	rbp_arrow = lbp - 1
@@ -136,22 +141,56 @@ func ledError(c *ZoeContext, tk *Token, left *Node) *Node {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+// Handle [ ] in nud position, when assigning a function to a variable
+func parseLbraceNud(c *ZoeContext, tk *Token, _ int) *Node {
+	var xp = c.Expression(0)
+	if !c.Consume(TK_RBRACE) {
+		c.reportError(c.Current.Position, `expected ']'`)
+		return NewNode(NODE_LIST, tk.Position, xp)
+	}
+	next := c.Expression(0)
+	log.Print(next.Kind)
+	if !next.Is(NODE_FNDEF) {
+		c.reportError(c.Current.Position, `expected a function prototype`)
+		return NewNode(NODE_LIST, tk.Position, xp)
+	}
+	next.Children = append([]*Node{NewNode(NODE_LIST, tk.Position, xp)}, next.Children...)
+	return next
+}
+
+// Handle [] as an operator, where it can be
+func parseLbraceLed(c *ZoeContext, tk *Token, left *Node) *Node {
+	var xp = c.Expression(0)
+	if !c.Consume(TK_RBRACE) {
+		c.reportError(c.Current.Position, `expected ']'`)
+		return NewNode(NODE_LIST, tk.Position, xp)
+	}
+	next := c.Expression(0)
+	if !next.Is(NODE_FNDEF) {
+		c.reportError(c.Current.Position, `expected a function prototype`)
+		return NewNode(NODE_LIST, tk.Position, xp)
+	}
+	next.Children = append([]*Node{next}, next.Children...)
+	return next
+}
+
 // Handle import
 func parseImport(c *ZoeContext, tk *Token, _ int) *Node {
 	if !c.Peek(TK_RAWSTR) {
 		c.reportErrorAtCurrentPosition(`import expects a raw string as the module name`)
 	}
-	name := c.Current
+	name := NewTerminalNode(c.Current)
 	c.advance()
 	if c.Consume(KW_AS) {
 		exp := c.Expression(0)
-		return NewNode(NODE_IMPORT, tk.Position, NewTerminalNode(name), exp)
+		return NewNode(NODE_IMPORT, tk.Position, name, exp)
 	}
 	exp := c.Expression(0)
 	if !exp.Is(NODE_LIST) {
-
+		log.Print(exp.Kind, " - ", exp.String(), exp.Token.Debug(), " - ")
+		return NewNode(NODE_IMPORT, tk.Position, name, NewNode(NODE_LIST, tk.Position, exp))
 	}
-	return NewNode(NODE_IMPORT, tk.Position, NewTerminalNode(name), exp)
+	return NewNode(NODE_IMPORT, tk.Position, name, exp)
 }
 
 ///////////////////////////////////////////////////////
@@ -197,10 +236,12 @@ func parseIf(c *ZoeContext, tk *Token, _ int) *Node {
 /////////////////////////////////////////////////////
 // Special handling for fn
 func parseFn(c *ZoeContext, tk *Token, _ int) *Node {
+
 	if c.Peek(TK_ID) {
 		idtk := c.Current
 		id := NewTerminalNode(idtk)
 		c.advance()
+
 		if c.Peek(TK_FATARROW) {
 			// fn a => ..., we have to reset the parser
 			c.Current = idtk
@@ -208,5 +249,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) *Node {
 		}
 		return NewNode(NODE_FNDECL, tk.Position, id, c.Expression(0))
 	}
+
 	return c.Expression(0) //NewNode(NODE_FNDEF, tk.Position, c.Expression(0))
+
 }

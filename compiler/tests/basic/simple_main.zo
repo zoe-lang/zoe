@@ -1,5 +1,16 @@
+#(?
+  (import 'io' io)
+#)
 import 'io' as io
+
+#(?
+  (import 'mod1' (lst val))
+#)
 import 'mod1' ( val )
+
+#(?
+  (import 'fmt' (lst hello (as world ok)))
+#)
 import 'fmt' ( hello, world as ok )
 
 var a: String, b: String

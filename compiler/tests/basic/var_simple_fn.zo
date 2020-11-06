@@ -1,0 +1,21 @@
+#(?
+  (var (= b
+      (fndef (lst) 2)
+  ))
+#)
+var b = fn () => 2
+
+#(?
+
+  (var (= b
+    (fndef
+      (lst (var (":" a String)))
+      String
+      (block
+        (return a)
+      )
+    )
+  ))
+
+#)
+var b = fn (a: String) -> String => { return a }

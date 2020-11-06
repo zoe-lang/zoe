@@ -1,5 +1,16 @@
 package zoe
 
+import "github.com/fatih/color"
+
+var fred = color.New(color.FgRed, color.Bold)
+var red = fred.SprintFunc()
+var fgreen = color.New(color.FgGreen)
+var green = fgreen.SprintFunc()
+var cyan = color.New(color.FgCyan, color.Bold).SprintFunc()
+var yel = color.New(color.FgYellow).SprintFunc()
+var mag = color.New(color.FgMagenta).SprintFunc()
+var grey = color.New(color.Faint).SprintFunc()
+
 func maxInt(a, b int) int {
 	if a > b {
 		return a
