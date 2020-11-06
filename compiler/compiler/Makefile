@@ -4,7 +4,7 @@ lexer.go: lexer.go_
 	echo "const (" >> lexer.go
 	echo "  TK_EOF TokenKind = iota" >> lexer.go
 	grep -oP 'addToken\(\K[^\)]+' lexer.go_ | sort | uniq >> lexer.go
-	echo ")" >> lexer.go
+	echo "TK__MAX\n)" >> lexer.go
 	echo "var tokstr = [...]string{" >> lexer.go
 	grep -oP 'addToken\(\K[^\)]+' lexer.go_ | sort | uniq | sed -E 's/(.*)/\1: "\1",/' >> lexer.go
 	echo "}" >> lexer.go

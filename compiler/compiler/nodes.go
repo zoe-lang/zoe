@@ -70,18 +70,21 @@ const (
 	NODE_DIV              = "/"
 	NODE_DEREF            = "deref"
 
+	NODE_TYPED     = ":"
+	NODE_INFER     = "infer"
 	NODE_SIGNATURE = "signature"
 	NODE_FN        = "fn"
 	NODE_FOR       = "for"
 	NODE_IF        = "if"
 
-	NODE_FILE  = "file"
-	NODE_STR   = "str"
-	NODE_LIST  = "lst"
-	NODE_UNION = "union"
-	NODE_INDEX = "index"
-	NODE_BLOCK = "block"
-	NODE_DECLS = "decls"
+	NODE_FRAGMENT = "-fragment-" // this node should not appear in the final AST
+	NODE_FILE     = "file"
+	NODE_STR      = "str"
+	NODE_LIST     = "lst"
+	NODE_UNION    = "union"
+	NODE_INDEX    = "index"
+	NODE_BLOCK    = "block"
+	NODE_DECLS    = "decls"
 )
 
 func NewTerminalNode(tk *Token) *Node {
@@ -120,6 +123,10 @@ func NewErrorNode(tk *Token, chld ...*Node) *Node {
 }
 
 type Node struct {
+	// A node tagged as an error says that it is garbage, essentially.
+	// The type checker will stop on nodes marked as errors, as they could crash
+	// the compiler.
+	IsError  bool
 	Position Position
 	Kind     NodeKind
 	Token    *Token // only defined for literals
@@ -127,6 +134,14 @@ type Node struct {
 }
 
 // func (n *Node) IsBinary()
+
+func (n *Node) Left() *Node {
+	return n.Children[0]
+}
+
+func (n *Node) Right() *Node {
+	return n.Children[1]
+}
 
 func (n *Node) IsValidVariableName() bool {
 	if n.Kind != NODE_TERMINAL || n.Token == nil || n.Token.Kind != TK_ID {
@@ -147,8 +162,13 @@ func (n *Node) Is(nk NodeKind) bool {
 	return nk == n.Kind
 }
 
+func (n *Node) ReportError(msg ...string) {
+	n.IsError = true
+	n.Position.Context.reportError(n.Position, msg...)
+}
+
 func (n *Node) UpdatePosition() {
-	pos := n.Position
+	pos := &n.Position
 	for _, c := range n.Children {
 		cpos := c.Position
 
@@ -205,29 +225,33 @@ func (n *Node) debugChildren() string {
 }
 
 func (n *Node) Debug() string {
+	err := ""
+	if n.IsError {
+		err = red("!")
+	}
 	switch n.Kind {
 	case NODE_ERROR:
 		rest := ""
 		if len(n.Children) > 0 {
 			rest = " ..." + n.debugChildren()
 		}
-		return fmt.Sprintf("(%s %#v%s)", red(NODE_ERROR), n.Token.String(), rest)
+		return fmt.Sprintf("%s(%s %#v%s)", err, red(NODE_ERROR), n.Token.String(), rest)
 	case NODE_TERMINAL:
 		tkd := n.Token.Kind
 		switch tkd {
 		case TK_ID:
-			return cyan(n.Token.String())
+			return err + cyan(n.Token.String())
 		case TK_RAWSTR:
-			return green(n.Token.String())
+			return err + green(n.Token.String())
 		default:
-			return yel(n.Token.String())
+			return err + yel(n.Token.String())
 		}
 	case NODE_BLOCK:
-		return fmt.Sprint(mag("{"), n.debugChildren(), mag("}"))
+		return fmt.Sprint(err, mag("{"), n.debugChildren(), mag("}"))
 	case NODE_LIST:
-		return fmt.Sprint(mag("["), n.debugChildren(), mag("]"))
+		return fmt.Sprint(err, mag("["), n.debugChildren(), mag("]"))
 	default:
-		return fmt.Sprint(grey("("), n.Kind, " ", n.debugChildren(), grey(")"))
+		return fmt.Sprint(err, grey("("), n.Kind, " ", n.debugChildren(), grey(")"))
 	}
 }
 

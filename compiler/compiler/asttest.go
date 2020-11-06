@@ -9,7 +9,8 @@ import (
 )
 
 var reNoSuperflousSpace = regexp.MustCompilePOSIX(`[ \n\t\r]+`)
-var reBeforeSpace = regexp.MustCompilePOSIX(` \)`)
+var reBeforeSpace = regexp.MustCompilePOSIX(` (\}|\)|\])`)
+var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
 func cleanup(str []byte) []byte {
@@ -18,7 +19,10 @@ func cleanup(str []byte) []byte {
 		return []byte{' '}
 	})
 	s = reBeforeSpace.ReplaceAllFunc(s, func(b []byte) []byte {
-		return []byte{')'}
+		return []byte{b[1]}
+	})
+	s = reAfterSpace.ReplaceAllFunc(s, func(b []byte) []byte {
+		return []byte{b[0]}
 	})
 	return s
 }

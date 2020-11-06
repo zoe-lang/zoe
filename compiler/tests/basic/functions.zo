@@ -21,12 +21,13 @@ var a = fn (a: String = "") -> String { a }
 # maybe a is typed
 #(?
   (decl:var a
+    (infer)
     (fndef
       (signature
-        [(: a (infer)) (: b (infer))]
+        [a b]
         (infer)
       )
-      (+ a c)
+      {(+ a c)}
     )
   )
 #)
@@ -35,38 +36,31 @@ var a = fn (a, b) => a + c
 #(?
   (decl:fn
     ba
-    (fndef
-      (signature
-        [$T $U]
-        [(: a String) (: b $T)]
-        $U
+    (template [$T $U]
+      (fndef
+        (signature
+          [(: a String) (: b $T)]
+          $U
+        )
+        {
+          (return (. a b))
+        }
       )
-      {
-        (return (. a b))
-      }
     )
   )
 #)
-fn ba@<$T, $U>(a: String, b: $T) -> $U { return a.b }
-
-var map = fn @[$T, $U](a: Iterable<$T>, func: fn (arg: $T) -> $U) -> Slice<$U> {
-  var res = Slice::create@$U(a.length ?? 0)
-  for var item in a {
-    yield func(item)
-  }
-}
+template $T, $U
+fn ba(a: String, b: $T) -> $U { return a.b }
 
 #(?
   (call
     (. a map)
     (fndef
       (signature
-        [(: a (infer))]
+        [a]
         (infer)
       )
-      (block
-        (return a)
-      )
+      {a}
     )
   )
 #)
@@ -74,6 +68,6 @@ a.map(fn (a) => a)
 
 
 #(?
-  (call c (lst a, b))
+  (call c [a b])
 #)
 c(a, b)

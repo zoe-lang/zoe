@@ -51,7 +51,12 @@ func init() {
 
 	nud(KW_FOR, parseFor)
 	nud(KW_IF, parseIf)
-	unary(NODE_VARDECL, KW_VAR)
+
+	nud(KW_VAR, func(c *ZoeContext, tk *Token, rbp int) *Node {
+		res := c.Expression(0)
+		return normalizeVarDecls(res)
+	})
+
 	nud(KW_IMPORT, parseImport)
 
 	lbp += 2
@@ -177,7 +182,7 @@ func init() {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-var syms = make([]prattTk, 256) // Far more than necessary
+var syms = make([]prattTk, TK__MAX) // Far more than necessary
 
 func nudError(c *ZoeContext, tk *Token, _ int) *Node {
 	return c.nodeError(tk)
@@ -185,6 +190,40 @@ func nudError(c *ZoeContext, tk *Token, _ int) *Node {
 
 func ledError(c *ZoeContext, tk *Token, left *Node) *Node {
 	return c.nodeError(tk, left)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////
+// Handling of var decl nodes
+
+func normalizeVarDeclNode(node *Node) *Node {
+	if node.Is(NODE_COLON) {
+		ident := node.Left()
+		typ := node.Right()
+		if typ.Is(NODE_ASSIGN) {
+			return NewNode(NODE_VARDECL, node.Position, ident, typ.Left(), typ.Right())
+		}
+		return NewNode(NODE_VARDECL, node.Position, ident, typ)
+	} else if node.Is(NODE_ASSIGN) {
+		// No
+		return NewNode(NODE_VARDECL, node.Position, node.Left(), NewNode(NODE_INFER, node.Position), node.Right())
+	} else if node.IsIdent() {
+		return NewNode(NODE_VARDECL, node.Position, node, NewNode(NODE_INFER, node.Position))
+	}
+
+	node.ReportError(`this expression is not a valid declaration`)
+	return node
+}
+
+func normalizeVarDecls(node *Node) *Node {
+	if node.Is(NODE_LIST) {
+		vars := make([]*Node, len(node.Children))
+		for i, c := range node.Children {
+			vars[i] = normalizeVarDeclNode(c)
+		}
+		return NewNode(NODE_LIST, node.Position, vars...)
+	}
+	return normalizeVarDeclNode(node)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -264,11 +303,15 @@ func parseQuote(c *ZoeContext, tk *Token, _ int) *Node {
 func parseFnSignature(c *ZoeContext, tk *Token, left *Node) *Node {
 	// left contains the list parenthesis
 
-	res := NewNode(NODE_SIGNATURE, tk.Position, left, c.Expression(rbp_arrow))
+	right := c.Expression(0)
+	res := NewNode(NODE_SIGNATURE, tk.Position, left.EnsureList(), right)
+
 	if c.Peek(TK_LBRACKET) {
+		// if we are followed by a {, it means this function has a body
 		blk := c.Expression(0)
 		return NewNode(NODE_FNDEF, tk.Position, res, blk)
 	}
+
 	return res
 }
 
@@ -282,12 +325,21 @@ func parseFnFatArrow(c *ZoeContext, tk *Token, left *Node) *Node {
 		impl = WrapNode(NODE_BLOCK, impl)
 	}
 
-	if left.Is(NODE_LIST) {
-
-	}
-
 	if !left.Is(NODE_SIGNATURE) {
+		// TODO: check that what's incoming can be a signature
+		if left.Is(":") || left.Is(NODE_TERMINAL) || left.Is(NODE_LIST) {
+			return NewNode(
+				NODE_FNDEF,
+				tk.Position,
+				NewNode(NODE_SIGNATURE, left.Position,
+					left.EnsureList(),
+					NewNode(NODE_INFER, left.Position),
+				),
+				impl,
+			)
+		}
 		c.reportError(tk.Position, `unexpected '=>', found `, string(left.Kind))
+		// if !left.Is(":") && !left.IsToken(TK_ID) && !left.Is
 		return NewNode(NODE_ERROR, tk.Position, left, impl)
 	}
 

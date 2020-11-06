@@ -2,10 +2,22 @@
 # Specifications of the AST outputed by Zoe
 
 Zoe parses a file into a simplified AST that can be represented into an unambiguous tree.
-The type in the source code representing the AST is `Node`.
+The type in the source code representing the AST is `Node`. The parser will try to emit
+a valid tree, but the typechecker does further check that everything makes sense.
 
 The goal of this document is to detail what are all the forms that the ast can take, using
 its representation.
+
+This mostly "in-memory" representation is a middle step before a last transformation pass
+that converts all operations to an SSA form more apt to be later compiled by LLVM, once
+typechecking validated that everything made sense.
+
+Any node can potentially be in an error state, in which case it must not be processed by the type
+checker.
+
+Once validated, the produced trees can be interpreted and run at compile time, provided there
+is no syscall done (except through compiler intrinsics), no external function called and no
+unsafe pointer shenanigans.
 
 # Types
 
@@ -20,6 +32,50 @@ All different types are `node`s in the AST.
 - `{ node node ... }` a block of instructions
 - `[ ]` a list of nodes
 
+# "Grammar"
+
+```
+
+top-level = [ declaration* ]
+
+declaration = decl-fn | decl-type | decl-var | decl-namespace
+
+decl:namespace = ( decl:namespace [ declaration* ] )
+decl:var = ( decl:var identifier exp exp? ) -- id, type, default value
+decl:type = ( decl:type identifier templated-typedef ) -- exp must resolve to a valid type
+decl:fn = ( decl:fn identifier templated-fndef )
+
+templated-typedef = typedef |
+  (template [ exp+ ] typedef)
+
+typedef = ( type identifier struct-def | union-def | exp ) -- exp must refer to a valid type or a valid constant
+struct-def = ( struct [decl:var+] )
+union-def = ( union [exp+] ) -- exp must resolve to a valid type or a valid constant
+
+exp =
+  | identifier
+  | number
+  | raw-string
+  | character
+  | 'false' | 'true'
+  | 'null'
+  | '*'
+  | (
+      | =
+      | + | - | * | / | %
+      | @ | . | ::
+      | == | != | ! | < | > | <= | >= | && | '||'
+      | & | '|'
+      exp
+      exp
+    )
+  | ( + | - exp )
+  | ( - exp exp )
+  | ( - exp )
+  | ( get-index exp exp ) -- exp1 will be indexed, exp2 is the index
+  | ( set-index exp exp exp ) -- exp1 will be indexed, exp2 is the index, exp3 the new value
+  | ( call exp [ exp* ] )
+```
 
 # Fragment
 
@@ -73,7 +129,7 @@ site where a function is called.
 
 The variable declaration can take several forms.
 
-- `(decl:var)`
+- `(decl:var identifier type exp?)`
 
 # Function declaration
 
