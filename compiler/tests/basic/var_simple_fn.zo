@@ -9,8 +9,10 @@ var b = fn () => 2
 
   (var (= b
     (fndef
-      (lst (var (":" a String)))
-      String
+      (proto
+        (lst (var (":" a String)))
+        String
+      )
       (block
         (return a)
       )

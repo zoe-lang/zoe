@@ -5,6 +5,7 @@ import "log"
 var lbp_equal = 0
 var lbp_commas = 0
 var rbp_arrow = 0
+var lbp_gt = 0
 var lbp = 2
 
 func init() {
@@ -12,6 +13,27 @@ func init() {
 		syms[i].nud = nudError
 		syms[i].led = ledError
 	}
+
+	// @ in first position, typically after the fn keyword
+	// nud(TK_AT, func(c *ZoeContext, tk *Token, rbp int) *Node {
+	// 	if c.Peek(TK_LT) { //
+
+	// 	}
+	// })
+
+	nud(TK_LBRACKET, func(c *ZoeContext, tk *Token, rbp int) *Node {
+		res := make([]*Node, 0)
+
+		for !c.Peek(TK_RBRACKET) {
+			if c.isEof() {
+				c.reportErrorAtCurrentPosition(`unexpected end of file`)
+				break
+			}
+			res = append(res, c.Expression(0))
+		}
+		c.Consume(TK_RBRACKET)
+		return NewNode(NODE_BLOCK, tk.Position, res...)
+	})
 
 	// The doc comment forwards the results but sets itself first on the node that resulted
 	// Doc comments whose next meaningful token are other doc comments or the end of the file
@@ -60,6 +82,7 @@ func init() {
 	lbp += 2
 
 	binary(NODE_LT, TK_LT)
+	lbp_gt = lbp
 	binary(NODE_GT, TK_GT)
 	unary(NODE_ELLIPSIS, TK_ELLIPSIS)
 
@@ -90,17 +113,17 @@ func init() {
 
 	lbp += 2
 
-	surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET, false)
+	// surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET, false)
 
+	// the index operator
 	nud(TK_LBRACE, parseLbraceNud)
-	// led(TK_RBRACE, parseLbraceLed)
-	// surrounding(NODE_LIST, NODE_INDEX, TK_LBRACE, TK_RBRACE, false)
 
 	lbp += 2
 	rbp_arrow = lbp - 1
 
-	led(TK_ARROW, parseArrow)
-	binary(NODE_FNDEF, TK_FATARROW)
+	led(TK_ARROW, parseFnSignature)
+	led(TK_FATARROW, parseFnFatArrow)
+	// binary(NODE_FNDEF, TK_FATARROW)
 
 	lbp += 2
 
@@ -141,21 +164,34 @@ func ledError(c *ZoeContext, tk *Token, left *Node) *Node {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+///
+func parseAfterAt(c *ZoeContext) *Node {
+	var right *Node
+	if c.Consume(TK_LT) { // opening <
+		lst := []*Node{c.Expression(lbp_gt)}
+		for c.Consume(TK_COMMA) {
+			lst = append(lst, c.Expression(lbp_gt))
+		}
+		if !c.Consume(TK_GT) {
+			c.reportErrorAtCurrentPosition(`expected '>'`)
+		}
+		if len(lst) > 1 {
+			return NewNode(NODE_LIST, lst[0].Position, lst...)
+		}
+		right = lst[0]
+	} else {
+		right = c.Expression(0)
+	}
+	return right
+}
+
 // Handle [ ] in nud position, when assigning a function to a variable
 func parseLbraceNud(c *ZoeContext, tk *Token, _ int) *Node {
 	var xp = c.Expression(0)
 	if !c.Consume(TK_RBRACE) {
 		c.reportError(c.Current.Position, `expected ']'`)
-		return NewNode(NODE_LIST, tk.Position, xp)
 	}
-	next := c.Expression(0)
-	log.Print(next.Kind)
-	if !next.Is(NODE_FNDEF) {
-		c.reportError(c.Current.Position, `expected a function prototype`)
-		return NewNode(NODE_LIST, tk.Position, xp)
-	}
-	next.Children = append([]*Node{NewNode(NODE_LIST, tk.Position, xp)}, next.Children...)
-	return next
+	return NewNode(NODE_INDEX, tk.Position, xp)
 }
 
 // Handle [] as an operator, where it can be
@@ -167,7 +203,7 @@ func parseLbraceLed(c *ZoeContext, tk *Token, left *Node) *Node {
 	}
 	next := c.Expression(0)
 	if !next.Is(NODE_FNDEF) {
-		c.reportError(c.Current.Position, `expected a function prototype`)
+		// c.reportError(c.Current.Position, `expected a function prototype`)
 		return NewNode(NODE_LIST, tk.Position, xp)
 	}
 	next.Children = append([]*Node{next}, next.Children...)
@@ -202,14 +238,42 @@ func parseQuote(c *ZoeContext, tk *Token, _ int) *Node {
 
 ////////////////////////////////////////////////////////
 // ->
-func parseArrow(c *ZoeContext, tk *Token, left *Node) *Node {
+// This is the signature operator
+// It may be followed by a definition with => (that it handles itself)
+// Or by a { which will return a block
+func parseFnSignature(c *ZoeContext, tk *Token, left *Node) *Node {
 	// left contains the list parenthesis
+
 	res := NewNode(NODE_SIGNATURE, tk.Position, left, c.Expression(rbp_arrow))
 	if c.Peek(TK_LBRACKET) {
 		blk := c.Expression(0)
 		return NewNode(NODE_FNDEF, tk.Position, res, blk)
 	}
 	return res
+}
+
+func parseFnFatArrow(c *ZoeContext, tk *Token, left *Node) *Node {
+	// left is a list of arguments
+	// right of => is the implementation of the function
+
+	impl := c.Expression(0) // it is a block or a single expression
+
+	if !impl.Is(NODE_BLOCK) {
+		impl = WrapNode(NODE_BLOCK, impl)
+	}
+
+	if left.Is(NODE_LIST) {
+
+	}
+
+	if !left.Is(NODE_SIGNATURE) {
+		c.reportError(tk.Position, `unexpected '=>', found `, string(left.Kind))
+		return NewNode(NODE_ERROR, tk.Position, left, impl)
+	}
+
+	// at this stage, we have a node signature and a block, so we just report it a
+	// function definition
+	return NewNode(NODE_FNDEF, tk.Position, left, impl)
 }
 
 /////////////////////////////////////////////////////
@@ -244,6 +308,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) *Node {
 
 		if c.Peek(TK_FATARROW) {
 			// fn a => ..., we have to reset the parser
+			// this feels really hacky
 			c.Current = idtk
 			return NewNode(NODE_FNDECL, tk.Position, c.Expression(0))
 		}

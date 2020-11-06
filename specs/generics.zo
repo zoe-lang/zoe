@@ -2,27 +2,25 @@
   There are generics in Zoe, though they're simple.
 #)
 
+# ???
 $if $.target == 'windows' {
-  type MyType<T> = struct {
+  type MyType@$T = struct {
 
   }
 }
 
-type MyType:$T = struct {
+type MyType@$T = struct {
   field $T
 }
 
-# Generics may require the type they handle implement traits
-type MyType2 : $T@Readable = struct {
-}
-
 # Multiple types may be specified
-type MyType3 : $T : $U@Printable = struct {
+type MyType3@($T, $U@Printable = String) = struct {
 
 }
 
-# Generic arguments may also receive the result of a valid expression
-type Yes : $T : $expr = struct {
+# Generic arguments may also receive the result of a valid expression,
+# provided it is a compile-time known one.
+type Yes@[$T, $expr] = struct {
   field: $T
   field2: Int32 = $expr
 }
@@ -36,9 +34,9 @@ let v = Yes::new:String()
 #   - there are restrictions on what is creatable at compile time...
 
 # At compile time, types are introspectable. These statements are inlined
-fn toString:$U (u $U) -> String {
+fn toString@$U(u $U) -> String {
   $.log('this method is deprecated') # compile time log
-  if $.hasTrait(u, @Stringable) { # if is inline since it only contains comptime expressions
+  if $.hasTrait(u, Stringable) { # if is inline since it only contains comptime expressions
     return u@Stringable.toString()
   }
 

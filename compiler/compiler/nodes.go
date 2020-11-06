@@ -40,9 +40,10 @@ const (
 	NODE_TERMINAL = "terminal" // Id, Easy strings, Number, Boolean
 	NODE_ERROR    = "error"
 
-	NODE_FNDECL = "fndecl"
-	NODE_VAR    = "var"
-	NODE_TYPE   = "type"
+	NODE_FNDECL    = "decl:fn"
+	NODE_VAR       = "decl:var"
+	NODE_TYPE      = "decl:type"
+	NODE_NAMESPACE = "decl:namespace"
 
 	NODE_FNDEF  = "fndef"
 	NODE_FNCALL = "call"
@@ -68,11 +69,12 @@ const (
 	NODE_DIV              = "/"
 	NODE_DEREF            = "deref"
 
-	NODE_SIGNATURE = "proto"
+	NODE_SIGNATURE = "signature"
 	NODE_FN        = "fn"
 	NODE_FOR       = "for"
 	NODE_IF        = "if"
 
+	NODE_FILE  = "file"
 	NODE_STR   = "str"
 	NODE_LIST  = "lst"
 	NODE_UNION = "union"
@@ -86,6 +88,14 @@ func NewTerminalNode(tk *Token) *Node {
 		Kind:     NODE_TERMINAL,
 		Position: tk.Position,
 		Token:    tk,
+	}
+}
+
+func WrapNode(inKind NodeKind, node *Node) *Node {
+	return &Node{
+		Kind:     inKind,
+		Position: node.Position,
+		Children: []*Node{node},
 	}
 }
 
