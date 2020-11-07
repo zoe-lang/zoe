@@ -167,7 +167,7 @@ func (n *Node) ReportError(msg ...string) {
 	n.Position.Context.reportError(n.Position, msg...)
 }
 
-func (n *Node) IncludePosition(cpos *Position) {
+func (n *Node) ExtendPosition(cpos *Position) {
 	pos := &n.Position
 
 	pos.Start = minInt(pos.Start, cpos.Start)
@@ -191,7 +191,7 @@ func (n *Node) IncludePosition(cpos *Position) {
 
 func (n *Node) UpdatePosition() {
 	for _, c := range n.Children {
-		n.IncludePosition(&c.Position)
+		n.ExtendPosition(&c.Position)
 	}
 }
 

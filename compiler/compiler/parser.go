@@ -16,17 +16,22 @@ func init() {
 	}
 
 	nud(TK_LBRACKET, func(c *ZoeContext, tk *Token, rbp int) *Node {
-		res := make([]*Node, 0)
+		contents := make([]*Node, 0)
 
 		for !c.Peek(TK_RBRACKET) {
 			if c.isEof() {
-				c.reportErrorAtCurrentPosition(`unexpected end of file`)
 				break
 			}
-			res = append(res, c.Expression(0))
+			contents = append(contents, c.Expression(0))
 		}
-		c.Consume(TK_RBRACKET)
-		return NewNode(NODE_BLOCK, tk.Position, res...)
+
+		res := NewNode(NODE_BLOCK, tk.Position, contents...)
+
+		if tk := c.Expect(TK_RBRACKET); tk != nil {
+			res.ExtendPosition(&tk.Position)
+		}
+
+		return res
 	})
 
 	// The doc comment forwards the results but sets itself first on the node that resulted
@@ -392,7 +397,7 @@ func parseFnFatArrow(c *ZoeContext, tk *Token, left *Node) *Node {
 				impl,
 			)
 		}
-		c.reportError(tk.Position, `unexpected '=>', found `, string(left.Kind))
+		left.ReportError(`expression preceding '=>' must be a function signature`)
 		// if !left.Is(":") && !left.IsToken(TK_ID) && !left.Is
 		return NewNode(NODE_ERROR, tk.Position, left, impl)
 	}
