@@ -18,8 +18,12 @@ type Position struct {
 	EndColumn int
 }
 
-func (p *Position) String() string {
+func (p *Position) GetText() string {
 	return string(p.Context.data[p.Start:p.End])
+}
+
+type Positioned interface {
+	GetPosition() *Position
 }
 
 type Token struct {
@@ -27,6 +31,16 @@ type Token struct {
 	Kind TokenKind
 	Next *Token
 	Prev *Token
+}
+
+func (t *Token) GetPosition() *Position {
+	return &t.Position
+}
+
+func (t *Token) panicIfNot(k TokenKind) {
+	if t.Kind != k {
+		panic(`requested ` + t.KindStr() + ` but got ` + tokstr[k])
+	}
 }
 
 func (t *Token) MarshalJSON() ([]byte, error) {

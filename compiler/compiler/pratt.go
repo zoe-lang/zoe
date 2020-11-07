@@ -5,9 +5,9 @@ import (
 )
 
 type prattTk struct {
-	lbp int                                              // left binding power
-	nud func(c *ZoeContext, tk *Token, rbp int) *Node    // when landing on it as a value or prefix
-	led func(c *ZoeContext, tk *Token, left *Node) *Node // when landing on it as an operator
+	lbp int                                            // left binding power
+	nud func(c *ZoeContext, tk *Token, lbp int) Node   // when landing on it as a value or prefix
+	led func(c *ZoeContext, tk *Token, left Node) Node // when landing on it as an operator
 }
 
 func (c *ZoeContext) Peek(tk ...TokenKind) bool {
@@ -31,7 +31,7 @@ func (c *ZoeContext) Consume(tk TokenKind) bool {
 	return false
 }
 
-func (c *ZoeContext) EOF() *Node {
+func (c *ZoeContext) EOF() Node {
 	tk := &Token{Kind: TK_EOF}
 	return NewErrorNode(tk)
 }
@@ -47,7 +47,7 @@ func (c *ZoeContext) Expect(tk TokenKind) *Token {
 }
 
 // Expression is the standard Pratt parser Expression function
-func (c *ZoeContext) Expression(rbp int) *Node {
+func (c *ZoeContext) Expression(rbp int) Node {
 	// This is an error case, but has to be handled
 	if c.isEof() {
 		return c.EOF()
@@ -80,103 +80,66 @@ func (c *ZoeContext) Expression(rbp int) *Node {
 	return left
 }
 
-func prefix(nk NodeKind, tk TokenKind) {
-	s := &syms[tk]
-	rbp := lbp - 1
-	s.nud = func(c *ZoeContext, tk *Token, _ int) *Node {
-		return NewNode(nk, tk.Position, c.Expression(rbp))
-	}
-}
-
 // binary gives a regular binary operator that will attempt
 // to build trees where the root node is the left-most operation node
 // happening at its level.
-func binary(nk NodeKind, tk TokenKind) {
+func binary(tk TokenKind) {
 	precedence := lbp
 	s := &syms[tk]
 	s.lbp = precedence
-	s.led = func(c *ZoeContext, tk *Token, left *Node) *Node {
-		// log.Print(c.Current.Debug(c.data))
-		return NewNode(nk, tk.Position, left, c.Expression(precedence-1))
-	}
+
+	s.led = func(lbp int) func(c *ZoeContext, tk *Token, left Node) Node {
+		return func(c *ZoeContext, tk *Token, left Node) Node {
+			return tk.CreateOperation().SetToken(tk).AddOperands(left, c.Expression(lbp-1))
+		}
+	}(precedence)
 }
 
-func unary(nk NodeKind, tk TokenKind) {
+func unary(tk TokenKind) {
 	s := &syms[tk]
 	rbp := lbp - 1
-	s.nud = func(c *ZoeContext, tk *Token, _ int) *Node {
-		return NewNode(nk, tk.Position, c.Expression(rbp))
+	s.nud = func(c *ZoeContext, tk *Token, _ int) Node {
+		return tk.CreateOperation().SetToken(tk).AddOperands(c.Expression(rbp))
+		// return NewNode(nk, tk.Position, c.Expression(rbp))
 	}
 }
 
-func led(tk TokenKind, fn func(c *ZoeContext, tk *Token, left *Node) *Node) {
+func led(tk TokenKind, fn func(c *ZoeContext, tk *Token, left Node) Node) {
 	s := &syms[tk]
 	s.lbp = lbp
 	s.led = fn
 }
 
-func nud(tk TokenKind, fn func(c *ZoeContext, tk *Token, rbp int) *Node) {
+func nud(tk TokenKind, fn func(c *ZoeContext, tk *Token, lbp int) Node) {
 	s := &syms[tk]
 	s.nud = fn
 }
 
-func terminal(tk ...TokenKind) {
-	for _, t := range tk {
-		nud(t, func(c *ZoeContext, tk *Token, _ int) *Node { return NewTerminalNode(tk) })
-	}
+func terminal(tk TokenKind, create func(tk *Token) Node) {
+	nud(tk, func(c *ZoeContext, tk *Token, _ int) Node { return create(tk) })
 }
 
-func list(kind TokenKind, nk NodeKind, allowLeading bool, trailing ...TokenKind) {
-	rbp := lbp - 1
-	s := &syms[kind]
-	trailings := make([]bool, 256)
-	for _, t := range trailing {
-		trailings[t] = true
-	}
-
-	s.lbp = lbp
-	s.nud = func(c *ZoeContext, tk *Token, _ int) *Node {
-		if !allowLeading {
-			c.reportError(tk.Position, `'`, tk.String(), `' cannot come first in an expression`)
-		}
-		return c.Expression(rbp)
-	}
-
-	s.led = func(c *ZoeContext, tk *Token, left *Node) *Node {
-		if c.Current != nil && trailings[c.Current.Kind] {
-			return left
-		}
-		next := c.Expression(rbp)
-		if next.Kind == nk {
-			next.Token = tk
-			next.Children = append([]*Node{left}, next.Children...)
-			return next
-		}
-		return NewNode(nk, tk.Position, left, next)
-	}
-}
-
-// parseUntil calls expression several times until landing on a token
-func parseUntil(c *ZoeContext, nk NodeKind, lst *Token, until TokenKind, rbp int) *Node {
-	res := make([]*Node, 0)
-	iter := c.Current
-	for iter != nil {
-		if iter.Kind == until {
-			c.advance()
-			break
-		}
-		res = append(res, c.Expression(rbp))
-		iter = c.Current
-	}
-	// check that iter is nil for potential error ?
-	return NewNode(nk, lst.Position, res...)
-}
+// // parseUntil calls expression several times until landing on a token
+// func parseUntil(c *ZoeContext, nk NodeKind, lst *Token, until TokenKind, rbp int) Node {
+// 	res := make([]Node, 0)
+// 	iter := c.Current
+// 	for iter != nil {
+// 		if iter.Kind == until {
+// 			c.advance()
+// 			break
+// 		}
+// 		res = append(res, c.Expression(rbp))
+// 		iter = c.Current
+// 	}
+// 	// check that iter is nil for potential error ?
+// 	return NewNode(nk, lst.Position, res...)
+// }
 
 // parse a terminated corresponding
 
 // parse a list
-// func parseList(c *ZoeContext, lst *Token, separator TokenKind, terminator TokenKind, produce func(c *ZoeContext) *Node) *Node {
-// 	res := make([]*Node, 0)
+// func parseList(c *ZoeContext, lst *Token, separator TokenKind, terminator TokenKind, produce func(c *ZoeContext) Node) Node {
+// 	res := make([]Node, 0)
 // 	iter := c.Current
 // 	for iter != nil {
 // 		if iter.Kind == terminator {

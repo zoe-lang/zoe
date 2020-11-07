@@ -30,7 +30,7 @@ type ZoeContext struct {
 	data     []byte
 	Root     *Node
 
-	DocCommentMap   map[*Node]*Token // contains the doc comments related to given nodes
+	DocCommentMap   map[Node]*Token // contains the doc comments related to given nodes
 	RootDocComments []*Token
 }
 
@@ -50,7 +50,7 @@ func NewZoeContext(filename string) (*ZoeContext, error) {
 		Filename:        filename,
 		Errors:          make([]ZoeError, 0),
 		data:            append(data, '\x00'),
-		DocCommentMap:   make(map[*Node]*Token),
+		DocCommentMap:   make(map[Node]*Token),
 		RootDocComments: make([]*Token, 0),
 	}
 

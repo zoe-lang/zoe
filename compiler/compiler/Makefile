@@ -1,4 +1,7 @@
 
+nodesmethods.go: genaccessors.js nodes.go
+	node genaccessors.js > nodesmethods.go
+
 lexer.go: lexer.go_
 	re2go -c -r --input-encoding utf8 -c -W lexer.go_ -o lexer.go
 	echo "const (" >> lexer.go
