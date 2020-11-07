@@ -4,7 +4,8 @@ import "log"
 
 var lbp_equal = 0
 var lbp_commas = 0
-var rbp_arrow = 0
+
+// var rbp_arrow = 0
 var lbp_gt = 0
 var lbp = 2
 
@@ -132,8 +133,9 @@ func init() {
 
 	lbp += 2
 
+	handleParens()
 	// When used right next to an expression, then paren is a function call
-	surrounding(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
+	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
 
 	lbp += 2
 
@@ -143,11 +145,13 @@ func init() {
 	nud(TK_LBRACE, parseLbraceNud)
 
 	lbp += 2
-	rbp_arrow = lbp - 1
 
-	led(TK_ARROW, parseFnSignature)
 	led(TK_FATARROW, parseFnFatArrow)
 	// binary(NODE_FNDEF, TK_FATARROW)
+
+	lbp += 2
+
+	led(TK_ARROW, parseFnSignature)
 
 	lbp += 2
 
@@ -221,6 +225,57 @@ func normalizeVarDecls(node *Node) *Node {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+// Group expression between two handleParens tokens
+// nk : the node of the list returned when nud
+// lednk : the node of the list returned when led
+// opening : the opening token
+// closing : the closing token
+// reduce : whether it is allowed to reduce the list to the single expression
+func handleParens() {
+	s := &syms[TK_LPAREN]
+	s.lbp = lbp
+
+	//
+	s.led = func(c *ZoeContext, tk *Token, left *Node) *Node {
+		contents := make([]*Node, 0)
+		for !c.Consume(TK_RPAREN) {
+			if c.isEof() {
+				contents = append(contents, c.EOF())
+				break
+			}
+			contents = append(contents, c.Expression(0))
+		}
+
+		if left.Is(NODE_FNDEF) {
+			log.Print("fndef")
+			// let's hijack its signature
+			// left.Children = append(left.Children, NewNode())
+		}
+
+		if len(contents) == 1 {
+			return NewNode(NODE_LIST, tk.Position, left, contents[0])
+		}
+
+		return NewNode(NODE_FNCALL, tk.Position, left, NewNode(NODE_LIST, tk.Position, contents...))
+	}
+
+	//
+	s.nud = func(c *ZoeContext, tk *Token, _ int) *Node {
+		contents := make([]*Node, 0)
+		for !c.Consume(TK_RPAREN) {
+			if c.isEof() {
+				contents = append(contents, c.EOF())
+				break
+			}
+			contents = append(contents, c.Expression(0))
+		}
+		if len(contents) == 1 {
+			return contents[0]
+		}
+		return NewNode(NODE_LIST, tk.Position, contents...)
+	}
+}
 
 ///
 func parseAfterAt(c *ZoeContext) *Node {
@@ -297,6 +352,7 @@ func parseFnSignature(c *ZoeContext, tk *Token, left *Node) *Node {
 	// left contains the list parenthesis
 
 	right := c.Expression(0)
+	// left is most likely an fndef -or- an fndecl
 	res := NewNode(NODE_SIGNATURE, tk.Position, left.EnsureList(), right)
 
 	if c.Peek(TK_LBRACKET) {
@@ -320,6 +376,11 @@ func parseFnFatArrow(c *ZoeContext, tk *Token, left *Node) *Node {
 
 	if !left.Is(NODE_SIGNATURE) {
 		// TODO: check that what's incoming can be a signature
+		log.Print(left.String())
+		if left.Is(NODE_FNDECL) {
+			log.Print("Yes, fncall")
+		}
+
 		if left.Is(":") || left.Is(NODE_TERMINAL) || left.Is(NODE_LIST) {
 			return NewNode(
 				NODE_FNDEF,
@@ -366,20 +427,16 @@ func parseIf(c *ZoeContext, tk *Token, _ int) *Node {
 // Special handling for fn
 func parseFn(c *ZoeContext, tk *Token, _ int) *Node {
 
+	// fake_signature := NewNode(NODE_SIGNATURE, tk.Position)
+	// Should we create a fake fndef and signature ?
+
 	if c.Peek(TK_ID) {
 		idtk := c.Current
 		id := NewTerminalNode(idtk)
 		c.advance()
-
-		if c.Peek(TK_FATARROW) {
-			// fn a => ..., we have to reset the parser
-			// this feels really hacky
-			c.Current = idtk
-			return NewNode(NODE_FNDECL, tk.Position, c.Expression(0))
-		}
-		return NewNode(NODE_FNDECL, tk.Position, id, c.Expression(0))
+		return NewNode(NODE_FNDECL, tk.Position, id)
 	}
 
-	return c.Expression(0) //NewNode(NODE_FNDEF, tk.Position, c.Expression(0))
+	return NewNode(NODE_FNDEF, tk.Position, NewNode(NODE_LIST, tk.Position), NewNode(NODE_INFER, tk.Position)) //NewNode(NODE_FNDEF, tk.Position, c.Expression(0))
 
 }

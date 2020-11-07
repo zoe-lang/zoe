@@ -167,27 +167,31 @@ func (n *Node) ReportError(msg ...string) {
 	n.Position.Context.reportError(n.Position, msg...)
 }
 
-func (n *Node) UpdatePosition() {
+func (n *Node) IncludePosition(cpos *Position) {
 	pos := &n.Position
+
+	pos.Start = minInt(pos.Start, cpos.Start)
+	pos.End = maxInt(pos.End, cpos.End)
+
+	if cpos.Line < pos.Line {
+		pos.Line = cpos.Line
+		pos.Column = cpos.Column
+	} else if cpos.Line == pos.Line {
+		pos.Column = minInt(pos.Column, cpos.Column)
+	}
+
+	if cpos.EndLine > pos.EndLine {
+		pos.EndLine = cpos.EndLine
+		pos.EndColumn = cpos.EndColumn
+	} else if cpos.EndLine == pos.EndLine {
+		pos.EndColumn = maxInt(pos.EndColumn, cpos.EndColumn)
+	}
+
+}
+
+func (n *Node) UpdatePosition() {
 	for _, c := range n.Children {
-		cpos := c.Position
-
-		pos.Start = minInt(pos.Start, cpos.Start)
-		pos.End = maxInt(pos.End, cpos.End)
-
-		if cpos.Line < pos.Line {
-			pos.Line = cpos.Line
-			pos.Column = cpos.Column
-		} else if cpos.Line == pos.Line {
-			pos.Column = minInt(pos.Column, cpos.Column)
-		}
-
-		if cpos.EndLine > pos.EndLine {
-			pos.EndLine = cpos.EndLine
-			pos.EndColumn = cpos.EndColumn
-		} else if cpos.EndLine == pos.EndLine {
-			pos.EndColumn = maxInt(pos.EndColumn, cpos.EndColumn)
-		}
+		n.IncludePosition(&c.Position)
 	}
 }
 

@@ -43,14 +43,14 @@ declaration = decl-fn | decl-type | decl-var | decl-namespace
 decl:namespace = ( decl:namespace [ declaration* ] )
 decl:var = ( decl:var identifier exp exp? ) -- id, type, default value
 decl:type = ( decl:type identifier templated-typedef ) -- exp must resolve to a valid type
-decl:fn = ( decl:fn identifier templated-fndef )
+decl:fn = ( decl:fn identifier fndef | templated-fndef )
 
-templated-typedef = typedef |
-  (template [ exp+ ] typedef)
+templated-typedef = (template [ exp+ ] fndef)
 
-typedef = ( type identifier struct-def | union-def | exp ) -- exp must refer to a valid type or a valid constant
+fndef =      ( fndef [exp+] exp )
+typedef =    ( type identifier struct-def | union-def | exp ) -- exp must refer to a valid type or a valid constant
 struct-def = ( struct [decl:var+] )
-union-def = ( union [exp+] ) -- exp must resolve to a valid type or a valid constant
+union-def =  ( union [exp+] ) -- exp must resolve to a valid type or a valid constant
 
 exp =
   | identifier

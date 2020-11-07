@@ -126,47 +126,6 @@ func terminal(tk ...TokenKind) {
 	}
 }
 
-// Group expression between two surrounding tokens
-// nk : the node of the list returned when nud
-// lednk : the node of the list returned when led
-// opening : the opening token
-// closing : the closing token
-// reduce : whether it is allowed to reduce the list to the single expression
-func surrounding(nk NodeKind, lednk NodeKind, opening TokenKind, closing TokenKind, reduce bool) {
-	s := &syms[opening]
-	s.lbp = lbp
-	s.led = func(c *ZoeContext, tk *Token, left *Node) *Node {
-		contents := make([]*Node, 0)
-		for !c.Consume(closing) {
-			if c.isEof() {
-				contents = append(contents, c.EOF())
-				break
-			}
-			contents = append(contents, c.Expression(0))
-		}
-
-		if reduce && len(contents) == 1 {
-			return NewNode(lednk, tk.Position, left, contents[0])
-		}
-		return NewNode(lednk, tk.Position, left, NewNode(nk, tk.Position, contents...))
-	}
-
-	s.nud = func(c *ZoeContext, tk *Token, _ int) *Node {
-		contents := make([]*Node, 0)
-		for !c.Consume(closing) {
-			if c.isEof() {
-				contents = append(contents, c.EOF())
-				break
-			}
-			contents = append(contents, c.Expression(0))
-		}
-		if reduce && len(contents) == 1 {
-			return contents[0]
-		}
-		return NewNode(nk, tk.Position, contents...)
-	}
-}
-
 func list(kind TokenKind, nk NodeKind, allowLeading bool, trailing ...TokenKind) {
 	rbp := lbp - 1
 	s := &syms[kind]
