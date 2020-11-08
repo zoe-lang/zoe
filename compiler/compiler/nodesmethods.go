@@ -2,6 +2,8 @@
 
 package zoe
 
+import "io"
+
 
 func (t *Token) CreateNamespace() *Namespace {
   res := &Namespace{}
@@ -23,6 +25,15 @@ func (r *Namespace) AddChildren(other ...Node) *Namespace {
   return r
 }
 
+func (r *Namespace) Dump(w io.Writer) {
+  w.Write([]byte("(namespace"))
+  for _, c := range r.Children {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateFragment() *Fragment {
   res := &Fragment{}
   res.ExtendPosition(t)
@@ -41,6 +52,15 @@ func (r *Fragment) AddChildren(other ...Node) *Fragment {
     r.ExtendPosition(c)
   }
   return r
+}
+
+func (r *Fragment) Dump(w io.Writer) {
+  w.Write([]byte("(fragment"))
+  for _, c := range r.Children {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
 }
 
 func (t *Token) CreateTypeDecl() *TypeDecl {
@@ -67,6 +87,17 @@ func (r *TypeDecl) SetDef(other Node) *TypeDecl {
   return r
 }
 
+func (r *TypeDecl) Dump(w io.Writer) {
+  w.Write([]byte("(type-decl"))
+  w.Write([]byte(" "))
+  r.Template.Dump(w)
+  w.Write([]byte(" "))
+  r.Ident.Dump(w)
+  w.Write([]byte(" "))
+  r.Def.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateUnion() *Union {
   res := &Union{}
   res.ExtendPosition(t)
@@ -85,6 +116,15 @@ func (r *Union) AddTypeExprs(other ...Node) *Union {
     r.ExtendPosition(c)
   }
   return r
+}
+
+func (r *Union) Dump(w io.Writer) {
+  w.Write([]byte("(union"))
+  for _, c := range r.TypeExprs {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
 }
 
 func (t *Token) CreateVar() *Var {
@@ -109,6 +149,17 @@ func (r *Var) SetExp(other Node) *Var {
   r.Exp = other
   r.ExtendPosition(other)
   return r
+}
+
+func (r *Var) Dump(w io.Writer) {
+  w.Write([]byte("(var"))
+  w.Write([]byte(" "))
+  r.Ident.Dump(w)
+  w.Write([]byte(" "))
+  r.TypeExp.Dump(w)
+  w.Write([]byte(" "))
+  r.Exp.Dump(w)
+  w.Write([]byte(")"))
 }
 
 func (t *Token) CreateOperation() *Operation {
@@ -137,6 +188,17 @@ func (r *Operation) AddOperands(other ...Node) *Operation {
   return r
 }
 
+func (r *Operation) Dump(w io.Writer) {
+  w.Write([]byte("(operation"))
+  w.Write([]byte(" "))
+  r.Token.Dump(w)
+  for _, c := range r.Operands {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateTemplate() *Template {
   res := &Template{}
   res.ExtendPosition(t)
@@ -149,6 +211,15 @@ func (r *Template) AddArgs(other ...*Var) *Template {
     r.ExtendPosition(c)
   }
   return r
+}
+
+func (r *Template) Dump(w io.Writer) {
+  w.Write([]byte("(template"))
+  for _, c := range r.Args {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
 }
 
 func (t *Token) CreateFnDef() *FnDef {
@@ -175,6 +246,17 @@ func (r *FnDef) SetDefinition(other *Block) *FnDef {
   return r
 }
 
+func (r *FnDef) Dump(w io.Writer) {
+  w.Write([]byte("(fn-def"))
+  w.Write([]byte(" "))
+  r.Template.Dump(w)
+  w.Write([]byte(" "))
+  r.Signature.Dump(w)
+  w.Write([]byte(" "))
+  r.Definition.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateFnSignature() *FnSignature {
   res := &FnSignature{}
   res.ExtendPosition(t)
@@ -195,6 +277,17 @@ func (r *FnSignature) SetReturnTypeExp(other Node) *FnSignature {
   return r
 }
 
+func (r *FnSignature) Dump(w io.Writer) {
+  w.Write([]byte("(fn-signature"))
+  for _, c := range r.Args {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(" "))
+  r.ReturnTypeExp.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateFnCall() *FnCall {
   res := &FnCall{}
   res.ExtendPosition(t)
@@ -213,6 +306,15 @@ func (r *FnCall) SetArgs(other *Tuple) *FnCall {
   return r
 }
 
+func (r *FnCall) Dump(w io.Writer) {
+  w.Write([]byte("(fn-call"))
+  w.Write([]byte(" "))
+  r.Left.Dump(w)
+  w.Write([]byte(" "))
+  r.Args.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateGetIndex() *GetIndex {
   res := &GetIndex{}
   res.ExtendPosition(t)
@@ -229,6 +331,15 @@ func (r *GetIndex) SetIndex(other Node) *GetIndex {
   r.Index = other
   r.ExtendPosition(other)
   return r
+}
+
+func (r *GetIndex) Dump(w io.Writer) {
+  w.Write([]byte("(get-index"))
+  w.Write([]byte(" "))
+  r.Left.Dump(w)
+  w.Write([]byte(" "))
+  r.Index.Dump(w)
+  w.Write([]byte(")"))
 }
 
 func (t *Token) CreateSetIndex() *SetIndex {
@@ -255,6 +366,17 @@ func (r *SetIndex) SetValue(other Node) *SetIndex {
   return r
 }
 
+func (r *SetIndex) Dump(w io.Writer) {
+  w.Write([]byte("(set-index"))
+  w.Write([]byte(" "))
+  r.Left.Dump(w)
+  w.Write([]byte(" "))
+  r.Index.Dump(w)
+  w.Write([]byte(" "))
+  r.Value.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateIf() *If {
   res := &If{}
   res.ExtendPosition(t)
@@ -279,6 +401,17 @@ func (r *If) SetElse(other Node) *If {
   return r
 }
 
+func (r *If) Dump(w io.Writer) {
+  w.Write([]byte("(if"))
+  w.Write([]byte(" "))
+  r.Cond.Dump(w)
+  w.Write([]byte(" "))
+  r.Then.Dump(w)
+  w.Write([]byte(" "))
+  r.Else.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateFnDecl() *FnDecl {
   res := &FnDecl{}
   res.ExtendPosition(t)
@@ -295,6 +428,15 @@ func (r *FnDecl) SetFnDef(other *FnDef) *FnDecl {
   r.FnDef = other
   r.ExtendPosition(other)
   return r
+}
+
+func (r *FnDecl) Dump(w io.Writer) {
+  w.Write([]byte("(fn-decl"))
+  w.Write([]byte(" "))
+  r.Ident.Dump(w)
+  w.Write([]byte(" "))
+  r.FnDef.Dump(w)
+  w.Write([]byte(")"))
 }
 
 func (t *Token) CreateTuple() *Tuple {
@@ -317,6 +459,15 @@ func (r *Tuple) AddChildren(other ...Node) *Tuple {
   return r
 }
 
+func (r *Tuple) Dump(w io.Writer) {
+  w.Write([]byte("(tuple"))
+  for _, c := range r.Children {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateBlock() *Block {
   res := &Block{}
   res.ExtendPosition(t)
@@ -337,6 +488,15 @@ func (r *Block) AddChildren(other ...Node) *Block {
   return r
 }
 
+func (r *Block) Dump(w io.Writer) {
+  w.Write([]byte("(block"))
+  for _, c := range r.Children {
+    w.Write([]byte(" "))
+    c.Dump(w)
+  }
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateReturn() *Return {
   res := &Return{}
   res.ExtendPosition(t)
@@ -349,10 +509,21 @@ func (r *Return) SetExpr(other Node) *Return {
   return r
 }
 
+func (r *Return) Dump(w io.Writer) {
+  w.Write([]byte("(return"))
+  w.Write([]byte(" "))
+  r.Expr.Dump(w)
+  w.Write([]byte(")"))
+}
+
 func (t *Token) CreateIdent() *Ident {
   res := &Ident{}
   res.ExtendPosition(t)
   return res
+}
+
+func (r *Ident) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
 }
 
 func (t *Token) CreateNull() *Null {
@@ -361,10 +532,18 @@ func (t *Token) CreateNull() *Null {
   return res
 }
 
+func (r *Null) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
+}
+
 func (t *Token) CreateFalse() *False {
   res := &False{}
   res.ExtendPosition(t)
   return res
+}
+
+func (r *False) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
 }
 
 func (t *Token) CreateTrue() *True {
@@ -373,10 +552,18 @@ func (t *Token) CreateTrue() *True {
   return res
 }
 
+func (r *True) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
+}
+
 func (t *Token) CreateString() *String {
   res := &String{}
   res.ExtendPosition(t)
   return res
+}
+
+func (r *String) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
 }
 
 func (t *Token) CreateInteger() *Integer {
@@ -385,14 +572,26 @@ func (t *Token) CreateInteger() *Integer {
   return res
 }
 
+func (r *Integer) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
+}
+
 func (t *Token) CreateFloat() *Float {
   res := &Float{}
   res.ExtendPosition(t)
   return res
 }
 
+func (r *Float) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
+}
+
 func (t *Token) CreateEof() *Eof {
   res := &Eof{}
   res.ExtendPosition(t)
   return res
+}
+
+func (r *Eof) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
 }

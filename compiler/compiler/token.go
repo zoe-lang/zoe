@@ -3,6 +3,7 @@ package zoe
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 )
 
 type TokenKind int
@@ -35,6 +36,10 @@ type Token struct {
 	Kind TokenKind
 	Next *Token
 	Prev *Token
+}
+
+func (t *Token) Dump(w io.Writer) {
+	_, _ = w.Write([]byte(t.GetText()))
 }
 
 func (t *Token) GetPosition() *Position {

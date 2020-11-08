@@ -1,5 +1,7 @@
 package zoe
 
+import "io"
+
 func setNode(parent Node, target *Node, assign Node) {
 	parent.ExtendPosition(assign)
 	*target = assign
@@ -11,6 +13,7 @@ func appendNode(parent Node, target *[]Node, assign Node) {
 }
 
 type Node interface {
+	Dump(w io.Writer)
 	SetError()
 	GetPosition() *Position
 	GetText() string
