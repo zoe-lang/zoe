@@ -1,7 +1,5 @@
 package zoe
 
-import "log"
-
 var lbp_equal = 0
 var lbp_commas = 0
 var lbp_semicolon = 0
@@ -24,7 +22,7 @@ func init() {
 	// are added at the module level
 	nud(TK_DOCCOMMENT, parseDocComment)
 
-	nud(KW_FOR, parseFor)
+	// nud(KW_FOR, parseFor)
 	nud(KW_IF, parseIf)
 
 	nud(KW_VAR, func(c *ZoeContext, tk *Token, rbp int) Node {
@@ -46,7 +44,7 @@ func init() {
 		// Try to parse VAR ourselves
 	})
 
-	nud(KW_IMPORT, parseImport)
+	// nud(KW_IMPORT, parseImport)
 
 	lbp += 2
 
@@ -107,7 +105,7 @@ func init() {
 		if union, ok := right.(*Union); ok {
 			return union
 		}
-		tk.Context.reportError(tk.Position, `a '|' must always lead an union`)
+		tk.Context.reportError(tk, `a '|' must always lead an union`)
 		return right
 	})
 
@@ -146,7 +144,7 @@ func init() {
 	// surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET, false)
 
 	// the index operator
-	nud(TK_LBRACE, parseLbraceNud)
+	// nud(TK_LBRACE, parseLbraceNud)
 
 	lbp += 2
 
@@ -155,7 +153,7 @@ func init() {
 
 	lbp += 2
 
-	led(TK_ARROW, parseFnSignature)
+	led(TK_ARROW, parseArrow)
 
 	lbp += 2
 
@@ -168,7 +166,7 @@ func init() {
 	lbp += 2
 	// all the terminals. Lbp was raised, but this is not necessary
 
-	nud(TK_QUOTE, parseQuote)
+	// nud(TK_QUOTE, parseQuote)
 
 	terminal(TK_NUMBER, func(tk *Token) Node {
 		return tk.CreateInteger()
@@ -190,12 +188,12 @@ func init() {
 var syms = make([]prattTk, TK__MAX) // Far more than necessary
 
 func nudError(c *ZoeContext, tk *Token, rbp int) Node {
-	c.reportError(tk.Position, `unexpected '`, tk.String(), `'`)
+	c.reportError(tk, `unexpected '`, tk.String(), `'`)
 	return c.Expression(rbp)
 }
 
 func ledError(c *ZoeContext, tk *Token, left Node) Node {
-	c.reportError(tk.Position, `unexpected '`, tk.String(), `'`)
+	c.reportError(tk, `unexpected '`, tk.String(), `'`)
 	return left
 }
 
@@ -252,71 +250,31 @@ func handleParens() {
 	}
 }
 
-///
-func parseAfterAt(c *ZoeContext) Node {
-	var right Node
-	if c.Consume(TK_LT) { // opening <
-		lst := []Node{c.Expression(lbp_gt)}
-		for c.Consume(TK_COMMA) {
-			lst = append(lst, c.Expression(lbp_gt))
-		}
-		if !c.Consume(TK_GT) {
-			c.reportErrorAtCurrentPosition(`expected '>'`)
-		}
-		if len(lst) > 1 {
-			return NewNode(NODE_LIST, lst[0].Position, lst...)
-		}
-		right = lst[0]
-	} else {
-		right = c.Expression(0)
-	}
-	return right
-}
-
-// Handle [ ] in nud position, when assigning a function to a variable
-func parseLbraceNud(c *ZoeContext, tk *Token, _ int) Node {
-	var xp = c.Expression(0)
-	if !c.Consume(TK_RBRACE) {
-		c.reportError(c.Current.Position, `expected ']'`)
-	}
-	return NewNode(NODE_INDEX, tk.Position, xp)
-}
-
-// Handle [] as an operator, where it can be
-func parseLbraceLed(c *ZoeContext, tk *Token, left Node) Node {
-	var xp = c.Expression(0)
-	if !c.Consume(TK_RBRACE) {
-		c.reportError(c.Current.Position, `expected ']'`)
-		return NewNode(NODE_LIST, tk.Position, xp)
-	}
-	return NewNode(NODE_INDEX, tk.Position, left, xp)
-}
-
 // Handle import
-func parseImport(c *ZoeContext, tk *Token, _ int) Node {
-	if !c.Peek(TK_RAWSTR) {
-		c.reportErrorAtCurrentPosition(`import expects a raw string as the module name`)
-	}
-	name := NewTerminalNode(c.Current)
-	c.advance()
-	if c.Consume(KW_AS) {
-		exp := c.Expression(0)
-		return NewNode(NODE_IMPORT, tk.Position, name, exp)
-	}
-	exp := c.Expression(0)
-	if !exp.Is(NODE_LIST) {
-		log.Print(exp.Kind, " - ", exp.String(), exp.Token.Debug(), " - ")
-		return NewNode(NODE_IMPORT, tk.Position, name, NewNode(NODE_LIST, tk.Position, exp))
-	}
-	return NewNode(NODE_IMPORT, tk.Position, name, exp)
-}
+// func parseImport(c *ZoeContext, tk *Token, _ int) Node {
+// 	if !c.Peek(TK_RAWSTR) {
+// 		c.reportErrorAtCurrentPosition(`import expects a raw string as the module name`)
+// 	}
+// 	name := NewTerminalNode(c.Current)
+// 	c.advance()
+// 	if c.Consume(KW_AS) {
+// 		exp := c.Expression(0)
+// 		return NewNode(NODE_IMPORT, tk.Position, name, exp)
+// 	}
+// 	exp := c.Expression(0)
+// 	if !exp.Is(NODE_LIST) {
+// 		log.Print(exp.Kind, " - ", exp.String(), exp.Token.Debug(), " - ")
+// 		return NewNode(NODE_IMPORT, tk.Position, name, NewNode(NODE_LIST, tk.Position, exp))
+// 	}
+// 	return NewNode(NODE_IMPORT, tk.Position, name, exp)
+// }
 
 ///////////////////////////////////////////////////////
 // "
-func parseQuote(c *ZoeContext, tk *Token, _ int) Node {
-	// this should transform the result to a string
-	return parseUntil(c, NODE_STR, tk, TK_QUOTE, 0)
-}
+// func parseQuote(c *ZoeContext, tk *Token, _ int) Node {
+// 	// this should transform the result to a string
+// 	return parseUntil(c, NODE_STR, tk, TK_QUOTE, 0)
+// }
 
 ////////////////////////////////////////////////////////
 // ->
@@ -328,26 +286,37 @@ func parseQuote(c *ZoeContext, tk *Token, _ int) Node {
 //
 // It may be followed by a definition with => (that it handles itself)
 // Or by a { which will return a block
-func parseFnSignature(c *ZoeContext, tk *Token, left Node) Node {
-	// left contains the list parenthesis, right the return type
+func parseArrow(c *ZoeContext, _ *Token, left Node) Node {
+	// left contains the fndef or fndecl
 	right := c.Expression(0)
-
-	sig := tk.CreateFnSignature()
-
-	// left is necessarily a tuple. any other type is an error
-	tup, ok := left.(*Tuple)
-	if !ok {
-		sig.IsError = true
-		left.ReportError(`the left side of '->' must be an argument list between parenthesis`)
-	}
+	var block *Block
+	var ok bool
 
 	if c.Peek(TK_LBRACKET) {
-		// if we are followed by a {, it means this function has a body
-		blk := c.Expression(0)
-		// return NewNode(NODE_FNDEF, tk.Position, res, blk)
+		bk := c.Current
+		if block, ok = c.Expression(0).(*Block); !ok {
+			c.reportError(bk, `expected a block`)
+		}
 	}
 
-	return res
+	// left is necessarily a tuple. any other type is an error
+	switch v := left.(type) {
+	case *FnDecl:
+		v.FnDef.Signature.SetReturnTypeExp(right)
+		if block != nil {
+			v.FnDef.SetDefinition(block)
+		}
+		return v
+	case *FnDef:
+		v.Signature.SetReturnTypeExp(right)
+		if block != nil {
+			v.SetDefinition(block)
+		}
+		return v
+	default:
+		left.ReportError(`the left side of '->' must be a function definition`)
+		return right
+	}
 }
 
 func parseFnFatArrow(c *ZoeContext, tk *Token, left Node) Node {
@@ -355,32 +324,20 @@ func parseFnFatArrow(c *ZoeContext, tk *Token, left Node) Node {
 	// right of => is the implementation of the function
 
 	impl := c.Expression(0) // it is a block or a single expression
-
-	if !impl.Is(NODE_BLOCK) {
-		impl = WrapNode(NODE_BLOCK, impl)
+	var block *Block
+	var ok bool
+	if block, ok = impl.(*Block); !ok {
+		block = tk.CreateBlock().AddChildren(impl)
 	}
 
-	if sig, ok := left.(*FnSignature); ok {
-		// create a fn decl
+	switch v := left.(type) {
+	case *FnDef:
+		v.SetDefinition(block)
+		return v
 	}
 
-	if decl, ok := left.(*FnDecl); ok {
-
-	}
-	left.ReportError(`expression preceding '=>' must be a function signature`)
-
-	// at this stage, we have a node signature and a block, so we just report it a
-	// function definition
-	return NewNode(NODE_FNDEF, tk.Position, left, impl)
-}
-
-/////////////////////////////////////////////////////
-// FOR block
-func parseFor(c *ZoeContext, tk *Token, _ int) Node {
-	first := c.Expression(0)
-	exp := c.Expression(0)
-	return NewNode(NODE_FOR, tk.Position, first, exp)
-	// return New
+	left.ReportError(`left hand side of '=>' must be a lambda function definition`)
+	return left
 }
 
 /////////////////////////////////////////////////////
@@ -388,7 +345,7 @@ func parseFor(c *ZoeContext, tk *Token, _ int) Node {
 func parseIf(c *ZoeContext, tk *Token, _ int) Node {
 	cond := c.Expression(0)
 	then := c.Expression(0)
-	node := tk.CreateIfThen().SetCond(cond).SetThen(then)
+	node := tk.CreateIf().SetCond(cond).SetThen(then)
 	if c.Consume(KW_ELSE) {
 		els := c.Expression(0)
 		return node.SetElse(els)
@@ -415,7 +372,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 
 }
 
-func parseBlock(c *ZoeContext, tk *Token, rbp int) Node {
+func parseBlock(c *ZoeContext, tk *Token, _ int) Node {
 	contents := make([]Node, 0)
 
 	for !c.Peek(TK_RBRACKET) {
@@ -445,7 +402,7 @@ func parseDocComment(c *ZoeContext, tk *Token, rbp int) Node {
 	return next
 }
 
-func parseTemplate(c *ZoeContext, tk *Token, rbp int) Node {
+func parseTemplate(c *ZoeContext, tk *Token, _ int) Node {
 	tpl := &Template{}
 	tpl.ExtendPosition(tk)
 
@@ -453,11 +410,12 @@ func parseTemplate(c *ZoeContext, tk *Token, rbp int) Node {
 
 	// ensure args is a tuple containing variable declarations.
 	if tup, ok := targs.(*Tuple); ok {
-		if args, ok := tup.ToVars(); ok {
-			// no need to report an error if can't convert to arguments
-			tpl.AddArgs(args...)
+		args := tup.ToVars()
+
+		if len(args) > 0 {
 			// FIXME verify the nomenclature of the Idents ($T, $expr, ...)
 			// FIXME verify the variables do not have a type.
+			tpl.AddArgs(args...)
 		}
 		// We have our template arguments, which is dandy
 		// Template arguments only accept = for default, so we're going to check that
@@ -492,7 +450,7 @@ func parseTypeDef(c *ZoeContext, tk *Token, _ int) Node {
 
 	typdef := c.Expression(0)
 	if name == nil {
-		typdef // Set error flag
+		typdef.SetError() // Set error flag
 		return typdef
 	}
 

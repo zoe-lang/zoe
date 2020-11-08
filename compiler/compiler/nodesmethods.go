@@ -3,6 +3,26 @@
 package zoe
 
 
+func (t *Token) CreateNamespace() *Namespace {
+  res := &Namespace{}
+  res.ExtendPosition(t)
+  return res
+}
+
+func (r *Namespace) AddChildren(other ...Node) *Namespace {
+  for _, c := range other {
+    if fragment, ok := c.(*Fragment); ok {
+      for _, c2 := range fragment.Children {
+        r.Children = append(r.Children, c2)
+      }
+    } else {
+      r.Children = append(r.Children, c)
+    }
+    r.ExtendPosition(c)
+  }
+  return r
+}
+
 func (t *Token) CreateFragment() *Fragment {
   res := &Fragment{}
   res.ExtendPosition(t)
@@ -193,25 +213,67 @@ func (r *FnCall) SetArgs(other *Tuple) *FnCall {
   return r
 }
 
-func (t *Token) CreateIfThen() *IfThen {
-  res := &IfThen{}
+func (t *Token) CreateGetIndex() *GetIndex {
+  res := &GetIndex{}
   res.ExtendPosition(t)
   return res
 }
 
-func (r *IfThen) SetCond(other Node) *IfThen {
+func (r *GetIndex) SetLeft(other Node) *GetIndex {
+  r.Left = other
+  r.ExtendPosition(other)
+  return r
+}
+
+func (r *GetIndex) SetIndex(other Node) *GetIndex {
+  r.Index = other
+  r.ExtendPosition(other)
+  return r
+}
+
+func (t *Token) CreateSetIndex() *SetIndex {
+  res := &SetIndex{}
+  res.ExtendPosition(t)
+  return res
+}
+
+func (r *SetIndex) SetLeft(other Node) *SetIndex {
+  r.Left = other
+  r.ExtendPosition(other)
+  return r
+}
+
+func (r *SetIndex) SetIndex(other Node) *SetIndex {
+  r.Index = other
+  r.ExtendPosition(other)
+  return r
+}
+
+func (r *SetIndex) SetValue(other Node) *SetIndex {
+  r.Value = other
+  r.ExtendPosition(other)
+  return r
+}
+
+func (t *Token) CreateIf() *If {
+  res := &If{}
+  res.ExtendPosition(t)
+  return res
+}
+
+func (r *If) SetCond(other Node) *If {
   r.Cond = other
   r.ExtendPosition(other)
   return r
 }
 
-func (r *IfThen) SetThen(other Node) *IfThen {
+func (r *If) SetThen(other Node) *If {
   r.Then = other
   r.ExtendPosition(other)
   return r
 }
 
-func (r *IfThen) SetElse(other Node) *IfThen {
+func (r *If) SetElse(other Node) *If {
   r.Else = other
   r.ExtendPosition(other)
   return r
@@ -325,6 +387,12 @@ func (t *Token) CreateInteger() *Integer {
 
 func (t *Token) CreateFloat() *Float {
   res := &Float{}
+  res.ExtendPosition(t)
+  return res
+}
+
+func (t *Token) CreateEof() *Eof {
+  res := &Eof{}
   res.ExtendPosition(t)
   return res
 }

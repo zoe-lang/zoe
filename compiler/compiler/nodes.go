@@ -11,6 +11,7 @@ func appendNode(parent Node, target *[]Node, assign Node) {
 }
 
 type Node interface {
+	SetError()
 	GetPosition() *Position
 	GetText() string
 	ExtendPosition(other Positioned)
@@ -30,6 +31,10 @@ type NodeBase struct {
 /////////////////////////////////////////////////////////////////////////
 
 // NODEBASE
+
+func (n *NodeBase) SetError() {
+	n.IsError = true
+}
 
 func (n *NodeBase) ReportError(msg ...string) {
 	n.IsError = true
@@ -72,6 +77,13 @@ func (n *NodeBase) ExtendPosition(otherp Positioned) {
 	} else if other.EndLine == pos.EndLine {
 		pos.EndColumn = maxInt(pos.EndColumn, other.EndColumn)
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+type Namespace struct {
+	NodeBase
+	Children []Node
 }
 
 type Fragment struct {
@@ -135,7 +147,20 @@ type FnCall struct {
 	Args *Tuple
 }
 
-type IfThen struct {
+type GetIndex struct {
+	NodeBase
+	Left  Node
+	Index Node
+}
+
+type SetIndex struct {
+	NodeBase
+	Left  Node
+	Index Node
+	Value Node
+}
+
+type If struct {
 	NodeBase
 	Cond Node
 	Then Node
@@ -223,6 +248,10 @@ type Integer struct {
 }
 
 type Float struct {
+	NodeBase
+}
+
+type Eof struct {
 	NodeBase
 }
 

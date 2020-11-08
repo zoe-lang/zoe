@@ -1,7 +1,6 @@
 package zoe
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,7 +27,7 @@ type ZoeContext struct {
 	Current  *Token
 	Errors   []ZoeError
 	data     []byte
-	Root     *Node
+	Root     Node
 
 	DocCommentMap   map[Node]*Token // contains the doc comments related to given nodes
 	RootDocComments []*Token
@@ -83,10 +82,15 @@ func (c *ZoeContext) advance() {
 }
 
 // At the top level, just parse everything we can
-func (c *ZoeContext) ParseFile() *Node {
-	res := parseUntil(c, NODE_DECLS, &Token{Kind: TK_EOF}, TK_EOF, 0)
-	c.Root = res
-	return res
+func (c *ZoeContext) ParseFile() Node {
+	n := &Namespace{}
+	for !c.isEof() {
+		node := c.Expression(0)
+		n.AddChildren(node)
+	}
+
+	c.Root = n
+	return n
 }
 
 func (c *ZoeContext) reportErrorAtCurrentPosition(message ...string) {
@@ -99,14 +103,9 @@ func (c *ZoeContext) reportErrorAtCurrentPosition(message ...string) {
 	c.reportError(pos, message...)
 }
 
-func (c *ZoeContext) reportError(pos Position, message ...string) {
+func (c *ZoeContext) reportError(pos Positioned, message ...string) {
 	c.Errors = append(c.Errors, ZoeError{
-		Position: pos,
+		Position: *pos.GetPosition(),
 		Message:  strings.Join(message, ""),
 	})
-}
-
-func (c *ZoeContext) nodeError(tk *Token, left ...*Node) *Node {
-	c.reportError(tk.Position, fmt.Sprintf(`unexpected '%s'`, tk.String()))
-	return NewErrorNode(tk, left...)
 }

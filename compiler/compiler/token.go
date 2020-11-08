@@ -18,6 +18,10 @@ type Position struct {
 	EndColumn int
 }
 
+func (p Position) GetPosition() *Position {
+	return &p
+}
+
 func (p *Position) GetText() string {
 	return string(p.Context.data[p.Start:p.End])
 }
@@ -88,7 +92,7 @@ func (t *Token) String() string {
 		return "*"
 	}
 	// return fmt.Sprintf("%#v", string(z.Context.data[z.Start:z.End]))
-	return t.Position.String()
+	return t.Position.GetText()
 }
 
 func (t *Token) Debug() string {

@@ -31,11 +31,6 @@ func (c *ZoeContext) Consume(tk TokenKind) bool {
 	return false
 }
 
-func (c *ZoeContext) EOF() Node {
-	tk := &Token{Kind: TK_EOF}
-	return NewErrorNode(tk)
-}
-
 func (c *ZoeContext) Expect(tk TokenKind) *Token {
 	if c.Current.Kind != tk {
 		c.reportError(c.Current.Position, fmt.Sprintf(`expected '%s' but got '%s'`, tokstr[tk], c.Current.String()))
@@ -50,7 +45,7 @@ func (c *ZoeContext) Expect(tk TokenKind) *Token {
 func (c *ZoeContext) Expression(rbp int) Node {
 	// This is an error case, but has to be handled
 	if c.isEof() {
-		return c.EOF()
+		return c.End.CreateEof()
 	}
 
 	t, sym_cur := c.currentSym()

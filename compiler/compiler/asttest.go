@@ -13,6 +13,10 @@ var reBeforeSpace = regexp.MustCompilePOSIX(` (\}|\)|\])`)
 var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
+func DebugNode(n Node) string {
+	return ""
+}
+
 func cleanup(str []byte) []byte {
 	s := reAstComments.ReplaceAllLiteral(str, []byte{})
 	s = reNoSuperflousSpace.ReplaceAllFunc(str, func(b []byte) []byte {
@@ -34,7 +38,7 @@ func (c *ZoeContext) TestFileAst() {
 // For every node at the root of the file, we're going to try
 // and find a matching doc comment containing an AST dump.
 // We'll then parse it, dump it, and compare the dump to the dump of the corresponding AST.
-func (c *ZoeContext) testFileAst(n *Node) {
+func (c *ZoeContext) testFileAst(n Node) {
 	if cmt, ok := c.DocCommentMap[n]; ok {
 		// found it !
 		str := []byte(cmt.String())
@@ -43,13 +47,13 @@ func (c *ZoeContext) testFileAst(n *Node) {
 		str = cleanup(str)
 		p := color.NoColor
 		color.NoColor = true
-		test := cleanup([]byte(n.Debug()))
+		test := cleanup([]byte(DebugNode(n)))
 		color.NoColor = p
 
 		if string(test) != string(str) {
 			log.Print("expected: ", yel(string(str)))
 			log.Print("result:   ", red(string(test)))
-			log.Print("src: ", n.String(), "\n\n")
+			log.Print("src: ", DebugNode(n), "\n\n")
 		} else {
 			log.Print("ok: ", green(string(str)), "\n\n")
 		}
