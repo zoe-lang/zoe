@@ -73,7 +73,7 @@ func (r *{{v.type}}) Dump(w io.Writer) {
 
 func (r *{{v.type}}) Dump(w io.Writer) {
 %% if (v.lower === 'operation') { %%
-  w.Write([]byte("(op"))
+  w.Write([]byte("("))
 %% } else if (v.lower === 'block') { %%
   w.Write([]byte("{"))
 %% } else if (v.lower === 'tuple' || v.lower === 'vartuple') { %%

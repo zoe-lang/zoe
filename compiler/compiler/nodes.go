@@ -108,6 +108,13 @@ type Union struct {
 	TypeExprs []Node
 }
 
+type ImportAs struct {
+	NodeBase
+}
+
+type ImportList struct {
+}
+
 type Var struct {
 	NodeBase
 	Ident   *Ident
@@ -117,12 +124,12 @@ type Var struct {
 
 type Operation struct {
 	NodeBase
-	TokenKind TokenKind
-	Operands  []Node
+	Token    *Token
+	Operands []Node
 }
 
 func (o *Operation) Is(tk TokenKind) bool {
-	return o.TokenKind == tk
+	return o.Token.Kind == tk
 }
 
 func (o *Operation) IsBinary() bool {
@@ -288,7 +295,7 @@ type Eof struct {
 func coerceToVar(n Node) *Var {
 	switch v := n.(type) {
 	case *Operation:
-		if v.TokenKind == TK_EQ && len(v.Operands) == 2 {
+		if v.Is(TK_EQ) && len(v.Operands) == 2 {
 			// this is perfect, check that left is
 			if id, ok := v.Operands[0].(*Ident); ok {
 				return n.GetPosition().CreateVar().SetExp(v.Operands[1]).SetIdent(id)

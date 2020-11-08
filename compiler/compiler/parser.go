@@ -266,7 +266,8 @@ func handleParens() {
 	//
 	s.nud = func(c *ZoeContext, tk *Token, _ int) Node {
 		res := tk.CreateTuple()
-		for !c.Consume(TK_RPAREN) {
+
+		for !c.Peek(TK_RPAREN) {
 			if c.isEof() {
 				c.reportErrorAtCurrentPosition(`unexpected end of file`)
 				// contents = append(contents, c.EOF())
@@ -274,6 +275,18 @@ func handleParens() {
 			}
 			res.AddChildren(c.Expression(0))
 		}
+
+		if !c.Peek(TK_RPAREN) {
+			c.reportErrorAtCurrentPosition(`expected a closing ')'`)
+		} else {
+			res.ExtendPosition(c.Current)
+			c.advance()
+		}
+
+		if !c.Peek(TK_ARROW, TK_FATARROW) && len(res.Children) == 1 {
+			return res.Children[0]
+		}
+
 		return res
 	}
 }

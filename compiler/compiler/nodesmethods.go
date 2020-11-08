@@ -247,6 +247,25 @@ func (r *Union) AddTypeExprs(other ...Node) *Union {
 
 
 
+func (p *Position) CreateImportAs() *ImportAs {
+  res := &ImportAs{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateImportAs() *ImportAs {
+  return tk.Position.CreateImportAs()
+}
+
+
+func (r *ImportAs) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
+}
+
+
+
+
+
 func (p *Position) CreateVar() *Var {
   res := &Var{}
   res.ExtendPosition(p)
@@ -353,8 +372,17 @@ func (tk *Token) CreateOperation() *Operation {
 
 func (r *Operation) Dump(w io.Writer) {
 
-  w.Write([]byte("(op"))
+  w.Write([]byte("("))
 
+
+
+
+      w.Write([]byte(" "))
+      if r.Token != nil {
+        r.Token.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
 
 
 
@@ -370,6 +398,18 @@ func (r *Operation) Dump(w io.Writer) {
 
 }
 
+
+
+
+
+
+func (r *Operation) SetToken(other *Token) *Operation {
+  r.Token = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
 
 
 
