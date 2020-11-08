@@ -1,6 +1,8 @@
 package zoe
 
-import "io"
+import (
+	"io"
+)
 
 func setNode(parent Node, target *Node, assign Node) {
 	parent.ExtendPosition(assign)
@@ -119,12 +121,32 @@ type Operation struct {
 	Operands  []Node
 }
 
+func (o *Operation) Is(tk TokenKind) bool {
+	return o.TokenKind == tk
+}
+
+func (o *Operation) IsBinary() bool {
+	return len(o.Operands) == 2
+}
+
+func (o *Operation) IsUnary() bool {
+	return len(o.Operands) == 1
+}
+
+func (o *Operation) Left() Node {
+	return o.Operands[0]
+}
+
+func (o *Operation) Right() Node {
+	return o.Operands[1]
+}
+
 ///////////////////////////////////////////////////////////////
 // TEMPLATE
 
 type Template struct {
 	NodeBase
-	Args []*Var
+	Args *VarTuple
 	// maybe probably here would go a where clause
 }
 
@@ -140,7 +162,7 @@ type FnDef struct {
 
 type Signature struct {
 	NodeBase
-	Args          []*Var
+	Args          *VarTuple
 	ReturnTypeExp Node
 }
 
@@ -187,16 +209,21 @@ type Tuple struct {
 	Children []Node
 }
 
+type VarTuple struct {
+	NodeBase
+	Vars []*Var
+}
+
 // Transforms a tuple to arguments
-func (t *Tuple) ToVars() []*Var {
-	res := make([]*Var, 0)
+func (t *Tuple) ToVars() *VarTuple {
+	tup := &VarTuple{}
 	for _, c := range t.Children {
 		v := coerceToVar(c)
 		if v != nil {
-			res = append(res, v)
+			tup.AddVars(v)
 		}
 	}
-	return res
+	return tup
 }
 
 ///////////////////////////////////////////////////////////////

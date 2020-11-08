@@ -16,12 +16,131 @@ package zoe
 import "io"
 `)
 
+// 1 trim left
+// 2 exp
+// 3 trim right
+// 4 trim left
+// 5 fnbody
+// 6 trim right
+const re_tag = /\{\{(\-)?((?:(?!\}\})[^])+)?(\-)?\}\}|%%(\-)?((?:(?!%%)[^])*)(\-)?%%/g
+
+/**
+ * A simple templating function stolen from https://krasimirtsonev.com/blog/article/Javascript-template-engine-in-just-20-line
+ */
+function Template(tpl) {
+  var fncode = ['var __res = [];'], start = 0, match;
+
+  function add(m) {
+    fncode.push('__res.push(`' + tpl.substr(start, m.index - start) + '`)')
+    if (m[2]) {
+      fncode.push(`__res.push(${m[2]})`)
+    } else if (m[5]) {
+      fncode.push(m[5])
+    }
+    // console.log(cursor, match)
+  }
+
+  while(match = re_tag.exec(tpl)) {
+      add(match);
+      start = match.index + match[0].length;
+  }
+
+  fncode.push('__res.push(`' + tpl.substr(start, tpl.length - start) + '`)');
+  fncode.push(`return __res.join('');`);
+  // code = code.replace(/[\r\t\n]+/g, ' ')
+  var rescode = fncode.join('\n')
+  // console.log(rescode)
+  var fn = new Function('v', rescode)
+  return (data) => fn(data);
+}
+
+var tpl_create = Template(`
+func (p *Position) Create{{v.type}}() *{{v.type}} {
+  res := &{{v.type}}{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) Create{{v.type}}() *{{v.type}} {
+  return tk.Position.Create{{v.type}}()
+}
+
+%% if (v.fields.length === 0) { %%
+func (r *{{v.type}}) Dump(w io.Writer) {
+  w.Write([]byte(r.GetText()))
+}
+%% } else { %%
+
+func (r *{{v.type}}) Dump(w io.Writer) {
+%% if (v.lower === 'operation') { %%
+  w.Write([]byte("(op"))
+%% } else if (v.lower === 'block') { %%
+  w.Write([]byte("{"))
+%% } else if (v.lower === 'tuple' || v.lower === 'vartuple') { %%
+  w.Write([]byte("["))
+%% } else { %%
+  w.Write([]byte("({{v.lower}}"))
+%% } %%
+
+%% for (var f of v.fields) { %%
+%%   if (f.is_list) { %%
+      for _, n := range r.{{f.name}} {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+%%   } else { %%
+      w.Write([]byte(" "))
+      if r.{{f.name}} != nil {
+        r.{{f.name}}.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+%%   } %%
+%% } %%
+
+%% if (v.lower === 'block') { %%
+  w.Write([]byte("}"))
+%% } else if (v.lower === 'tuple' || v.lower === 'vartuple') { %%
+  w.Write([]byte("]"))
+%% } else { %%
+  w.Write([]byte(")"))
+%% } %%
+}
+
+%% } %%
+
+%% for (var f of v.fields) { -%%
+
+%% if (f.is_list) { %%
+func (r *{{v.type}}) Add{{f.name}}(other ...{{f.simple_type}}) *{{v.type}} {
+  for _, c := range other {
+    if c != nil {
+      r.{{f.name}} = append(r.{{f.name}}, c)
+      r.ExtendPosition(c)
+    }
+  }
+  return r
+}
+%% } else { %%
+func (r *{{v.type}}) Set{{f.name}}(other {{f.type}}) *{{v.type}} {
+  r.{{f.name}} = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+%% } %%
+
+%% } %%
+`)
+
+var types = []
 var match, pmatch
 while (match = re_type.exec(input)) {
   const [_, type, src] = match
   if (type === 'NodeBase') continue
   const finalsrc = src.replace(/\/\/[^\n]*\n/g, '')
-  const lower = type.replace(/[A-Z]/g, m => '-' + m.toLowerCase()).slice(1)
+  const lower = type.toLowerCase()
 
   const fields = []
 
@@ -29,89 +148,24 @@ while (match = re_type.exec(input)) {
     const [_, name, proptype] = pmatch
     if (!proptype.includes('*') && !proptype.includes('Node')) continue
 
-    const is_list = proptype.includes('[]')
-    fields.push({name, type: proptype, is_list: is_list})
+    fields.push({
+      name,
+      type: proptype,
+      // lower,
+      simple_type: proptype.replace(/\[\]/g, ''),
+      is_list: proptype.includes('[]')
+    })
 
-    if (is_list) {
-      var lsttype = proptype.replace('[]', '')
-      if (proptype === '[]Node') {
-        console.log(`\nfunc (r *${type}) Add${name}(other ...${lsttype}) *${type} {
-  for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.${name} = append(r.${name}, c2)
-      }
-    } else {
-      r.${name} = append(r.${name}, c)
-    }
-    r.ExtendPosition(c)
-  }
-  return r
-}`)
-      } else {
-        console.log(`\nfunc (r *${type}) Add${name}(other ...${lsttype}) *${type} {
-  for _, c := range other {
-    r.${name} = append(r.${name}, c)
-    r.ExtendPosition(c)
-  }
-  return r
-}`)
-      }
-
-    } else {
-      console.log(`\nfunc (r *${type}) Set${name}(other ${proptype}) *${type} {
-  r.${name} = other
-  r.ExtendPosition(other)
-  return r
-}`)
-    }
     // console.log(type, name, proptype, is_list)
   }
-
-  console.log(`\nfunc (p *Position) Create${type}() *${type} {
-  res := &${type}{}
-  res.ExtendPosition(p)
-${fields.length ? fields.filter(f => !f.is_list && f.type !== 'Node').map(f => `  res.${f.name} = p.Create${f.type.slice(1)}()`).join('\n'): ''}
-  return res
-}`)
-
-  console.log(`\nfunc (t *Token) Create${type}() *${type} {
-  return (&t.Position).Create${type}()
-}`)
-
-  if (fields.length) {
-
-    console.log(`\nfunc (r *${type}) Dump(w io.Writer) {
-  w.Write([]byte(${
-    lower === 'operation' ? '"(" + tokstr[r.TokenKind]' :
-    lower === 'tuple' ? '"("' :
-    lower === 'block' ? '"{"' :
-    '"(' + lower + '"'
-}))${fields.map(f => {
-  if (f.is_list) {
-    return `
-  for _, c := range r.${f.name} {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }`
-  } else {
-    return `
-  if r.${f.name} != nil {
-    w.Write([]byte(" "))
-    r.${f.name}.Dump(w)
-  }`
-  }
-}).join('')}
-  w.Write([]byte("${
-    lower === 'tuple' ? ')' :
-    lower === 'block' ? '}' :
-    ')'
-  }"))
-}`)
-  } else {
-    console.log(`\nfunc (r *${type}) Dump(w io.Writer) {
-  w.Write([]byte(r.GetText()))
-}`)
-  }
-
+  types.push({
+    type,
+    lower,
+    fields
+  })
 }
+
+for (var t of types) {
+  console.log(tpl_create(t))
+}
+// console.log(types)

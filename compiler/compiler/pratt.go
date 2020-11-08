@@ -32,6 +32,10 @@ func (c *ZoeContext) Consume(tk TokenKind) bool {
 }
 
 func (c *ZoeContext) Expect(tk TokenKind) *Token {
+	if c.Current == nil {
+		c.reportErrorAtCurrentPosition(`unexpected end of file`)
+		return nil
+	}
 	if c.Current.Kind != tk {
 		c.reportError(c.Current.Position, fmt.Sprintf(`expected '%s' but got '%s'`, tokstr[tk], c.Current.String()))
 		return nil

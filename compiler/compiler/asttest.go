@@ -43,7 +43,7 @@ func (c *ZoeContext) TestFileAst() {
 
 		var buf bytes.Buffer
 		n.Dump(&buf)
-		test := buf.String()
+		test := cleanup(buf.Bytes())
 
 		color.NoColor = p
 

@@ -1,21 +1,22 @@
 #(?
-  (decl:var
+  (var
     b
-    (infer)
-    (fndef (signature [] (infer)) {2})
+    <nil>
+    (fndef <nil> (signature [] <nil>) {2})
   )
 #)
 var b = fn () => 2
 
 #(?
-  (decl:var
+  (var
     b
-    (infer)
+    <nil>
     (fndef
-      ( signature [(: a String)] String )
-      {(return a)})
+      <nil>
+      (signature [(var a String <nil>)] String )
+      {(return a)}
     )
   )
 
 #)
-var b = fn (a: String) -> String => { return a }
+var b = fn (a: String) -> String { return a }

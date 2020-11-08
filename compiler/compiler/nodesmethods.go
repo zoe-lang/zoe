@@ -5,760 +5,1348 @@ package zoe
 import "io"
 
 
-func (r *Namespace) AddChildren(other ...Node) *Namespace {
-  for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.Children = append(r.Children, c2)
-      }
-    } else {
-      r.Children = append(r.Children, c)
-    }
-    r.ExtendPosition(c)
-  }
-  return r
-}
-
 func (p *Position) CreateNamespace() *Namespace {
   res := &Namespace{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateNamespace() *Namespace {
-  return (&t.Position).CreateNamespace()
+func (tk *Token) CreateNamespace() *Namespace {
+  return tk.Position.CreateNamespace()
 }
+
+
 
 func (r *Namespace) Dump(w io.Writer) {
+
   w.Write([]byte("(namespace"))
-  for _, c := range r.Children {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
+
+
+
+
+      for _, n := range r.Children {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Fragment) AddChildren(other ...Node) *Fragment {
+
+
+
+
+
+func (r *Namespace) AddChildren(other ...Node) *Namespace {
   for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.Children = append(r.Children, c2)
-      }
-    } else {
+    if c != nil {
       r.Children = append(r.Children, c)
+      r.ExtendPosition(c)
     }
-    r.ExtendPosition(c)
   }
   return r
 }
+
+
+
+
 
 func (p *Position) CreateFragment() *Fragment {
   res := &Fragment{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateFragment() *Fragment {
-  return (&t.Position).CreateFragment()
+func (tk *Token) CreateFragment() *Fragment {
+  return tk.Position.CreateFragment()
 }
+
+
 
 func (r *Fragment) Dump(w io.Writer) {
+
   w.Write([]byte("(fragment"))
-  for _, c := range r.Children {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
+
+
+
+
+      for _, n := range r.Children {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *TypeDecl) SetTemplate(other *Template) *TypeDecl {
-  r.Template = other
-  r.ExtendPosition(other)
+
+
+
+
+
+func (r *Fragment) AddChildren(other ...Node) *Fragment {
+  for _, c := range other {
+    if c != nil {
+      r.Children = append(r.Children, c)
+      r.ExtendPosition(c)
+    }
+  }
   return r
 }
 
-func (r *TypeDecl) SetIdent(other *Ident) *TypeDecl {
-  r.Ident = other
-  r.ExtendPosition(other)
-  return r
-}
 
-func (r *TypeDecl) SetDef(other Node) *TypeDecl {
-  r.Def = other
-  r.ExtendPosition(other)
-  return r
-}
+
+
 
 func (p *Position) CreateTypeDecl() *TypeDecl {
   res := &TypeDecl{}
   res.ExtendPosition(p)
-  res.Template = p.CreateTemplate()
-  res.Ident = p.CreateIdent()
   return res
 }
 
-func (t *Token) CreateTypeDecl() *TypeDecl {
-  return (&t.Position).CreateTypeDecl()
+func (tk *Token) CreateTypeDecl() *TypeDecl {
+  return tk.Position.CreateTypeDecl()
 }
+
+
 
 func (r *TypeDecl) Dump(w io.Writer) {
-  w.Write([]byte("(type-decl"))
-  if r.Template != nil {
-    w.Write([]byte(" "))
-    r.Template.Dump(w)
-  }
-  if r.Ident != nil {
-    w.Write([]byte(" "))
-    r.Ident.Dump(w)
-  }
-  if r.Def != nil {
-    w.Write([]byte(" "))
-    r.Def.Dump(w)
-  }
+
+  w.Write([]byte("(typedecl"))
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Template != nil {
+        r.Template.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Ident != nil {
+        r.Ident.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Def != nil {
+        r.Def.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Union) AddTypeExprs(other ...Node) *Union {
-  for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.TypeExprs = append(r.TypeExprs, c2)
-      }
-    } else {
-      r.TypeExprs = append(r.TypeExprs, c)
-    }
-    r.ExtendPosition(c)
+
+
+
+
+
+func (r *TypeDecl) SetTemplate(other *Template) *TypeDecl {
+  r.Template = other
+  if other != nil {
+    r.ExtendPosition(other)
   }
   return r
 }
+
+
+
+
+
+func (r *TypeDecl) SetIdent(other *Ident) *TypeDecl {
+  r.Ident = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
+
+func (r *TypeDecl) SetDef(other Node) *TypeDecl {
+  r.Def = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateUnion() *Union {
   res := &Union{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateUnion() *Union {
-  return (&t.Position).CreateUnion()
+func (tk *Token) CreateUnion() *Union {
+  return tk.Position.CreateUnion()
 }
+
+
 
 func (r *Union) Dump(w io.Writer) {
+
   w.Write([]byte("(union"))
-  for _, c := range r.TypeExprs {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
+
+
+
+
+      for _, n := range r.TypeExprs {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Var) SetIdent(other *Ident) *Var {
-  r.Ident = other
-  r.ExtendPosition(other)
+
+
+
+
+
+func (r *Union) AddTypeExprs(other ...Node) *Union {
+  for _, c := range other {
+    if c != nil {
+      r.TypeExprs = append(r.TypeExprs, c)
+      r.ExtendPosition(c)
+    }
+  }
   return r
 }
 
-func (r *Var) SetTypeExp(other Node) *Var {
-  r.TypeExp = other
-  r.ExtendPosition(other)
-  return r
-}
 
-func (r *Var) SetExp(other Node) *Var {
-  r.Exp = other
-  r.ExtendPosition(other)
-  return r
-}
+
+
 
 func (p *Position) CreateVar() *Var {
   res := &Var{}
   res.ExtendPosition(p)
-  res.Ident = p.CreateIdent()
   return res
 }
 
-func (t *Token) CreateVar() *Var {
-  return (&t.Position).CreateVar()
+func (tk *Token) CreateVar() *Var {
+  return tk.Position.CreateVar()
 }
+
+
 
 func (r *Var) Dump(w io.Writer) {
+
   w.Write([]byte("(var"))
-  if r.Ident != nil {
-    w.Write([]byte(" "))
-    r.Ident.Dump(w)
-  }
-  if r.TypeExp != nil {
-    w.Write([]byte(" "))
-    r.TypeExp.Dump(w)
-  }
-  if r.Exp != nil {
-    w.Write([]byte(" "))
-    r.Exp.Dump(w)
-  }
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Ident != nil {
+        r.Ident.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.TypeExp != nil {
+        r.TypeExp.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Exp != nil {
+        r.Exp.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Operation) AddOperands(other ...Node) *Operation {
-  for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.Operands = append(r.Operands, c2)
-      }
-    } else {
-      r.Operands = append(r.Operands, c)
-    }
-    r.ExtendPosition(c)
+
+
+
+
+
+func (r *Var) SetIdent(other *Ident) *Var {
+  r.Ident = other
+  if other != nil {
+    r.ExtendPosition(other)
   }
   return r
 }
+
+
+
+
+
+func (r *Var) SetTypeExp(other Node) *Var {
+  r.TypeExp = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
+
+func (r *Var) SetExp(other Node) *Var {
+  r.Exp = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateOperation() *Operation {
   res := &Operation{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateOperation() *Operation {
-  return (&t.Position).CreateOperation()
+func (tk *Token) CreateOperation() *Operation {
+  return tk.Position.CreateOperation()
 }
+
+
 
 func (r *Operation) Dump(w io.Writer) {
-  w.Write([]byte("(" + tokstr[r.TokenKind]))
-  for _, c := range r.Operands {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
+
+  w.Write([]byte("(op"))
+
+
+
+
+      for _, n := range r.Operands {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Template) AddArgs(other ...*Var) *Template {
+
+
+
+
+
+func (r *Operation) AddOperands(other ...Node) *Operation {
   for _, c := range other {
-    r.Args = append(r.Args, c)
-    r.ExtendPosition(c)
+    if c != nil {
+      r.Operands = append(r.Operands, c)
+      r.ExtendPosition(c)
+    }
   }
   return r
 }
+
+
+
+
 
 func (p *Position) CreateTemplate() *Template {
   res := &Template{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateTemplate() *Template {
-  return (&t.Position).CreateTemplate()
+func (tk *Token) CreateTemplate() *Template {
+  return tk.Position.CreateTemplate()
 }
+
+
 
 func (r *Template) Dump(w io.Writer) {
+
   w.Write([]byte("(template"))
-  for _, c := range r.Args {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Args != nil {
+        r.Args.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *FnDef) SetTemplate(other *Template) *FnDef {
-  r.Template = other
-  r.ExtendPosition(other)
+
+
+
+
+
+func (r *Template) SetArgs(other *VarTuple) *Template {
+  r.Args = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *FnDef) SetSignature(other *Signature) *FnDef {
-  r.Signature = other
-  r.ExtendPosition(other)
-  return r
-}
 
-func (r *FnDef) SetDefinition(other *Block) *FnDef {
-  r.Definition = other
-  r.ExtendPosition(other)
-  return r
-}
+
+
 
 func (p *Position) CreateFnDef() *FnDef {
   res := &FnDef{}
   res.ExtendPosition(p)
-  res.Template = p.CreateTemplate()
-  res.Signature = p.CreateSignature()
-  res.Definition = p.CreateBlock()
   return res
 }
 
-func (t *Token) CreateFnDef() *FnDef {
-  return (&t.Position).CreateFnDef()
+func (tk *Token) CreateFnDef() *FnDef {
+  return tk.Position.CreateFnDef()
 }
+
+
 
 func (r *FnDef) Dump(w io.Writer) {
-  w.Write([]byte("(fn-def"))
-  if r.Template != nil {
-    w.Write([]byte(" "))
-    r.Template.Dump(w)
-  }
-  if r.Signature != nil {
-    w.Write([]byte(" "))
-    r.Signature.Dump(w)
-  }
-  if r.Definition != nil {
-    w.Write([]byte(" "))
-    r.Definition.Dump(w)
-  }
+
+  w.Write([]byte("(fndef"))
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Template != nil {
+        r.Template.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Signature != nil {
+        r.Signature.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Definition != nil {
+        r.Definition.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Signature) AddArgs(other ...*Var) *Signature {
-  for _, c := range other {
-    r.Args = append(r.Args, c)
-    r.ExtendPosition(c)
+
+
+
+
+
+func (r *FnDef) SetTemplate(other *Template) *FnDef {
+  r.Template = other
+  if other != nil {
+    r.ExtendPosition(other)
   }
   return r
 }
 
-func (r *Signature) SetReturnTypeExp(other Node) *Signature {
-  r.ReturnTypeExp = other
-  r.ExtendPosition(other)
+
+
+
+
+func (r *FnDef) SetSignature(other *Signature) *FnDef {
+  r.Signature = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
+
+
+
+
+
+func (r *FnDef) SetDefinition(other *Block) *FnDef {
+  r.Definition = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateSignature() *Signature {
   res := &Signature{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateSignature() *Signature {
-  return (&t.Position).CreateSignature()
+func (tk *Token) CreateSignature() *Signature {
+  return tk.Position.CreateSignature()
 }
+
+
 
 func (r *Signature) Dump(w io.Writer) {
+
   w.Write([]byte("(signature"))
-  for _, c := range r.Args {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
-  if r.ReturnTypeExp != nil {
-    w.Write([]byte(" "))
-    r.ReturnTypeExp.Dump(w)
-  }
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Args != nil {
+        r.Args.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.ReturnTypeExp != nil {
+        r.ReturnTypeExp.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *FnCall) SetLeft(other Node) *FnCall {
-  r.Left = other
-  r.ExtendPosition(other)
-  return r
-}
 
-func (r *FnCall) SetArgs(other *Tuple) *FnCall {
+
+
+
+
+func (r *Signature) SetArgs(other *VarTuple) *Signature {
   r.Args = other
-  r.ExtendPosition(other)
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
+
+
+
+
+
+func (r *Signature) SetReturnTypeExp(other Node) *Signature {
+  r.ReturnTypeExp = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateFnCall() *FnCall {
   res := &FnCall{}
   res.ExtendPosition(p)
-  res.Args = p.CreateTuple()
   return res
 }
 
-func (t *Token) CreateFnCall() *FnCall {
-  return (&t.Position).CreateFnCall()
+func (tk *Token) CreateFnCall() *FnCall {
+  return tk.Position.CreateFnCall()
 }
+
+
 
 func (r *FnCall) Dump(w io.Writer) {
-  w.Write([]byte("(fn-call"))
-  if r.Left != nil {
-    w.Write([]byte(" "))
-    r.Left.Dump(w)
-  }
-  if r.Args != nil {
-    w.Write([]byte(" "))
-    r.Args.Dump(w)
-  }
+
+  w.Write([]byte("(fncall"))
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Left != nil {
+        r.Left.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Args != nil {
+        r.Args.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *GetIndex) SetLeft(other Node) *GetIndex {
+
+
+
+
+
+func (r *FnCall) SetLeft(other Node) *FnCall {
   r.Left = other
-  r.ExtendPosition(other)
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *GetIndex) SetIndex(other Node) *GetIndex {
-  r.Index = other
-  r.ExtendPosition(other)
+
+
+
+
+func (r *FnCall) SetArgs(other *Tuple) *FnCall {
+  r.Args = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
+
+
+
+
 
 func (p *Position) CreateGetIndex() *GetIndex {
   res := &GetIndex{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateGetIndex() *GetIndex {
-  return (&t.Position).CreateGetIndex()
+func (tk *Token) CreateGetIndex() *GetIndex {
+  return tk.Position.CreateGetIndex()
 }
+
+
 
 func (r *GetIndex) Dump(w io.Writer) {
-  w.Write([]byte("(get-index"))
-  if r.Left != nil {
-    w.Write([]byte(" "))
-    r.Left.Dump(w)
-  }
-  if r.Index != nil {
-    w.Write([]byte(" "))
-    r.Index.Dump(w)
-  }
+
+  w.Write([]byte("(getindex"))
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Left != nil {
+        r.Left.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Index != nil {
+        r.Index.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *SetIndex) SetLeft(other Node) *SetIndex {
+
+
+
+
+
+func (r *GetIndex) SetLeft(other Node) *GetIndex {
   r.Left = other
-  r.ExtendPosition(other)
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *SetIndex) SetIndex(other Node) *SetIndex {
+
+
+
+
+func (r *GetIndex) SetIndex(other Node) *GetIndex {
   r.Index = other
-  r.ExtendPosition(other)
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *SetIndex) SetValue(other Node) *SetIndex {
-  r.Value = other
-  r.ExtendPosition(other)
-  return r
-}
+
+
+
 
 func (p *Position) CreateSetIndex() *SetIndex {
   res := &SetIndex{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateSetIndex() *SetIndex {
-  return (&t.Position).CreateSetIndex()
+func (tk *Token) CreateSetIndex() *SetIndex {
+  return tk.Position.CreateSetIndex()
 }
+
+
 
 func (r *SetIndex) Dump(w io.Writer) {
-  w.Write([]byte("(set-index"))
-  if r.Left != nil {
-    w.Write([]byte(" "))
-    r.Left.Dump(w)
-  }
-  if r.Index != nil {
-    w.Write([]byte(" "))
-    r.Index.Dump(w)
-  }
-  if r.Value != nil {
-    w.Write([]byte(" "))
-    r.Value.Dump(w)
-  }
+
+  w.Write([]byte("(setindex"))
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Left != nil {
+        r.Left.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Index != nil {
+        r.Index.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Value != nil {
+        r.Value.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *If) SetCond(other Node) *If {
-  r.Cond = other
-  r.ExtendPosition(other)
+
+
+
+
+
+func (r *SetIndex) SetLeft(other Node) *SetIndex {
+  r.Left = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *If) SetThen(other Node) *If {
-  r.Then = other
-  r.ExtendPosition(other)
+
+
+
+
+func (r *SetIndex) SetIndex(other Node) *SetIndex {
+  r.Index = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *If) SetElse(other Node) *If {
-  r.Else = other
-  r.ExtendPosition(other)
+
+
+
+
+func (r *SetIndex) SetValue(other Node) *SetIndex {
+  r.Value = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
+
+
+
+
 
 func (p *Position) CreateIf() *If {
   res := &If{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateIf() *If {
-  return (&t.Position).CreateIf()
+func (tk *Token) CreateIf() *If {
+  return tk.Position.CreateIf()
 }
+
+
 
 func (r *If) Dump(w io.Writer) {
+
   w.Write([]byte("(if"))
-  if r.Cond != nil {
-    w.Write([]byte(" "))
-    r.Cond.Dump(w)
-  }
-  if r.Then != nil {
-    w.Write([]byte(" "))
-    r.Then.Dump(w)
-  }
-  if r.Else != nil {
-    w.Write([]byte(" "))
-    r.Else.Dump(w)
-  }
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Cond != nil {
+        r.Cond.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Then != nil {
+        r.Then.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Else != nil {
+        r.Else.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *FnDecl) SetIdent(other *Ident) *FnDecl {
-  r.Ident = other
-  r.ExtendPosition(other)
+
+
+
+
+
+func (r *If) SetCond(other Node) *If {
+  r.Cond = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
 
-func (r *FnDecl) SetFnDef(other *FnDef) *FnDecl {
-  r.FnDef = other
-  r.ExtendPosition(other)
+
+
+
+
+func (r *If) SetThen(other Node) *If {
+  r.Then = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
   return r
 }
+
+
+
+
+
+func (r *If) SetElse(other Node) *If {
+  r.Else = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateFnDecl() *FnDecl {
   res := &FnDecl{}
   res.ExtendPosition(p)
-  res.Ident = p.CreateIdent()
-  res.FnDef = p.CreateFnDef()
   return res
 }
 
-func (t *Token) CreateFnDecl() *FnDecl {
-  return (&t.Position).CreateFnDecl()
+func (tk *Token) CreateFnDecl() *FnDecl {
+  return tk.Position.CreateFnDecl()
 }
+
+
 
 func (r *FnDecl) Dump(w io.Writer) {
-  w.Write([]byte("(fn-decl"))
-  if r.Ident != nil {
-    w.Write([]byte(" "))
-    r.Ident.Dump(w)
-  }
-  if r.FnDef != nil {
-    w.Write([]byte(" "))
-    r.FnDef.Dump(w)
-  }
+
+  w.Write([]byte("(fndecl"))
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Ident != nil {
+        r.Ident.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.FnDef != nil {
+        r.FnDef.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
 
-func (r *Tuple) AddChildren(other ...Node) *Tuple {
-  for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.Children = append(r.Children, c2)
-      }
-    } else {
-      r.Children = append(r.Children, c)
-    }
-    r.ExtendPosition(c)
+
+
+
+
+
+func (r *FnDecl) SetIdent(other *Ident) *FnDecl {
+  r.Ident = other
+  if other != nil {
+    r.ExtendPosition(other)
   }
   return r
 }
+
+
+
+
+
+func (r *FnDecl) SetFnDef(other *FnDef) *FnDecl {
+  r.FnDef = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateTuple() *Tuple {
   res := &Tuple{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateTuple() *Tuple {
-  return (&t.Position).CreateTuple()
+func (tk *Token) CreateTuple() *Tuple {
+  return tk.Position.CreateTuple()
 }
+
+
 
 func (r *Tuple) Dump(w io.Writer) {
-  w.Write([]byte("("))
-  for _, c := range r.Children {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
-  w.Write([]byte(")"))
+
+  w.Write([]byte("["))
+
+
+
+
+      for _, n := range r.Children {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
+  w.Write([]byte("]"))
+
 }
 
-func (r *Block) AddChildren(other ...Node) *Block {
+
+
+
+
+
+func (r *Tuple) AddChildren(other ...Node) *Tuple {
   for _, c := range other {
-    if fragment, ok := c.(*Fragment); ok {
-      for _, c2 := range fragment.Children {
-        r.Children = append(r.Children, c2)
-      }
-    } else {
+    if c != nil {
       r.Children = append(r.Children, c)
+      r.ExtendPosition(c)
     }
-    r.ExtendPosition(c)
   }
   return r
 }
+
+
+
+
+
+func (p *Position) CreateVarTuple() *VarTuple {
+  res := &VarTuple{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateVarTuple() *VarTuple {
+  return tk.Position.CreateVarTuple()
+}
+
+
+
+func (r *VarTuple) Dump(w io.Writer) {
+
+  w.Write([]byte("["))
+
+
+
+
+      for _, n := range r.Vars {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
+  w.Write([]byte("]"))
+
+}
+
+
+
+
+
+
+func (r *VarTuple) AddVars(other ...*Var) *VarTuple {
+  for _, c := range other {
+    if c != nil {
+      r.Vars = append(r.Vars, c)
+      r.ExtendPosition(c)
+    }
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateBlock() *Block {
   res := &Block{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateBlock() *Block {
-  return (&t.Position).CreateBlock()
+func (tk *Token) CreateBlock() *Block {
+  return tk.Position.CreateBlock()
 }
+
+
 
 func (r *Block) Dump(w io.Writer) {
+
   w.Write([]byte("{"))
-  for _, c := range r.Children {
-    w.Write([]byte(" "))
-    c.Dump(w)
-  }
+
+
+
+
+      for _, n := range r.Children {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
   w.Write([]byte("}"))
+
 }
 
-func (r *Return) SetExpr(other Node) *Return {
-  r.Expr = other
-  r.ExtendPosition(other)
+
+
+
+
+
+func (r *Block) AddChildren(other ...Node) *Block {
+  for _, c := range other {
+    if c != nil {
+      r.Children = append(r.Children, c)
+      r.ExtendPosition(c)
+    }
+  }
   return r
 }
+
+
+
+
 
 func (p *Position) CreateReturn() *Return {
   res := &Return{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateReturn() *Return {
-  return (&t.Position).CreateReturn()
+func (tk *Token) CreateReturn() *Return {
+  return tk.Position.CreateReturn()
 }
 
+
+
 func (r *Return) Dump(w io.Writer) {
+
   w.Write([]byte("(return"))
-  if r.Expr != nil {
-    w.Write([]byte(" "))
-    r.Expr.Dump(w)
-  }
+
+
+
+
+      w.Write([]byte(" "))
+      if r.Expr != nil {
+        r.Expr.Dump(w)
+      } else {
+        w.Write([]byte(red("<nil>")))
+      }
+
+
+
+
   w.Write([]byte(")"))
+
 }
+
+
+
+
+
+
+func (r *Return) SetExpr(other Node) *Return {
+  r.Expr = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
 
 func (p *Position) CreateIdent() *Ident {
   res := &Ident{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateIdent() *Ident {
-  return (&t.Position).CreateIdent()
+func (tk *Token) CreateIdent() *Ident {
+  return tk.Position.CreateIdent()
 }
+
 
 func (r *Ident) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateNull() *Null {
   res := &Null{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateNull() *Null {
-  return (&t.Position).CreateNull()
+func (tk *Token) CreateNull() *Null {
+  return tk.Position.CreateNull()
 }
+
 
 func (r *Null) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateFalse() *False {
   res := &False{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateFalse() *False {
-  return (&t.Position).CreateFalse()
+func (tk *Token) CreateFalse() *False {
+  return tk.Position.CreateFalse()
 }
+
 
 func (r *False) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateTrue() *True {
   res := &True{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateTrue() *True {
-  return (&t.Position).CreateTrue()
+func (tk *Token) CreateTrue() *True {
+  return tk.Position.CreateTrue()
 }
+
 
 func (r *True) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateString() *String {
   res := &String{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateString() *String {
-  return (&t.Position).CreateString()
+func (tk *Token) CreateString() *String {
+  return tk.Position.CreateString()
 }
+
 
 func (r *String) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateInteger() *Integer {
   res := &Integer{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateInteger() *Integer {
-  return (&t.Position).CreateInteger()
+func (tk *Token) CreateInteger() *Integer {
+  return tk.Position.CreateInteger()
 }
+
 
 func (r *Integer) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateFloat() *Float {
   res := &Float{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateFloat() *Float {
-  return (&t.Position).CreateFloat()
+func (tk *Token) CreateFloat() *Float {
+  return tk.Position.CreateFloat()
 }
+
 
 func (r *Float) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
 
+
+
+
+
 func (p *Position) CreateEof() *Eof {
   res := &Eof{}
   res.ExtendPosition(p)
-
   return res
 }
 
-func (t *Token) CreateEof() *Eof {
-  return (&t.Position).CreateEof()
+func (tk *Token) CreateEof() *Eof {
+  return tk.Position.CreateEof()
 }
+
 
 func (r *Eof) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
 }
+
+
+
+

@@ -1,5 +1,7 @@
 package zoe
 
+import "log"
+
 var lbp_equal = 0
 var lbp_commas = 0
 var lbp_semicolon = 0
@@ -30,7 +32,7 @@ func init() {
 		if tup, ok := res.(*Tuple); ok {
 			vars := tup.ToVars()
 			frag := tk.CreateFragment()
-			for _, v := range vars {
+			for _, v := range vars.Vars {
 				frag.AddChildren(v)
 			}
 			return frag
@@ -48,7 +50,9 @@ func init() {
 
 	lbp += 2
 
-	unary(KW_RETURN) // FIXME should check for ('}' / 'else' / '|')
+	nud(KW_RETURN, func(c *ZoeContext, tk *Token, lbp int) Node {
+		return tk.CreateReturn().SetExpr(c.Expression(lbp))
+	})
 
 	lbp += 2
 
@@ -86,7 +90,24 @@ func init() {
 
 	lbp += 2
 
-	binary(TK_COLON)
+	// binary(TK_COLON)
+	colon_lbp := lbp
+	led(TK_COLON, func(c *ZoeContext, tk *Token, left Node) Node {
+		// maybe there is a = operator after, so we check for it
+		right := c.Expression(colon_lbp - 1)
+		ident, isident := left.(*Ident)
+		if !isident {
+			ident.ReportError(`left of ':' must be an identifier`)
+		}
+		switch v := right.(type) {
+		case *Operation:
+			if v.Is(TK_EQ) && v.IsBinary() {
+				return tk.CreateVar().SetExp(v.Right()).SetTypeExp(v.Left()).SetIdent(ident)
+			}
+		}
+		return tk.CreateVar().SetTypeExp(right).SetIdent(ident)
+	})
+
 	unary(KW_LOCAL)
 	unary(KW_CONST)
 
@@ -213,7 +234,7 @@ func handleParens() {
 	//
 	s.led = func(c *ZoeContext, tk *Token, left Node) Node {
 		res := tk.CreateTuple()
-		for !c.Consume(TK_RPAREN) {
+		for !c.Peek(TK_RPAREN) {
 			if c.isEof() {
 				c.reportErrorAtCurrentPosition(`unexpected end of file`)
 				// contents = append(contents, c.EOF())
@@ -222,13 +243,20 @@ func handleParens() {
 			res.AddChildren(c.Expression(0))
 		}
 
+		if !c.Peek(TK_RPAREN) {
+			c.reportError(tk.Position, `missing closing ')'`)
+		} else {
+			res.ExtendPosition(c.Current)
+			c.advance()
+		}
+
 		// On our left, we may have an FnDef or FnDecl, in which case we will graft
 		// ourselves on them
 		switch v := left.(type) {
 		case *FnDecl:
-			v.FnDef.Signature.AddArgs(res.ToVars()...)
+			v.FnDef.Signature.SetArgs(res.ToVars())
 		case *FnDef:
-			v.Signature.AddArgs(res.ToVars()...)
+			v.Signature.SetArgs(res.ToVars())
 			return v
 		}
 
@@ -337,6 +365,7 @@ func parseFnFatArrow(c *ZoeContext, tk *Token, left Node) Node {
 	}
 
 	left.ReportError(`left hand side of '=>' must be a lambda function definition`)
+	log.Print(left.GetText())
 	return left
 }
 
@@ -412,12 +441,8 @@ func parseTemplate(c *ZoeContext, tk *Token, _ int) Node {
 	// ensure args is a tuple containing variable declarations.
 	if tup, ok := targs.(*Tuple); ok {
 		args := tup.ToVars()
+		tpl.SetArgs(args)
 
-		if len(args) > 0 {
-			// FIXME verify the nomenclature of the Idents ($T, $expr, ...)
-			// FIXME verify the variables do not have a type.
-			tpl.AddArgs(args...)
-		}
 		// We have our template arguments, which is dandy
 		// Template arguments only accept = for default, so we're going to check that
 		// there is no type expression.
