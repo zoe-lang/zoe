@@ -1,4 +1,6 @@
 
+.DEFAULT_GOAL := all
+
 .PHONY: all lexer
 
 zoe: cmd/*.go compiler/*.go
@@ -7,4 +9,4 @@ zoe: cmd/*.go compiler/*.go
 lexer:
 	cd compiler && make
 
-all: zoe lexer
+all: lexer zoe

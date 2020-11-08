@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -23,7 +24,9 @@ func main() {
 		}
 
 		res := ctx.ParseFile()
-		_, _ = os.Stdout.WriteString(res.Debug() + "\n\n")
+		var buf bytes.Buffer
+		res.Dump(&buf)
+		_, _ = os.Stdout.WriteString(buf.String() + "\n\n")
 		ctx.TestFileAst()
 
 		for _, err := range ctx.Errors {

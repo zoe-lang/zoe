@@ -1,3 +1,4 @@
+.DEFAULT_GOAL := all
 
 nodesmethods.go: genaccessors.js nodes.go
 	node genaccessors.js > nodesmethods.go
@@ -11,3 +12,5 @@ lexer.go: lexer.go_
 	echo "var tokstr = [...]string{" >> lexer.go
 	grep -oP 'addToken\(\K[^\)]+' lexer.go_ | sort | uniq | sed -E 's/(.*)/\1: "\1",/' >> lexer.go
 	echo "}" >> lexer.go
+
+all: lexer.go nodesmethods.go

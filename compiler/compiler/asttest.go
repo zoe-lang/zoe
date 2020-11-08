@@ -1,6 +1,7 @@
 package zoe
 
 import (
+	"bytes"
 	"log"
 	"regexp"
 	"strings"
@@ -12,10 +13,6 @@ var reNoSuperflousSpace = regexp.MustCompilePOSIX(`[ \n\t\r]+`)
 var reBeforeSpace = regexp.MustCompilePOSIX(` (\}|\)|\])`)
 var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
-
-func DebugNode(n Node) string {
-	return ""
-}
 
 func cleanup(str []byte) []byte {
 	s := reAstComments.ReplaceAllLiteral(str, []byte{})
@@ -31,15 +28,11 @@ func cleanup(str []byte) []byte {
 	return s
 }
 
-func (c *ZoeContext) TestFileAst() {
-	c.testFileAst(c.Root)
-}
-
 // For every node at the root of the file, we're going to try
 // and find a matching doc comment containing an AST dump.
 // We'll then parse it, dump it, and compare the dump to the dump of the corresponding AST.
-func (c *ZoeContext) testFileAst(n Node) {
-	if cmt, ok := c.DocCommentMap[n]; ok {
+func (c *ZoeContext) TestFileAst() {
+	for n, cmt := range c.DocCommentMap {
 		// found it !
 		str := []byte(cmt.String())
 		str = []byte(strings.TrimSpace(string(str[3 : len(str)-2]))) // remove the comment marks
@@ -47,19 +40,20 @@ func (c *ZoeContext) testFileAst(n Node) {
 		str = cleanup(str)
 		p := color.NoColor
 		color.NoColor = true
-		test := cleanup([]byte(DebugNode(n)))
+
+		var buf bytes.Buffer
+		n.Dump(&buf)
+		test := buf.String()
+
 		color.NoColor = p
 
 		if string(test) != string(str) {
 			log.Print("expected: ", yel(string(str)))
 			log.Print("result:   ", red(string(test)))
-			log.Print("src: ", DebugNode(n), "\n\n")
+			log.Print("src: ", n.GetText(), "\n\n")
 		} else {
 			log.Print("ok: ", green(string(str)), "\n\n")
 		}
 	}
 
-	for _, ch := range n.Children {
-		c.testFileAst(ch)
-	}
 }

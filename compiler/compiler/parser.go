@@ -360,6 +360,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 	// fake_signature := NewNode(NODE_SIGNATURE, tk.Position)
 	// Should we create a fake fndef and signature ?
 	def := tk.CreateFnDef()
+	def.Signature = tk.CreateSignature()
 
 	if c.Peek(TK_ID) {
 		id := c.Current.CreateIdent()

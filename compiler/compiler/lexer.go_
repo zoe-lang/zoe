@@ -44,10 +44,6 @@ func (z *ZoeContext) Lex() error {
 		return LexerError{Message: "invalid input '" + string(data[offset]) + "'", Line: line, Column: col, Offset: offset, Filename: z.Filename}
 	}
 
-	var addToken = func(kind TokenKind) {
-		addTokenBounds(kind, 0, 0)
-	}
-
 	var addTokenBounds = func(kind TokenKind, offsetStart int, offsetEnd int) {
 		n := &Token{}
 		// n.Value = string(value)
@@ -73,6 +69,10 @@ func (z *ZoeContext) Lex() error {
 			n.Prev = z.End
 			z.End = n
 		}
+	}
+
+	var addToken = func(kind TokenKind) {
+		addTokenBounds(kind, 0, 0)
 	}
 
 	/*!re2c
@@ -169,7 +169,7 @@ func (z *ZoeContext) Lex() error {
 			<top> "#(?" { doc_comment = true; comment++; goto yyc_comment }
 			<top> "#" [^\n]* { addToken(TK_COMMENT); goto yyc_top }
 			<top> "\"" => str { addToken(TK_QUOTE); goto yyc_str }
-			<top> "'" ([^'] | "\\'")* "'" { addTokenBounds(TK_RAWSTR, 1, -1); goto yyc_top }
+			<top> "'" ([^'] | "\\'")* "'" { addToken(TK_RAWSTR); goto yyc_top }
 
 			<comment> [^#]+ :=> comment
 			<comment> "#" :=> comment

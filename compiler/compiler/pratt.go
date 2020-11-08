@@ -85,7 +85,9 @@ func binary(tk TokenKind) {
 
 	s.led = func(lbp int) func(c *ZoeContext, tk *Token, left Node) Node {
 		return func(c *ZoeContext, tk *Token, left Node) Node {
-			return tk.CreateOperation().SetToken(tk).AddOperands(left, c.Expression(lbp-1))
+			res := tk.CreateOperation().AddOperands(left, c.Expression(lbp-1))
+			res.TokenKind = tk.Kind
+			return res
 		}
 	}(precedence)
 }
@@ -94,7 +96,9 @@ func unary(tk TokenKind) {
 	s := &syms[tk]
 	rbp := lbp - 1
 	s.nud = func(c *ZoeContext, tk *Token, _ int) Node {
-		return tk.CreateOperation().SetToken(tk).AddOperands(c.Expression(rbp))
+		res := tk.CreateOperation().AddOperands(c.Expression(rbp))
+		res.TokenKind = tk.Kind
+		return res
 		// return NewNode(nk, tk.Position, c.Expression(rbp))
 	}
 }

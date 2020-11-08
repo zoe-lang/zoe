@@ -115,8 +115,8 @@ type Var struct {
 
 type Operation struct {
 	NodeBase
-	Token    *Token
-	Operands []Node
+	TokenKind TokenKind
+	Operands  []Node
 }
 
 ///////////////////////////////////////////////////////////////
@@ -134,11 +134,11 @@ type Template struct {
 type FnDef struct {
 	NodeBase
 	Template   *Template
-	Signature  *FnSignature
+	Signature  *Signature
 	Definition *Block
 }
 
-type FnSignature struct {
+type Signature struct {
 	NodeBase
 	Args          []*Var
 	ReturnTypeExp Node
@@ -261,10 +261,10 @@ type Eof struct {
 func coerceToVar(n Node) *Var {
 	switch v := n.(type) {
 	case *Operation:
-		if v.Token.Is(TK_EQ) && len(v.Operands) == 2 {
+		if v.TokenKind == TK_EQ && len(v.Operands) == 2 {
 			// this is perfect, check that left is
 			if id, ok := v.Operands[0].(*Ident); ok {
-				return v.Token.CreateVar().SetExp(v).SetIdent(id)
+				return n.GetPosition().CreateVar().SetExp(v.Operands[1]).SetIdent(id)
 			}
 		}
 	case *Ident:

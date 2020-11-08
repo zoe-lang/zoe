@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const fs = require('fs')
+const path = require('path')
 
-const input = fs.readFileSync('./nodes.go', 'utf-8')
+const input = fs.readFileSync(path.join(__dirname, './nodes.go'), 'utf-8')
 
 const re_type = /type (\w+) struct \{\s*NodeBase\s*([^\}]+)\}/g
 const re_prop = /(\w+)\s+((?:\[\])?\*?\w+)/g
@@ -23,12 +24,6 @@ while (match = re_type.exec(input)) {
   const lower = type.replace(/[A-Z]/g, m => '-' + m.toLowerCase()).slice(1)
 
   const fields = []
-
-  console.log(`\nfunc (t *Token) Create${type}() *${type} {
-  res := &${type}{}
-  res.ExtendPosition(t)
-  return res
-}`)
 
   while (pmatch = re_prop.exec(finalsrc)) {
     const [_, name, proptype] = pmatch
@@ -73,10 +68,26 @@ while (match = re_type.exec(input)) {
     // console.log(type, name, proptype, is_list)
   }
 
+  console.log(`\nfunc (p *Position) Create${type}() *${type} {
+  res := &${type}{}
+  res.ExtendPosition(p)
+${fields.length ? fields.filter(f => !f.is_list && f.type !== 'Node').map(f => `  res.${f.name} = p.Create${f.type.slice(1)}()`).join('\n'): ''}
+  return res
+}`)
+
+  console.log(`\nfunc (t *Token) Create${type}() *${type} {
+  return (&t.Position).Create${type}()
+}`)
+
   if (fields.length) {
 
     console.log(`\nfunc (r *${type}) Dump(w io.Writer) {
-  w.Write([]byte("(${lower}"))${fields.map(f => {
+  w.Write([]byte(${
+    lower === 'operation' ? '"(" + tokstr[r.TokenKind]' :
+    lower === 'tuple' ? '"("' :
+    lower === 'block' ? '"{"' :
+    '"(' + lower + '"'
+}))${fields.map(f => {
   if (f.is_list) {
     return `
   for _, c := range r.${f.name} {
@@ -85,11 +96,17 @@ while (match = re_type.exec(input)) {
   }`
   } else {
     return `
-  w.Write([]byte(" "))
-  r.${f.name}.Dump(w)`
+  if r.${f.name} != nil {
+    w.Write([]byte(" "))
+    r.${f.name}.Dump(w)
+  }`
   }
 }).join('')}
-  w.Write([]byte(")"))
+  w.Write([]byte("${
+    lower === 'tuple' ? ')' :
+    lower === 'block' ? '}' :
+    ')'
+  }"))
 }`)
   } else {
     console.log(`\nfunc (r *${type}) Dump(w io.Writer) {
