@@ -35,7 +35,6 @@ type Token struct {
 	Position
 	Kind TokenKind
 	Next *Token
-	Prev *Token
 }
 
 func (t *Token) Dump(w io.Writer) {
@@ -71,18 +70,6 @@ func (t *Token) Is(tk TokenKind) bool {
 func (t *Token) IsSkippable() bool {
 	kind := t.Kind
 	return kind == TK_WHITESPACE || kind == TK_COMMENT
-}
-
-// NextMeaningfulToken returns the next non-skippable token
-func (t *Token) NextMeaningfulToken() *Token {
-	iter := t.Next
-	for iter != nil {
-		if !iter.IsSkippable() {
-			return iter
-		}
-		iter = iter.Next
-	}
-	return nil
 }
 
 func (t *Token) String() string {

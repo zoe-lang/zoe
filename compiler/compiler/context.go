@@ -22,7 +22,9 @@ func (err ZoeError) Print(w io.Writer) {
 // also does the error handling stuff.
 type ZoeContext struct {
 	Start    *Token
+	WsStart  *Token
 	End      *Token
+	WsEnd    *Token
 	Filename string
 	Current  *Token
 	Errors   []ZoeError
@@ -77,7 +79,7 @@ func (c *ZoeContext) isEof() bool {
 
 func (c *ZoeContext) advance() {
 	if c.Current != nil {
-		c.Current = c.Current.NextMeaningfulToken()
+		c.Current = c.Current.Next
 	}
 }
 

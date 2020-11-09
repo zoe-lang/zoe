@@ -464,7 +464,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 
 	def := tk.CreateFnDef()
 
-	if c.Peek(TK_ID) && c.Current.NextMeaningfulToken().Kind == TK_LPAREN {
+	if c.Peek(TK_ID) && c.Current.Next.Kind == TK_LPAREN {
 		id := c.Expect(TK_ID).CreateBaseIdent()
 
 		// We are doing some look ahead...
@@ -495,7 +495,7 @@ func parseBlock(c *ZoeContext, tk *Token, _ int) Node {
 
 func parseDocComment(c *ZoeContext, tk *Token, rbp int) Node {
 	next := c.Expression(rbp)
-	nt := tk.NextMeaningfulToken()
+	nt := tk.Next
 	if nt == nil || nt.Is(TK_DOCCOMMENT) {
 		c.RootDocComments = append(c.RootDocComments, tk)
 	} else {

@@ -59,15 +59,26 @@ func (z *ZoeContext) Lex() error {
 		n.EndLine = line
 		n.EndColumn = col
 
+		is_meaningful := kind != TK_WHITESPACE && kind != TK_COMMENT
+
 		// count lines and columns before adding
 
-		if z.End == nil {
-			z.Start = n
-			z.End = n
+		if z.WsEnd == nil {
+			z.WsStart = n
+			z.WsEnd = n
 		} else {
-			z.End.Next = n
-			n.Prev = z.End
-			z.End = n
+			z.WsEnd.Next = n
+			z.WsEnd = n
+		}
+
+		if is_meaningful {
+			if z.End == nil {
+				z.Start = n
+				z.End = n
+			} else {
+				z.End.Next = n
+				z.End = n
+			}
 		}
 	}
 
