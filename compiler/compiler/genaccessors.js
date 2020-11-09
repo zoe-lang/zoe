@@ -89,22 +89,28 @@ func (r *{{v.type}}) Dump(w io.Writer) {
 %% } else if (v.lower === 'tuple' || v.lower === 'vartuple') { %%
   w.Write([]byte("["))
 %% } else { %%
-  w.Write([]byte("({{v.lower}}"))
+  w.Write([]byte("({{v.lower}} "))
 %% } %%
 
+%% var __i = 0 %%
 %% for (var f of v.fields) { %%
+%%   __i++ %%
 %%   if (f.is_list) { %%
-      for _, n := range r.{{f.name}} {
-        w.Write([]byte(" "))
+      for i, n := range r.{{f.name}} {
         n.Dump(w)
+        if i < len(r.{{f.name}}) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 %%   } else { %%
-      w.Write([]byte(" "))
       if r.{{f.name}} != nil {
         r.{{f.name}}.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+%%      if (__i < v.fields.length) { %%
+      w.Write([]byte(" "))
+%%      } %%
 %%   } %%
 %% } %%
 

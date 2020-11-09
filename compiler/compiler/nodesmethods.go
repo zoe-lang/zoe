@@ -27,26 +27,31 @@ func (r *Namespace) EnsureTuple() *Tuple {
 
 func (r *Namespace) Dump(w io.Writer) {
 
-  w.Write([]byte("(namespace"))
+  w.Write([]byte("(namespace "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Identifier != nil {
         r.Identifier.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Block != nil {
         r.Block.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -121,14 +126,18 @@ func (r *Fragment) EnsureTuple() *Tuple {
 
 func (r *Fragment) Dump(w io.Writer) {
 
-  w.Write([]byte("(fragment"))
+  w.Write([]byte("(fragment "))
 
 
 
 
-      for _, n := range r.Children {
-        w.Write([]byte(" "))
+
+
+      for i, n := range r.Children {
         n.Dump(w)
+        if i < len(r.Children) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
@@ -186,35 +195,43 @@ func (r *TypeDecl) EnsureTuple() *Tuple {
 
 func (r *TypeDecl) Dump(w io.Writer) {
 
-  w.Write([]byte("(typedecl"))
+  w.Write([]byte("(typedecl "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Ident != nil {
         r.Ident.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Template != nil {
         r.Template.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Def != nil {
         r.Def.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -313,14 +330,18 @@ func (r *Union) EnsureTuple() *Tuple {
 
 func (r *Union) Dump(w io.Writer) {
 
-  w.Write([]byte("(union"))
+  w.Write([]byte("(union "))
 
 
 
 
-      for _, n := range r.TypeExprs {
-        w.Write([]byte(" "))
+
+
+      for i, n := range r.TypeExprs {
         n.Dump(w)
+        if i < len(r.TypeExprs) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
@@ -378,26 +399,31 @@ func (r *ImportAs) EnsureTuple() *Tuple {
 
 func (r *ImportAs) Dump(w io.Writer) {
 
-  w.Write([]byte("(importas"))
+  w.Write([]byte("(importas "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Path != nil {
         r.Path.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.As != nil {
         r.As.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -472,26 +498,31 @@ func (r *ImportList) EnsureTuple() *Tuple {
 
 func (r *ImportList) Dump(w io.Writer) {
 
-  w.Write([]byte("(importlist"))
+  w.Write([]byte("(importlist "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Path != nil {
         r.Path.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Names != nil {
         r.Names.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -566,35 +597,43 @@ func (r *Var) EnsureTuple() *Tuple {
 
 func (r *Var) Dump(w io.Writer) {
 
-  w.Write([]byte("(var"))
+  w.Write([]byte("(var "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Ident != nil {
         r.Ident.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.TypeExp != nil {
         r.TypeExp.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Exp != nil {
         r.Exp.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -689,18 +728,25 @@ func (r *Operation) Dump(w io.Writer) {
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Token != nil {
         r.Token.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
+      w.Write([]byte(" "))
 
 
-      for _, n := range r.Operands {
-        w.Write([]byte(" "))
+
+
+
+      for i, n := range r.Operands {
         n.Dump(w)
+        if i < len(r.Operands) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
@@ -773,17 +819,19 @@ func (r *Template) EnsureTuple() *Tuple {
 
 func (r *Template) Dump(w io.Writer) {
 
-  w.Write([]byte("(template"))
+  w.Write([]byte("(template "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Args != nil {
         r.Args.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -843,35 +891,43 @@ func (r *FnDef) EnsureTuple() *Tuple {
 
 func (r *FnDef) Dump(w io.Writer) {
 
-  w.Write([]byte("(fndef"))
+  w.Write([]byte("(fndef "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Template != nil {
         r.Template.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Signature != nil {
         r.Signature.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Definition != nil {
         r.Definition.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -979,26 +1035,31 @@ func (r *Signature) EnsureTuple() *Tuple {
 
 func (r *Signature) Dump(w io.Writer) {
 
-  w.Write([]byte("(signature"))
+  w.Write([]byte("(signature "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Args != nil {
         r.Args.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.ReturnTypeExp != nil {
         r.ReturnTypeExp.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1073,26 +1134,31 @@ func (r *FnCall) EnsureTuple() *Tuple {
 
 func (r *FnCall) Dump(w io.Writer) {
 
-  w.Write([]byte("(fncall"))
+  w.Write([]byte("(fncall "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Left != nil {
         r.Left.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Args != nil {
         r.Args.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1167,26 +1233,31 @@ func (r *GetIndex) EnsureTuple() *Tuple {
 
 func (r *GetIndex) Dump(w io.Writer) {
 
-  w.Write([]byte("(getindex"))
+  w.Write([]byte("(getindex "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Left != nil {
         r.Left.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Index != nil {
         r.Index.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1252,35 +1323,43 @@ func (r *SetIndex) EnsureTuple() *Tuple {
 
 func (r *SetIndex) Dump(w io.Writer) {
 
-  w.Write([]byte("(setindex"))
+  w.Write([]byte("(setindex "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Left != nil {
         r.Left.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Index != nil {
         r.Index.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Value != nil {
         r.Value.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1361,35 +1440,43 @@ func (r *If) EnsureTuple() *Tuple {
 
 func (r *If) Dump(w io.Writer) {
 
-  w.Write([]byte("(if"))
+  w.Write([]byte("(if "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Cond != nil {
         r.Cond.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Then != nil {
         r.Then.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.Else != nil {
         r.Else.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1470,26 +1557,31 @@ func (r *FnDecl) EnsureTuple() *Tuple {
 
 func (r *FnDecl) Dump(w io.Writer) {
 
-  w.Write([]byte("(fndecl"))
+  w.Write([]byte("(fndecl "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Ident != nil {
         r.Ident.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
 
-
-
       w.Write([]byte(" "))
+
+
+
+
+
       if r.FnDef != nil {
         r.FnDef.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1576,9 +1668,13 @@ func (r *Tuple) Dump(w io.Writer) {
 
 
 
-      for _, n := range r.Children {
-        w.Write([]byte(" "))
+
+
+      for i, n := range r.Children {
         n.Dump(w)
+        if i < len(r.Children) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
@@ -1641,9 +1737,13 @@ func (r *VarTuple) Dump(w io.Writer) {
 
 
 
-      for _, n := range r.Vars {
-        w.Write([]byte(" "))
+
+
+      for i, n := range r.Vars {
         n.Dump(w)
+        if i < len(r.Vars) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
@@ -1701,9 +1801,13 @@ func (r *Block) Dump(w io.Writer) {
 
 
 
-      for _, n := range r.Children {
-        w.Write([]byte(" "))
+
+
+      for i, n := range r.Children {
         n.Dump(w)
+        if i < len(r.Children) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
@@ -1761,17 +1865,19 @@ func (r *Return) EnsureTuple() *Tuple {
 
 func (r *Return) Dump(w io.Writer) {
 
-  w.Write([]byte("(return"))
+  w.Write([]byte("(return "))
 
 
 
 
-      w.Write([]byte(" "))
+
+
       if r.Expr != nil {
         r.Expr.Dump(w)
       } else {
         w.Write([]byte(mag("<nil>")))
       }
+
 
 
 
@@ -1822,14 +1928,18 @@ func (r *Ident) EnsureTuple() *Tuple {
 
 func (r *Ident) Dump(w io.Writer) {
 
-  w.Write([]byte("(ident"))
+  w.Write([]byte("(ident "))
 
 
 
 
-      for _, n := range r.Path {
-        w.Write([]byte(" "))
+
+
+      for i, n := range r.Path {
         n.Dump(w)
+        if i < len(r.Path) - 1 {
+          w.Write([]byte(" "))
+        }
       }
 
 
