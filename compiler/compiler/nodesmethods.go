@@ -32,9 +32,20 @@ func (r *Namespace) Dump(w io.Writer) {
 
 
 
-      for _, n := range r.Children {
-        w.Write([]byte(" "))
-        n.Dump(w)
+      w.Write([]byte(" "))
+      if r.Identifier != nil {
+        r.Identifier.Dump(w)
+      } else {
+        w.Write([]byte(mag("<nil>")))
+      }
+
+
+
+      w.Write([]byte(" "))
+      if r.Block != nil {
+        r.Block.Dump(w)
+      } else {
+        w.Write([]byte(mag("<nil>")))
       }
 
 
@@ -49,19 +60,37 @@ func (r *Namespace) Dump(w io.Writer) {
 
 
 
-func (r *Namespace) AddChildren(other ...Node) *Namespace {
-  for _, c := range other {
-    if c != nil {
-    
-      switch v := c.(type) {
-      case *Fragment:
-        r.AddChildren(v.Children...)
-      default:
-        r.Children = append(r.Children, c)
-        r.ExtendPosition(c)
-      }
-    
-    }
+
+
+
+func (r *Namespace) SetIdentifier(other Node) *Namespace {
+  r.Identifier = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
+
+
+
+func (r *Namespace) EnsureBlock(fn func (b *Block)) *Namespace {
+  if r.Block == nil {
+    r.Block = &Block{}
+  }
+  fn(r.Block)
+  r.ExtendPosition(r.Block)
+  return r
+}
+
+
+func (r *Namespace) SetBlock(other *Block) *Namespace {
+  r.Block = other
+  if other != nil {
+    r.ExtendPosition(other)
   }
   return r
 }
@@ -201,9 +230,9 @@ func (r *TypeDecl) Dump(w io.Writer) {
 
 
 
-func (r *TypeDecl) EnsureIdent(fn func (i *Ident)) *TypeDecl {
+func (r *TypeDecl) EnsureIdent(fn func (i *BaseIdent)) *TypeDecl {
   if r.Ident == nil {
-    r.Ident = &Ident{}
+    r.Ident = &BaseIdent{}
   }
   fn(r.Ident)
   r.ExtendPosition(r.Ident)
@@ -211,7 +240,7 @@ func (r *TypeDecl) EnsureIdent(fn func (i *Ident)) *TypeDecl {
 }
 
 
-func (r *TypeDecl) SetIdent(other *Ident) *TypeDecl {
+func (r *TypeDecl) SetIdent(other *BaseIdent) *TypeDecl {
   r.Ident = other
   if other != nil {
     r.ExtendPosition(other)
@@ -399,9 +428,9 @@ func (r *ImportAs) SetPath(other Node) *ImportAs {
 
 
 
-func (r *ImportAs) EnsureAs(fn func (a *Ident)) *ImportAs {
+func (r *ImportAs) EnsureAs(fn func (a *BaseIdent)) *ImportAs {
   if r.As == nil {
-    r.As = &Ident{}
+    r.As = &BaseIdent{}
   }
   fn(r.As)
   r.ExtendPosition(r.As)
@@ -409,7 +438,7 @@ func (r *ImportAs) EnsureAs(fn func (a *Ident)) *ImportAs {
 }
 
 
-func (r *ImportAs) SetAs(other *Ident) *ImportAs {
+func (r *ImportAs) SetAs(other *BaseIdent) *ImportAs {
   r.As = other
   if other != nil {
     r.ExtendPosition(other)
@@ -581,9 +610,9 @@ func (r *Var) Dump(w io.Writer) {
 
 
 
-func (r *Var) EnsureIdent(fn func (i *Ident)) *Var {
+func (r *Var) EnsureIdent(fn func (i *BaseIdent)) *Var {
   if r.Ident == nil {
-    r.Ident = &Ident{}
+    r.Ident = &BaseIdent{}
   }
   fn(r.Ident)
   r.ExtendPosition(r.Ident)
@@ -591,7 +620,7 @@ func (r *Var) EnsureIdent(fn func (i *Ident)) *Var {
 }
 
 
-func (r *Var) SetIdent(other *Ident) *Var {
+func (r *Var) SetIdent(other *BaseIdent) *Var {
   r.Ident = other
   if other != nil {
     r.ExtendPosition(other)
@@ -1476,9 +1505,9 @@ func (r *FnDecl) Dump(w io.Writer) {
 
 
 
-func (r *FnDecl) EnsureIdent(fn func (i *Ident)) *FnDecl {
+func (r *FnDecl) EnsureIdent(fn func (i *BaseIdent)) *FnDecl {
   if r.Ident == nil {
-    r.Ident = &Ident{}
+    r.Ident = &BaseIdent{}
   }
   fn(r.Ident)
   r.ExtendPosition(r.Ident)
@@ -1486,7 +1515,7 @@ func (r *FnDecl) EnsureIdent(fn func (i *Ident)) *FnDecl {
 }
 
 
-func (r *FnDecl) SetIdent(other *Ident) *FnDecl {
+func (r *FnDecl) SetIdent(other *BaseIdent) *FnDecl {
   r.Ident = other
   if other != nil {
     r.ExtendPosition(other)
@@ -1790,7 +1819,67 @@ func (r *Ident) EnsureTuple() *Tuple {
 }
 
 
+
 func (r *Ident) Dump(w io.Writer) {
+
+  w.Write([]byte("(ident"))
+
+
+
+
+      for _, n := range r.Path {
+        w.Write([]byte(" "))
+        n.Dump(w)
+      }
+
+
+
+
+  w.Write([]byte(")"))
+
+}
+
+
+
+
+
+
+func (r *Ident) AddPath(other ...*BaseIdent) *Ident {
+  for _, c := range other {
+    if c != nil {
+    
+      r.Path = append(r.Path, c)
+      r.ExtendPosition(c)
+    
+    }
+  }
+  return r
+}
+
+
+
+
+
+func (p *Position) CreateBaseIdent() *BaseIdent {
+  res := &BaseIdent{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateBaseIdent() *BaseIdent {
+  return tk.Position.CreateBaseIdent()
+}
+
+func (r *BaseIdent) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
+
+func (r *BaseIdent) Dump(w io.Writer) {
   w.Write([]byte(cyan(r.GetText())))
 }
 

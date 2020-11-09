@@ -6,6 +6,7 @@
 # Import modules from std
 import 'http' as http
 import 'http' ( Server )
+import 'http' # as http does not have to be specified
 
 # Import modules in downloadable packages
 # Downloadable packages are recognizable by the fact that they have a '.' somewhere
@@ -20,10 +21,12 @@ import '.mod1/hey' as hey
 # It is an error if no package is found.
 import '//parser/types' ( Ast, Node )
 
+import 'os'
+
 # Any module can contain a main() function
-# main takes no params and returns Void.
+# main takes no params and returns void.
 # For exit status, use os.exit(Int) or os.exitError(Int, Error)
 # The main function chosen for the executable is the one of the targeted module.
-fn main() -> Void {
-
+fn main() -> void {
+  os.exit(0)
 }

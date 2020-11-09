@@ -7,8 +7,9 @@ import (
 // At the top level, just parse everything we can
 func (c *ZoeContext) ParseFile() Node {
 	n := &Namespace{}
+	n.Block = n.CreateBlock()
 	for !c.isEof() {
-		n.AddChildren(c.Expression(0))
+		n.Block.AddChildren(c.Expression(0))
 	}
 	c.Root = n
 	return n
@@ -30,17 +31,24 @@ func init() {
 
 	nud(KW_NAMESPACE, func(c *ZoeContext, tk *Token, lbp int) Node {
 		res := tk.CreateNamespace()
+		res.Block = res.CreateBlock()
+		name := c.Expression(0)
+		res.SetIdentifier(name)
+
 		if !c.Peek(TK_LBRACKET) {
 			c.reportErrorAtCurrentPosition(`expected '{' after namespace`)
 		} else {
 			c.advance()
 		}
 
-		for !c.Peek(TK_RBRACKET) && c.isEof() {
-			res.AddChildren(c.Expression(0))
+		for !c.Peek(TK_RBRACKET) && !c.isEof() {
+			res.Block.AddChildren(c.Expression(0))
 		}
 		if !c.Peek(TK_RBRACKET) {
 			c.reportErrorAtCurrentPosition(`expected '}' at the end of namespace declaration`)
+		} else {
+			res.ExtendPosition(c.Current)
+			c.advance()
 		}
 		return res
 	})
@@ -60,7 +68,7 @@ func init() {
 		res := c.Expression(0)
 
 		if op, ok := res.(*Operation); ok && op.Is(TK_EQ) {
-			if id, ok := op.Left().(*Ident); ok {
+			if id, ok := op.Left().(*BaseIdent); ok {
 				return tk.CreateVar().SetIdent(id).SetExp(op.Right())
 			}
 		}
@@ -131,7 +139,7 @@ func init() {
 	led(TK_COLON, func(c *ZoeContext, tk *Token, left Node) Node {
 		// maybe there is a = operator after, so we check for it
 		right := c.Expression(colon_lbp - 1)
-		ident, isident := left.(*Ident)
+		ident, isident := left.(*BaseIdent)
 		if !isident {
 			ident.ReportError(`left of ':' must be an identifier`)
 		}
@@ -214,11 +222,29 @@ func init() {
 
 	lbp += 2
 
-	binary(TK_COLCOL)
 	binary(TK_DOT)
 	binary(TK_AT)
-
 	binary(KW_AS)
+
+	lbp += 2
+
+	lbp_colcol := lbp
+	led(TK_COLCOL, func(c *ZoeContext, tk *Token, left Node) Node {
+		leftb, is_base := left.(*BaseIdent)
+		leftl, is_id := left.(*Ident)
+
+		right, is_id := c.Expression(lbp_colcol).(*BaseIdent)
+
+		if !is_base && !is_id {
+			c.reportErrorAtCurrentPosition(`:: can only be used with idents on both sides`)
+			return left
+		}
+
+		if is_base {
+			return tk.CreateIdent().AddPath(leftb, right)
+		}
+		return leftl.AddPath(right)
+	})
 
 	lbp += 2
 	// all the terminals. Lbp was raised, but this is not necessary
@@ -234,7 +260,7 @@ func init() {
 	})
 
 	terminal(TK_ID, func(tk *Token) Node {
-		return tk.CreateIdent()
+		return tk.CreateBaseIdent()
 	})
 
 }
@@ -329,16 +355,18 @@ func parseImport(c *ZoeContext, tk *Token, _ int) Node {
 
 	switch v := import_exp.(type) {
 	case *Operation:
-		ident, is_ident := v.Right().(*Ident)
+		ident, is_ident := v.Right().(*BaseIdent)
 		if !v.Is(KW_AS) || !is_ident {
 			v.ReportError("expected 'as' <ident>")
 		}
 		return tk.CreateImportAs().SetPath(v.Left()).SetAs(ident)
 	case *FnCall:
 		return tk.CreateImportList().SetPath(v.Left).SetNames(v.Args)
+	case *String:
+		return tk.CreateImportAs().SetPath(v)
 	}
 
-	import_exp.ReportError(`required an import statement`)
+	import_exp.ReportError(`invalid import statement`)
 	return import_exp
 }
 
@@ -436,7 +464,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 	def := tk.CreateFnDef()
 
 	if c.Peek(TK_ID) {
-		id := c.Current.CreateIdent()
+		id := c.Current.CreateBaseIdent()
 		c.advance()
 
 		return tk.CreateFnDecl().SetIdent(id).SetFnDef(def)
@@ -518,7 +546,7 @@ func parseTypeDef(c *ZoeContext, tk *Token, _ int) Node {
 		return typdef
 	}
 
-	return tk.CreateTypeDecl().SetIdent(name.CreateIdent()).SetDef(typdef)
+	return tk.CreateTypeDecl().SetIdent(name.CreateBaseIdent()).SetDef(typdef)
 }
 
 func parseSemiColon(c *ZoeContext, tk *Token, left Node) Node {

@@ -89,7 +89,8 @@ func (n *NodeBase) ExtendPosition(otherp Positioned) {
 
 type Namespace struct {
 	NodeBase
-	Children []Node
+	Identifier Node
+	Block      *Block
 }
 
 type Fragment struct {
@@ -99,7 +100,7 @@ type Fragment struct {
 
 type TypeDecl struct {
 	NodeBase
-	Ident    *Ident
+	Ident    *BaseIdent
 	Template *Template
 	Def      Node
 }
@@ -112,7 +113,7 @@ type Union struct {
 type ImportAs struct {
 	NodeBase
 	Path Node
-	As   *Ident
+	As   *BaseIdent
 }
 
 type ImportList struct {
@@ -123,7 +124,7 @@ type ImportList struct {
 
 type Var struct {
 	NodeBase
-	Ident   *Ident
+	Ident   *BaseIdent
 	TypeExp Node
 	Exp     Node // Exp can be potentially empty
 }
@@ -210,7 +211,7 @@ type If struct {
 
 type FnDecl struct {
 	NodeBase
-	Ident *Ident
+	Ident *BaseIdent
 	FnDef *FnDef
 }
 
@@ -260,6 +261,11 @@ type Return struct {
 
 type Ident struct {
 	NodeBase
+	Path []*BaseIdent
+}
+
+type BaseIdent struct {
+	NodeBase
 }
 
 ///////////////////////////////////////////////////////////////
@@ -303,11 +309,11 @@ func coerceToVar(n Node) *Var {
 	case *Operation:
 		if v.Is(TK_EQ) && len(v.Operands) == 2 {
 			// this is perfect, check that left is
-			if id, ok := v.Operands[0].(*Ident); ok {
+			if id, ok := v.Operands[0].(*BaseIdent); ok {
 				return n.GetPosition().CreateVar().SetExp(v.Operands[1]).SetIdent(id)
 			}
 		}
-	case *Ident:
+	case *BaseIdent:
 		res := &Var{}
 		return res.SetIdent(v)
 	case *Var:
