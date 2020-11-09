@@ -464,10 +464,10 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 
 	def := tk.CreateFnDef()
 
-	if c.Peek(TK_ID) {
-		id := c.Current.CreateBaseIdent()
-		c.advance()
+	if c.Peek(TK_ID) && c.Current.NextMeaningfulToken().Kind == TK_LPAREN {
+		id := c.Expect(TK_ID).CreateBaseIdent()
 
+		// We are doing some look ahead...
 		return tk.CreateFnDecl().SetIdent(id).SetFnDef(def)
 	}
 

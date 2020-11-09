@@ -1,1 +1,1 @@
-var a = b.map(a => a)
+var a = b.map(fn a => a)
