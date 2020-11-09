@@ -74,7 +74,7 @@ func init() {
 		case *Tuple:
 			return v.AddChildren(right)
 		default:
-			return tk.CreateTuple().AddChildren(left, v)
+			return tk.CreateTuple().AddChildren(left, right)
 		}
 	})
 

@@ -1,19 +1,23 @@
 #(?
-  (-fragment-
-    (decl:var a (infer) 3)
-    (decl:var b (infer) 2)
-    (decl:var c
-      (infer)
-      (fndef (signature [(: a Int32)] (infer)) {a})
+  (fragment
+    (var a <nil> 3)
+    (var b <nil> 2)
+    (var c
+      <nil>
+      (fndef
+        <nil>
+        (signature [(var a Int32 <nil>)] <nil>)
+        {a}
+      )
     )
   )
 #)
 var a = 3, b = 2, c = fn (a: Int32) => a
 
 #(?
-  (decl:var
+  (var
     [a b]
-    (infer)
+    <nil>
     [c d]
   )
 #)
