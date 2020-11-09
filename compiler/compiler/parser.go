@@ -1,9 +1,5 @@
 package zoe
 
-import (
-	"log"
-)
-
 // At the top level, just parse everything we can
 func (c *ZoeContext) ParseFile() Node {
 	n := &Namespace{}
@@ -441,7 +437,6 @@ func parseFnFatArrow(c *ZoeContext, tk *Token, left Node) Node {
 	}
 
 	left.ReportError(`left hand side of '=>' must be a lambda function definition`)
-	log.Print(left.GetText())
 	return left
 }
 
@@ -469,6 +464,12 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 
 		// We are doing some look ahead...
 		return tk.CreateFnDecl().SetIdent(id).SetFnDef(def)
+	}
+
+	if c.Peek(TK_ID) {
+		id := c.Expect(TK_ID).CreateBaseIdent()
+		tup := id.CreateTuple().AddChildren(id).ToVars()
+		def.EnsureSignature(func(s *Signature) { s.SetArgs(tup) })
 	}
 
 	return def
