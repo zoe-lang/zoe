@@ -1,21 +1,7 @@
-#(?
-  (import 'io' io)
-#)
-import 'io' as io
-
-#(?
-  (import 'mod1' [val])
-#)
-import 'mod1' ( val )
-
-#(?
-  (import 'fmt' [hello (as world ok)])
-#)
-import 'fmt' ( hello, world as ok )
-
 var a: String, b: String
 var b = 2
-var c, d = "a", 3
+
+var c = ("a", 3)
 
 fn main() -> void {
   var a = 23

@@ -81,18 +81,6 @@ func (c *ZoeContext) advance() {
 	}
 }
 
-// At the top level, just parse everything we can
-func (c *ZoeContext) ParseFile() Node {
-	n := &Namespace{}
-	for !c.isEof() {
-		node := c.Expression(0)
-		n.AddChildren(node)
-	}
-
-	c.Root = n
-	return n
-}
-
 func (c *ZoeContext) reportErrorAtCurrentPosition(message ...string) {
 	var pos Position
 	if c.Current == nil {

@@ -111,9 +111,14 @@ type Union struct {
 
 type ImportAs struct {
 	NodeBase
+	Path Node
+	As   *Ident
 }
 
 type ImportList struct {
+	NodeBase
+	Path  Node
+	Names *Tuple
 }
 
 type Var struct {

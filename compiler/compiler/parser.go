@@ -4,6 +4,16 @@ import (
 	"log"
 )
 
+// At the top level, just parse everything we can
+func (c *ZoeContext) ParseFile() Node {
+	n := &Namespace{}
+	for !c.isEof() {
+		n.AddChildren(c.Expression(0))
+	}
+	c.Root = n
+	return n
+}
+
 var lbp_equal = 0
 var lbp_commas = 0
 var lbp_semicolon = 0
@@ -17,6 +27,23 @@ func init() {
 		syms[i].nud = nudError
 		syms[i].led = ledError
 	}
+
+	nud(KW_NAMESPACE, func(c *ZoeContext, tk *Token, lbp int) Node {
+		res := tk.CreateNamespace()
+		if !c.Peek(TK_LBRACKET) {
+			c.reportErrorAtCurrentPosition(`expected '{' after namespace`)
+		} else {
+			c.advance()
+		}
+
+		for !c.Peek(TK_RBRACKET) && c.isEof() {
+			res.AddChildren(c.Expression(0))
+		}
+		if !c.Peek(TK_RBRACKET) {
+			c.reportErrorAtCurrentPosition(`expected '}' at the end of namespace declaration`)
+		}
+		return res
+	})
 
 	// { , a block
 	nud(TK_LBRACKET, parseBlock)
@@ -55,7 +82,7 @@ func init() {
 		// Try to parse VAR ourselves
 	})
 
-	// nud(KW_IMPORT, parseImport)
+	nud(KW_IMPORT, parseImport)
 
 	lbp += 2
 
@@ -276,13 +303,13 @@ func handleParens() {
 		// ourselves onto them
 		switch v := left.(type) {
 		case *FnDecl:
-			v.ExtendPosition(exp)
-			v.FnDef.Signature.SetArgs(exp.ToVars())
-			return v
+			return v.FnDef.EnsureSignature(func(v *Signature) {
+				v.SetArgs(exp.ToVars())
+			})
 		case *FnDef:
-			v.ExtendPosition(exp)
-			v.Signature.SetArgs(exp.ToVars())
-			return v
+			return v.EnsureSignature(func(s *Signature) {
+				s.SetArgs(exp.ToVars())
+			})
 		}
 
 		// Otherwise, this is a plain fncall
@@ -296,23 +323,24 @@ func handleParens() {
 }
 
 // Handle import
-// func parseImport(c *ZoeContext, tk *Token, _ int) Node {
-// 	if !c.Peek(TK_RAWSTR) {
-// 		c.reportErrorAtCurrentPosition(`import expects a raw string as the module name`)
-// 	}
-// 	name := NewTerminalNode(c.Current)
-// 	c.advance()
-// 	if c.Consume(KW_AS) {
-// 		exp := c.Expression(0)
-// 		return NewNode(NODE_IMPORT, tk.Position, name, exp)
-// 	}
-// 	exp := c.Expression(0)
-// 	if !exp.Is(NODE_LIST) {
-// 		log.Print(exp.Kind, " - ", exp.String(), exp.Token.Debug(), " - ")
-// 		return NewNode(NODE_IMPORT, tk.Position, name, NewNode(NODE_LIST, tk.Position, exp))
-// 	}
-// 	return NewNode(NODE_IMPORT, tk.Position, name, exp)
-// }
+func parseImport(c *ZoeContext, tk *Token, _ int) Node {
+	import_exp := c.Expression(0)
+	// log.Print(module_or_namespace.GetText())
+
+	switch v := import_exp.(type) {
+	case *Operation:
+		ident, is_ident := v.Right().(*Ident)
+		if !v.Is(KW_AS) || !is_ident {
+			v.ReportError("expected 'as' <ident>")
+		}
+		return tk.CreateImportAs().SetPath(v.Left()).SetAs(ident)
+	case *FnCall:
+		return tk.CreateImportList().SetPath(v.Left).SetNames(v.Args)
+	}
+
+	import_exp.ReportError(`required an import statement`)
+	return import_exp
+}
 
 ///////////////////////////////////////////////////////
 // "
@@ -405,10 +433,7 @@ func parseIf(c *ZoeContext, tk *Token, _ int) Node {
 // Special handling for fn
 func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 
-	// fake_signature := NewNode(NODE_SIGNATURE, tk.Position)
-	// Should we create a fake fndef and signature ?
 	def := tk.CreateFnDef()
-	def.Signature = tk.CreateSignature()
 
 	if c.Peek(TK_ID) {
 		id := c.Current.CreateIdent()
@@ -417,8 +442,7 @@ func parseFn(c *ZoeContext, tk *Token, _ int) Node {
 		return tk.CreateFnDecl().SetIdent(id).SetFnDef(def)
 	}
 
-	return def //NewNode(NODE_FNDEF, tk.Position, c.Expression(0))
-
+	return def
 }
 
 func parseBlock(c *ZoeContext, tk *Token, _ int) Node {

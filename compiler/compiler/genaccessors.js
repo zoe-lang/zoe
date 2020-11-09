@@ -77,7 +77,7 @@ func (r *{{v.type}}) EnsureTuple() *Tuple {
 
 %% if (v.fields.length === 0) { %%
 func (r *{{v.type}}) Dump(w io.Writer) {
-  w.Write([]byte(r.GetText()))
+  w.Write([]byte(cyan(r.GetText())))
 }
 %% } else { %%
 
@@ -103,7 +103,7 @@ func (r *{{v.type}}) Dump(w io.Writer) {
       if r.{{f.name}} != nil {
         r.{{f.name}}.Dump(w)
       } else {
-        w.Write([]byte(red("<nil>")))
+        w.Write([]byte(mag("<nil>")))
       }
 %%   } %%
 %% } %%
@@ -125,13 +125,35 @@ func (r *{{v.type}}) Dump(w io.Writer) {
 func (r *{{v.type}}) Add{{f.name}}(other ...{{f.simple_type}}) *{{v.type}} {
   for _, c := range other {
     if c != nil {
+    %% if (f.simple_type === 'Node') { %%
+      switch v := c.(type) {
+      case *Fragment:
+        r.Add{{f.name}}(v.Children...)
+      default:
+        r.{{f.name}} = append(r.{{f.name}}, c)
+        r.ExtendPosition(c)
+      }
+    %% } else { %%
       r.{{f.name}} = append(r.{{f.name}}, c)
       r.ExtendPosition(c)
+    %% } %%
     }
   }
   return r
 }
 %% } else { %%
+
+%% if (f.type !== 'Node' && f.type !== '*Token') { %%
+func (r *{{v.type}}) Ensure{{f.name}}(fn func ({{f.name[0].toLowerCase()}} {{f.type}})) *{{v.type}} {
+  if r.{{f.name}} == nil {
+    r.{{f.name}} = &{{f.nonptr_type}}{}
+  }
+  fn(r.{{f.name}})
+  r.ExtendPosition(r.{{f.name}})
+  return r
+}
+%% } %%
+
 func (r *{{v.type}}) Set{{f.name}}(other {{f.type}}) *{{v.type}} {
   r.{{f.name}} = other
   if other != nil {
@@ -163,6 +185,7 @@ while (match = re_type.exec(input)) {
       type: proptype,
       // lower,
       simple_type: proptype.replace(/\[\]/g, ''),
+      nonptr_type: proptype.replace(/\*/g, ''),
       is_list: proptype.includes('[]')
     })
 
@@ -171,7 +194,7 @@ while (match = re_type.exec(input)) {
   types.push({
     type,
     lower,
-    fields
+    fields,
   })
 }
 

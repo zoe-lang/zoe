@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 )
 
+// https://github.com/sourcegraph/go-lsp
 var blue = color.New(color.FgHiBlue).SprintFunc()
 
 func main() {

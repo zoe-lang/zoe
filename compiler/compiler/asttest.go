@@ -48,11 +48,12 @@ func (c *ZoeContext) TestFileAst() {
 		color.NoColor = p
 
 		if string(test) != string(str) {
+			log.Print("src: ", grey(n.GetText()), "\n")
 			log.Print("expected: ", yel(string(str)))
 			log.Print("result:   ", red(string(test)))
-			log.Print("src: ", n.GetText(), "\n\n")
 		} else {
-			log.Print("ok: ", green(string(str)), "\n\n")
+			log.Print("src: ", grey(n.GetText()), "\n")
+			log.Print("ok: ", green(string(str)), "\n")
 		}
 	}
 
