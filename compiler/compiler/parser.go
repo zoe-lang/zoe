@@ -1,6 +1,8 @@
 package zoe
 
-import "log"
+import (
+	"log"
+)
 
 var lbp_equal = 0
 var lbp_commas = 0
@@ -29,6 +31,13 @@ func init() {
 
 	nud(KW_VAR, func(c *ZoeContext, tk *Token, rbp int) Node {
 		res := c.Expression(0)
+
+		if op, ok := res.(*Operation); ok && op.Is(TK_EQ) {
+			if id, ok := op.Left().(*Ident); ok {
+				return tk.CreateVar().SetIdent(id).SetExp(op.Right())
+			}
+		}
+
 		if tup, ok := res.(*Tuple); ok {
 			vars := tup.ToVars()
 			frag := tk.CreateFragment()
@@ -231,63 +240,56 @@ func handleParens() {
 	s := &syms[TK_LPAREN]
 	s.lbp = lbp
 
-	//
-	s.led = func(c *ZoeContext, tk *Token, left Node) Node {
-		res := tk.CreateTuple()
-		for !c.Peek(TK_RPAREN) {
-			if c.isEof() {
-				c.reportErrorAtCurrentPosition(`unexpected end of file`)
-				// contents = append(contents, c.EOF())
-				break
-			}
-			res.AddChildren(c.Expression(0))
+	parseParen := func(c *ZoeContext, tk *Token) Node {
+		if c.Peek(TK_RPAREN) {
+			// () is the empty tuple
+			res := tk.CreateTuple()
+			res.ExtendPosition(c.Expect(TK_RPAREN))
+			return res
+		}
+
+		exp := c.Expression(0)
+
+		_, is_tuple := exp.(*Tuple)
+		if is_tuple {
+			// we only include the parenthesis in the position if exp is a tuple
+			exp.ExtendPosition(tk)
 		}
 
 		if !c.Peek(TK_RPAREN) {
 			c.reportError(tk.Position, `missing closing ')'`)
 		} else {
-			res.ExtendPosition(c.Current)
+			if is_tuple {
+				exp.ExtendPosition(c.Current)
+			}
 			c.advance()
 		}
 
+		return exp
+	}
+
+	//
+	s.led = func(c *ZoeContext, tk *Token, left Node) Node {
+		exp := parseParen(c, tk).EnsureTuple()
+
 		// On our left, we may have an FnDef or FnDecl, in which case we will graft
-		// ourselves on them
+		// ourselves onto them
 		switch v := left.(type) {
 		case *FnDecl:
-			v.FnDef.Signature.SetArgs(res.ToVars())
+			v.FnDef.Signature.SetArgs(exp.ToVars())
+			return v
 		case *FnDef:
-			v.Signature.SetArgs(res.ToVars())
+			v.Signature.SetArgs(exp.ToVars())
 			return v
 		}
 
-		return tk.CreateFnCall().SetLeft(left).SetArgs(res)
+		// Otherwise, this is a plain fncall
+		return tk.CreateFnCall().SetLeft(left).SetArgs(exp)
 	}
 
 	//
 	s.nud = func(c *ZoeContext, tk *Token, _ int) Node {
-		res := tk.CreateTuple()
-
-		for !c.Peek(TK_RPAREN) {
-			if c.isEof() {
-				c.reportErrorAtCurrentPosition(`unexpected end of file`)
-				// contents = append(contents, c.EOF())
-				break
-			}
-			res.AddChildren(c.Expression(0))
-		}
-
-		if !c.Peek(TK_RPAREN) {
-			c.reportErrorAtCurrentPosition(`expected a closing ')'`)
-		} else {
-			res.ExtendPosition(c.Current)
-			c.advance()
-		}
-
-		if !c.Peek(TK_ARROW, TK_FATARROW) && len(res.Children) == 1 {
-			return res.Children[0]
-		}
-
-		return res
+		return parseParen(c, tk)
 	}
 }
 
@@ -449,19 +451,11 @@ func parseTemplate(c *ZoeContext, tk *Token, _ int) Node {
 	tpl := &Template{}
 	tpl.ExtendPosition(tk)
 
-	targs := c.Expression(0)
+	tup := c.Expression(0).EnsureTuple()
 
 	// ensure args is a tuple containing variable declarations.
-	if tup, ok := targs.(*Tuple); ok {
-		args := tup.ToVars()
-		tpl.SetArgs(args)
-
-		// We have our template arguments, which is dandy
-		// Template arguments only accept = for default, so we're going to check that
-		// there is no type expression.
-	} else {
-		targs.ReportError(`template should be followed by a list of template arguments`)
-	}
+	args := tup.ToVars()
+	tpl.SetArgs(args)
 
 	// Where clause would come here, most likely
 

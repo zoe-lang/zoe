@@ -15,6 +15,14 @@ func (tk *Token) CreateNamespace() *Namespace {
   return tk.Position.CreateNamespace()
 }
 
+func (r *Namespace) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Namespace) Dump(w io.Writer) {
@@ -65,6 +73,14 @@ func (tk *Token) CreateFragment() *Fragment {
   return tk.Position.CreateFragment()
 }
 
+func (r *Fragment) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Fragment) Dump(w io.Writer) {
@@ -113,6 +129,14 @@ func (p *Position) CreateTypeDecl() *TypeDecl {
 
 func (tk *Token) CreateTypeDecl() *TypeDecl {
   return tk.Position.CreateTypeDecl()
+}
+
+func (r *TypeDecl) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -207,6 +231,14 @@ func (tk *Token) CreateUnion() *Union {
   return tk.Position.CreateUnion()
 }
 
+func (r *Union) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Union) Dump(w io.Writer) {
@@ -257,6 +289,14 @@ func (tk *Token) CreateImportAs() *ImportAs {
   return tk.Position.CreateImportAs()
 }
 
+func (r *ImportAs) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 func (r *ImportAs) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
@@ -274,6 +314,14 @@ func (p *Position) CreateVar() *Var {
 
 func (tk *Token) CreateVar() *Var {
   return tk.Position.CreateVar()
+}
+
+func (r *Var) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -368,6 +416,14 @@ func (tk *Token) CreateOperation() *Operation {
   return tk.Position.CreateOperation()
 }
 
+func (r *Operation) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Operation) Dump(w io.Writer) {
@@ -439,6 +495,14 @@ func (tk *Token) CreateTemplate() *Template {
   return tk.Position.CreateTemplate()
 }
 
+func (r *Template) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Template) Dump(w io.Writer) {
@@ -487,6 +551,14 @@ func (p *Position) CreateFnDef() *FnDef {
 
 func (tk *Token) CreateFnDef() *FnDef {
   return tk.Position.CreateFnDef()
+}
+
+func (r *FnDef) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -581,6 +653,14 @@ func (tk *Token) CreateSignature() *Signature {
   return tk.Position.CreateSignature()
 }
 
+func (r *Signature) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Signature) Dump(w io.Writer) {
@@ -650,6 +730,14 @@ func (p *Position) CreateFnCall() *FnCall {
 
 func (tk *Token) CreateFnCall() *FnCall {
   return tk.Position.CreateFnCall()
+}
+
+func (r *FnCall) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -723,6 +811,14 @@ func (tk *Token) CreateGetIndex() *GetIndex {
   return tk.Position.CreateGetIndex()
 }
 
+func (r *GetIndex) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *GetIndex) Dump(w io.Writer) {
@@ -792,6 +888,14 @@ func (p *Position) CreateSetIndex() *SetIndex {
 
 func (tk *Token) CreateSetIndex() *SetIndex {
   return tk.Position.CreateSetIndex()
+}
+
+func (r *SetIndex) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -886,6 +990,14 @@ func (tk *Token) CreateIf() *If {
   return tk.Position.CreateIf()
 }
 
+func (r *If) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *If) Dump(w io.Writer) {
@@ -978,6 +1090,14 @@ func (tk *Token) CreateFnDecl() *FnDecl {
   return tk.Position.CreateFnDecl()
 }
 
+func (r *FnDecl) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *FnDecl) Dump(w io.Writer) {
@@ -1049,6 +1169,12 @@ func (tk *Token) CreateTuple() *Tuple {
   return tk.Position.CreateTuple()
 }
 
+func (r *Tuple) EnsureTuple() *Tuple {
+
+  return r
+
+}
+
 
 
 func (r *Tuple) Dump(w io.Writer) {
@@ -1097,6 +1223,14 @@ func (p *Position) CreateVarTuple() *VarTuple {
 
 func (tk *Token) CreateVarTuple() *VarTuple {
   return tk.Position.CreateVarTuple()
+}
+
+func (r *VarTuple) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -1149,6 +1283,14 @@ func (tk *Token) CreateBlock() *Block {
   return tk.Position.CreateBlock()
 }
 
+func (r *Block) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 
 func (r *Block) Dump(w io.Writer) {
@@ -1197,6 +1339,14 @@ func (p *Position) CreateReturn() *Return {
 
 func (tk *Token) CreateReturn() *Return {
   return tk.Position.CreateReturn()
+}
+
+func (r *Return) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -1249,6 +1399,14 @@ func (tk *Token) CreateIdent() *Ident {
   return tk.Position.CreateIdent()
 }
 
+func (r *Ident) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 func (r *Ident) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
@@ -1266,6 +1424,14 @@ func (p *Position) CreateNull() *Null {
 
 func (tk *Token) CreateNull() *Null {
   return tk.Position.CreateNull()
+}
+
+func (r *Null) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -1287,6 +1453,14 @@ func (tk *Token) CreateFalse() *False {
   return tk.Position.CreateFalse()
 }
 
+func (r *False) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 func (r *False) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
@@ -1304,6 +1478,14 @@ func (p *Position) CreateTrue() *True {
 
 func (tk *Token) CreateTrue() *True {
   return tk.Position.CreateTrue()
+}
+
+func (r *True) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -1325,6 +1507,14 @@ func (tk *Token) CreateString() *String {
   return tk.Position.CreateString()
 }
 
+func (r *String) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 func (r *String) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
@@ -1342,6 +1532,14 @@ func (p *Position) CreateInteger() *Integer {
 
 func (tk *Token) CreateInteger() *Integer {
   return tk.Position.CreateInteger()
+}
+
+func (r *Integer) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 
@@ -1363,6 +1561,14 @@ func (tk *Token) CreateFloat() *Float {
   return tk.Position.CreateFloat()
 }
 
+func (r *Float) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
 
 func (r *Float) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))
@@ -1380,6 +1586,14 @@ func (p *Position) CreateEof() *Eof {
 
 func (tk *Token) CreateEof() *Eof {
   return tk.Position.CreateEof()
+}
+
+func (r *Eof) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
 }
 
 

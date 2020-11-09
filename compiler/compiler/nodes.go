@@ -21,6 +21,7 @@ type Node interface {
 	GetText() string
 	ExtendPosition(other Positioned)
 	ReportError(msg ...string)
+	EnsureTuple() *Tuple
 }
 
 type NodeBase struct {

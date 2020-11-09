@@ -65,6 +65,16 @@ func (tk *Token) Create{{v.type}}() *{{v.type}} {
   return tk.Position.Create{{v.type}}()
 }
 
+func (r *{{v.type}}) EnsureTuple() *Tuple {
+%% if (v.type === 'Tuple') { %%
+  return r
+%% } else { %%
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+%% } %%
+}
+
 %% if (v.fields.length === 0) { %%
 func (r *{{v.type}}) Dump(w io.Writer) {
   w.Write([]byte(r.GetText()))

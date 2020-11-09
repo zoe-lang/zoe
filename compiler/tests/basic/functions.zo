@@ -1,5 +1,5 @@
 #(?
-  (decl:fn test
+  (fndecl test
     (template
       [$T]
       (fndef (signature [(: arg $T)] $T) {})
@@ -16,16 +16,29 @@ fn test(arg: $T) -> $T { }
 #)
 type Cbk is fn(String, Int) -> void
 
-var a = fn (a: String = "") -> String { a }
+#(?
+  (var a <nil>
+    (fndef
+      <nil>
+      (signature
+        [(var a String '')]
+        String
+      )
+      {a}
+    )
+  )
+#)
+var a = fn (a: String = '') -> String { a }
 
 # maybe a is typed
 #(?
-  (decl:var a
-    (infer)
+  (var a
+    <nil>
     (fndef
+      <nil>
       (signature
-        [a b]
-        (infer)
+        [(var a <nil> <nil>) (var b <nil> <nil>)]
+        <nil>
       )
       {(+ a c)}
     )
@@ -34,7 +47,7 @@ var a = fn (a: String = "") -> String { a }
 var a = fn (a, b) => a + c
 
 #(?
-  (decl:fn
+  (fndecl
     ba
     (template [$T $U]
       (fndef
@@ -53,21 +66,22 @@ template $T, $U
 fn ba(a: String, b: $T) -> $U { return a.b }
 
 #(?
-  (call
+  (fncall
     (. a map)
-    (fndef
+    [(fndef
+      <nil>
       (signature
-        [a]
-        (infer)
+        [(var a <nil> <nil>)]
+        <nil>
       )
       {a}
-    )
+    )]
   )
 #)
 a.map(fn (a) => a)
 
 
 #(?
-  (call c [a b])
+  (fncall c [a b])
 #)
 c(a, b)
