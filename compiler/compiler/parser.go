@@ -329,9 +329,10 @@ func handleParens() {
 		// ourselves onto them
 		switch v := left.(type) {
 		case *FnDecl:
-			return v.FnDef.EnsureSignature(func(v *Signature) {
+			v.FnDef.EnsureSignature(func(v *Signature) {
 				v.SetArgs(exp.ToVars())
 			})
+			return v
 		case *FnDef:
 			return v.EnsureSignature(func(s *Signature) {
 				s.SetArgs(exp.ToVars())
@@ -516,16 +517,14 @@ func parseTemplate(c *ZoeContext, tk *Token, _ int) Node {
 	// Where clause would come here, most likely
 
 	templated := c.Expression(0)
+	// log.Printf("%s (%T)", templated.GetText(), templated)
 	switch v := templated.(type) {
 	case *FnDef:
-		v.ExtendPosition(tpl)
-		v.Template = tpl
+		v.SetTemplate(tpl)
 	case *FnDecl:
-		v.ExtendPosition(tpl)
-		v.FnDef.Template = tpl
+		v.EnsureFnDef(func(f *FnDef) { f.SetTemplate(tpl) })
 	case *TypeDecl:
-		v.ExtendPosition(tpl)
-		v.Template = tpl
+		v.SetTemplate(tpl)
 	default:
 		templated.ReportError("template blocks must be followed by 'fn' or 'type'")
 	}
