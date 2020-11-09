@@ -99,8 +99,8 @@ type Fragment struct {
 
 type TypeDecl struct {
 	NodeBase
-	Template *Template
 	Ident    *Ident
+	Template *Template
 	Def      Node
 }
 

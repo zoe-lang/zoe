@@ -1,8 +1,9 @@
 #(?
   (fndecl test
-    (template
-      [$T]
-      (fndef (signature [(: arg $T)] $T) {})
+    (fndef
+      (template [(var $T <nil> <nil>)])
+      (signature [(var arg $T <nil>)] $T)
+      {}
     )
   )
 #)
@@ -10,11 +11,17 @@ template $T
 fn test(arg: $T) -> $T { }
 
 #(?
-  (decl:type Cbk
-    (signature [String Int] void)
+  (typedecl
+    Cbk
+    <nil>
+    (fndef
+      <nil>
+      (signature [(var a String <nil>) (var b Int <nil>)] void)
+      <nil>
+    )
   )
 #)
-type Cbk is fn(String, Int) -> void
+type Cbk is fn(a: String, b: Int) -> void
 
 #(?
   (var a <nil>
@@ -49,16 +56,15 @@ var a = fn (a, b) => a + c
 #(?
   (fndecl
     ba
-    (template [$T $U]
-      (fndef
-        (signature
-          [(: a String) (: b $T)]
-          $U
-        )
-        {
-          (return (. a b))
-        }
+    (fndef
+      (template [(var $T <nil> <nil>) (var $U <nil> <nil>)])
+      (signature
+        [(var a String <nil>) (var b $T <nil>)]
+        $U
       )
+      {
+        (return (. a b))
+      }
     )
   )
 #)

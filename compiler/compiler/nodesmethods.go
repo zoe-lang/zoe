@@ -149,8 +149,8 @@ func (r *TypeDecl) Dump(w io.Writer) {
 
 
       w.Write([]byte(" "))
-      if r.Template != nil {
-        r.Template.Dump(w)
+      if r.Ident != nil {
+        r.Ident.Dump(w)
       } else {
         w.Write([]byte(red("<nil>")))
       }
@@ -158,8 +158,8 @@ func (r *TypeDecl) Dump(w io.Writer) {
 
 
       w.Write([]byte(" "))
-      if r.Ident != nil {
-        r.Ident.Dump(w)
+      if r.Template != nil {
+        r.Template.Dump(w)
       } else {
         w.Write([]byte(red("<nil>")))
       }
@@ -185,8 +185,8 @@ func (r *TypeDecl) Dump(w io.Writer) {
 
 
 
-func (r *TypeDecl) SetTemplate(other *Template) *TypeDecl {
-  r.Template = other
+func (r *TypeDecl) SetIdent(other *Ident) *TypeDecl {
+  r.Ident = other
   if other != nil {
     r.ExtendPosition(other)
   }
@@ -197,8 +197,8 @@ func (r *TypeDecl) SetTemplate(other *Template) *TypeDecl {
 
 
 
-func (r *TypeDecl) SetIdent(other *Ident) *TypeDecl {
-  r.Ident = other
+func (r *TypeDecl) SetTemplate(other *Template) *TypeDecl {
+  r.Template = other
   if other != nil {
     r.ExtendPosition(other)
   }

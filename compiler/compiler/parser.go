@@ -108,13 +108,13 @@ func init() {
 		if !isident {
 			ident.ReportError(`left of ':' must be an identifier`)
 		}
-		switch v := right.(type) {
-		case *Operation:
-			if v.Is(TK_EQ) && v.IsBinary() {
-				return tk.CreateVar().SetExp(v.Right()).SetTypeExp(v.Left()).SetIdent(ident)
-			}
+		res := tk.CreateVar().SetIdent(ident).SetTypeExp(right)
+		if c.Peek(TK_EQ) {
+			c.advance()
+			eq := c.Expression(colon_lbp - 1)
+			res.SetExp(eq)
 		}
-		return tk.CreateVar().SetTypeExp(right).SetIdent(ident)
+		return res
 	})
 
 	unary(KW_LOCAL)
@@ -276,9 +276,11 @@ func handleParens() {
 		// ourselves onto them
 		switch v := left.(type) {
 		case *FnDecl:
+			v.ExtendPosition(exp)
 			v.FnDef.Signature.SetArgs(exp.ToVars())
 			return v
 		case *FnDef:
+			v.ExtendPosition(exp)
 			v.Signature.SetArgs(exp.ToVars())
 			return v
 		}
@@ -345,12 +347,14 @@ func parseArrow(c *ZoeContext, _ *Token, left Node) Node {
 	// left is necessarily a tuple. any other type is an error
 	switch v := left.(type) {
 	case *FnDecl:
+		v.ExtendPosition(right)
 		v.FnDef.Signature.SetReturnTypeExp(right)
 		if block != nil {
 			v.FnDef.SetDefinition(block)
 		}
 		return v
 	case *FnDef:
+		v.ExtendPosition(right)
 		v.Signature.SetReturnTypeExp(right)
 		if block != nil {
 			v.SetDefinition(block)
@@ -462,10 +466,13 @@ func parseTemplate(c *ZoeContext, tk *Token, _ int) Node {
 	templated := c.Expression(0)
 	switch v := templated.(type) {
 	case *FnDef:
+		v.ExtendPosition(tpl)
 		v.Template = tpl
 	case *FnDecl:
+		v.ExtendPosition(tpl)
 		v.FnDef.Template = tpl
 	case *TypeDecl:
+		v.ExtendPosition(tpl)
 		v.Template = tpl
 	default:
 		templated.ReportError("template blocks must be followed by 'fn' or 'type'")
