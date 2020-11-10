@@ -109,6 +109,9 @@ func init() {
 	// , creates a tuple
 	comma_lbp := lbp
 	led(TK_COMMA, func(c *ZoeContext, tk *Token, left Node) Node {
+		if c.Peek(TK_RBRACE, TK_RBRACKET, TK_RPAREN) {
+			return left
+		}
 		right := c.Expression(comma_lbp) // this should give us a right associative tree
 		switch v := left.(type) {
 		case *Tuple:

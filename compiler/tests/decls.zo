@@ -1,5 +1,6 @@
 var a = 1
 var a: String = "toto"
+
 fn test(a: String, b: ...String = 2,) -> void {
   return a + a
 }
