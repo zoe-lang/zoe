@@ -146,6 +146,10 @@ func (z *ZoeContext) Lex() error {
 			<top> "is"        => top { addToken(KW_IS); goto yyc_top }
 			<top> "return"    => top { addToken(KW_RETURN); goto yyc_top }
 			<top> "yield"     => top { addToken(KW_YIELD); goto yyc_top }
+			<top> "null"      => top { addToken(KW_NULL); goto yyc_top }
+			<top> "void"      => top { addToken(KW_VOID); goto yyc_top }
+			<top> "true"      => top { addToken(KW_TRUE); goto yyc_top }
+			<top> "false"      => top { addToken(KW_FALSE); goto yyc_top }
 
 	  	<top> [$A-Za-z_] [_$A-Za-z0-9]* => top { addToken(TK_ID); goto yyc_top }
 			<top> [0-9]+ => top { addToken(TK_NUMBER); goto yyc_top }

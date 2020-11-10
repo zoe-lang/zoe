@@ -163,16 +163,6 @@ func init() {
 
 	lbp += 2
 
-	// |
-	nud(TK_PIPE, func(c *ZoeContext, tk *Token, lbp int) Node {
-		right := c.Expression(lbp - 1)
-		if union, ok := right.(*Union); ok {
-			return union
-		}
-		tk.Context.reportError(tk, `a '|' must always lead an union`)
-		return right
-	})
-
 	led(TK_PIPE, func(c *ZoeContext, tk *Token, left Node) Node {
 		right := c.Expression(lbp)
 		if v, ok := left.(*Union); ok {
@@ -249,6 +239,10 @@ func init() {
 	// all the terminals. Lbp was raised, but this is not necessary
 
 	nud(TK_QUOTE, parseQuote)
+
+	terminal(KW_NULL, func(tk *Token) Node {
+		return tk.CreateNull()
+	})
 
 	terminal(TK_CHAR, func(tk *Token) Node {
 		return tk.CreateChar()
@@ -554,6 +548,9 @@ func parseTypeDef(c *ZoeContext, tk *Token, _ int) Node {
 	if !c.Consume(KW_IS) {
 		c.reportErrorAtCurrentPosition(`expected 'is' after type name`)
 	}
+
+	// there might be a pipe here
+	c.Consume(TK_PIPE)
 
 	typdef := c.Expression(0)
 	if name == nil {
