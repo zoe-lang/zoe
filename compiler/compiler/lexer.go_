@@ -195,8 +195,10 @@ func (z *ZoeContext) Lex() error {
 				} else { goto yyc_comment } }
 			<comment> $ { err() }
 
-	  	<str> "\"" => top { addToken(TK_QUOTE); goto yyc_top }
-			<str> [^"]+ => str { addToken(TK_RAWSTR); goto yyc_str }
+			<str> "\\" . => str { addToken(TK_CHAR); goto yyc_str }
+			<str> "\"" => str { addToken(TK_QUOTE); goto yyc_top }
+			<str> "{" => top { addToken(TK_LBRACKET); goto yyc_top }
+			<str> [^"\\{]+ => str { addToken(TK_RAWSTR); goto yyc_str }
 
 			<str> * { return err() }
 			<str> $ { return err() }

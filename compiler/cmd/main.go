@@ -19,7 +19,10 @@ func main() {
 		_, _ = fmt.Print(`Handling '`, blue(fname), "'\n\n")
 		ctx, err := zoe.NewZoeContext(fname)
 		if err != nil {
-			log.Print(err)
+			log.Printf("-- %v", err)
+			if ctx != nil && ctx.Start != nil {
+				_, _ = fmt.Print(ctx.Start.ToSlice())
+			}
 			continue
 		}
 

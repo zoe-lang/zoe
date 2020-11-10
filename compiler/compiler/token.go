@@ -38,6 +38,15 @@ type Token struct {
 	WsNext *Token
 }
 
+func (t *Token) ToSlice() []string {
+	res := make([]string, 0)
+	for t != nil {
+		res = append(res, t.String())
+		t = t.Next
+	}
+	return res
+}
+
 func (t *Token) Dump(w io.Writer) {
 	_, _ = w.Write([]byte(t.GetText()))
 }

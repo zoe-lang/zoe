@@ -2231,6 +2231,114 @@ func (r *True) Dump(w io.Writer) {
 
 
 
+func (p *Position) CreateChar() *Char {
+  res := &Char{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateChar() *Char {
+  return tk.Position.CreateChar()
+}
+
+func (r *Char) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
+func (r *Char) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
+
+func (r *Char) Dump(w io.Writer) {
+  w.Write([]byte(cyan(r.GetText())))
+}
+
+
+
+
+
+func (p *Position) CreateStr() *Str {
+  res := &Str{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateStr() *Str {
+  return tk.Position.CreateStr()
+}
+
+func (r *Str) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
+func (r *Str) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
+
+
+func (r *Str) Dump(w io.Writer) {
+
+  w.Write([]byte("(str "))
+
+
+
+
+
+
+      for i, n := range r.Children {
+        n.Dump(w)
+        if i < len(r.Children) - 1 {
+          w.Write([]byte(" "))
+        }
+      }
+
+
+
+
+  w.Write([]byte(")"))
+
+}
+
+
+
+
+
+
+func (r *Str) AddChildren(other ...Node) *Str {
+  for _, c := range other {
+    if c != nil {
+    
+      switch v := c.(type) {
+      case *Fragment:
+        r.AddChildren(v.Children...)
+      default:
+        r.Children = append(r.Children, c)
+        r.ExtendPosition(c)
+      }
+    
+    }
+  }
+  return r
+}
+
+
+
+
+
 func (p *Position) CreateString() *String {
   res := &String{}
   res.ExtendPosition(p)

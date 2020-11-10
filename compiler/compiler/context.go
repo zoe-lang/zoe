@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type ZoeError struct {
@@ -57,7 +59,7 @@ func NewZoeContext(filename string) (*ZoeContext, error) {
 
 	lxerr := ctx.Lex()
 	if lxerr != nil {
-		return nil, lxerr
+		return ctx, errors.Wrap(lxerr, "lexing failed")
 	}
 
 	ctx.Current = ctx.Start

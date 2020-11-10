@@ -245,7 +245,11 @@ func init() {
 	lbp += 2
 	// all the terminals. Lbp was raised, but this is not necessary
 
-	// nud(TK_QUOTE, parseQuote)
+	nud(TK_QUOTE, parseQuote)
+
+	terminal(TK_CHAR, func(tk *Token) Node {
+		return tk.CreateChar()
+	})
 
 	terminal(TK_NUMBER, func(tk *Token) Node {
 		return tk.CreateInteger()
@@ -370,10 +374,17 @@ func parseImport(c *ZoeContext, tk *Token, _ int) Node {
 
 ///////////////////////////////////////////////////////
 // "
-// func parseQuote(c *ZoeContext, tk *Token, _ int) Node {
-// 	// this should transform the result to a string
-// 	return parseUntil(c, NODE_STR, tk, TK_QUOTE, 0)
-// }
+func parseQuote(c *ZoeContext, tk *Token, _ int) Node {
+	res := tk.CreateStr()
+	for !c.Peek(TK_QUOTE) {
+		res.AddChildren(c.Expression(0))
+	}
+	if tk2 := c.Expect(TK_QUOTE); tk != nil {
+		res.ExtendPosition(tk2)
+	}
+	// this should transform the result to a string
+	return res
+}
 
 ////////////////////////////////////////////////////////
 // ->

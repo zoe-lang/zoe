@@ -289,6 +289,15 @@ type True struct {
 	NodeBase
 }
 
+type Char struct {
+	NodeBase
+}
+
+type Str struct {
+	NodeBase
+	Children []Node
+}
+
 type String struct {
 	NodeBase
 }
