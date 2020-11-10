@@ -404,6 +404,84 @@ func (r *Union) AddTypeExprs(other ...Node) *Union {
 
 
 
+func (p *Position) CreateStruct() *Struct {
+  res := &Struct{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateStruct() *Struct {
+  return tk.Position.CreateStruct()
+}
+
+func (r *Struct) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
+func (r *Struct) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
+
+
+func (r *Struct) Dump(w io.Writer) {
+
+  w.Write([]byte("(struct "))
+
+
+
+
+
+
+      if r.Fields != nil {
+        r.Fields.Dump(w)
+      } else {
+        w.Write([]byte(mag("<nil>")))
+      }
+
+
+
+
+
+  w.Write([]byte(")"))
+
+}
+
+
+
+
+
+
+
+
+func (r *Struct) EnsureFields(fn func (f *VarTuple)) *Struct {
+  if r.Fields == nil {
+    r.Fields = &VarTuple{}
+  }
+  fn(r.Fields)
+  r.ExtendPosition(r.Fields)
+  return r
+}
+
+
+func (r *Struct) SetFields(other *VarTuple) *Struct {
+  r.Fields = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
+
 func (p *Position) CreateImportAs() *ImportAs {
   res := &ImportAs{}
   res.ExtendPosition(p)

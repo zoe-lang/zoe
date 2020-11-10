@@ -99,6 +99,7 @@ func init() {
 	nud(KW_TEMPLATE, parseTemplate)
 
 	nud(KW_TYPE, parseTypeDef)
+	nud(KW_STRUCT, parseStruct)
 
 	// ; is a separator that creates a fragment
 	lbp_semicolon = lbp
@@ -569,4 +570,17 @@ func parseSemiColon(c *ZoeContext, tk *Token, left Node) Node {
 	default:
 		return tk.CreateFragment().AddChildren(left, v)
 	}
+}
+
+func parseStruct(c *ZoeContext, tk *Token, _ int) Node {
+	res := tk.CreateStruct()
+	tup := tk.CreateTuple()
+	c.Expect(TK_LPAREN)
+	for !c.Peek(TK_RPAREN) {
+		v := c.Expression(0)
+		tup.AddChildren(v)
+	}
+	c.Expect(TK_RPAREN)
+	res.SetFields(tup.ToVars())
+	return res
 }

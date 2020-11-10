@@ -111,6 +111,11 @@ type Union struct {
 	TypeExprs []Node
 }
 
+type Struct struct {
+	NodeBase
+	Fields *VarTuple
+}
+
 type ImportAs struct {
 	NodeBase
 	Path Node
