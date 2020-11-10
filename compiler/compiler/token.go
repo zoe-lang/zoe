@@ -33,8 +33,9 @@ type Positioned interface {
 
 type Token struct {
 	Position
-	Kind TokenKind
-	Next *Token
+	Kind   TokenKind
+	Next   *Token
+	WsNext *Token
 }
 
 func (t *Token) Dump(w io.Writer) {

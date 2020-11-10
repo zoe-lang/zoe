@@ -196,7 +196,7 @@ func init() {
 
 	lbp += 2
 
-	handleParens()
+	parseParens()
 	// When used right next to an expression, then paren is a function call
 	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
 
@@ -279,13 +279,13 @@ func ledError(c *ZoeContext, tk *Token, left Node) Node {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-// Group expression between two handleParens tokens
+// Group expression between two parseParens tokens
 // nk : the node of the list returned when nud
 // lednk : the node of the list returned when led
 // opening : the opening token
 // closing : the closing token
 // reduce : whether it is allowed to reduce the list to the single expression
-func handleParens() {
+func parseParens() {
 	s := &syms[TK_LPAREN]
 	s.lbp = lbp
 
@@ -341,7 +341,8 @@ func handleParens() {
 
 	//
 	s.nud = func(c *ZoeContext, tk *Token, _ int) Node {
-		return parseParen(c, tk)
+		res := parseParen(c, tk)
+		return res
 	}
 }
 

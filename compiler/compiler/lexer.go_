@@ -67,7 +67,7 @@ func (z *ZoeContext) Lex() error {
 			z.WsStart = n
 			z.WsEnd = n
 		} else {
-			z.WsEnd.Next = n
+			z.WsEnd.WsNext = n
 			z.WsEnd = n
 		}
 
