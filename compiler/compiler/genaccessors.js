@@ -86,7 +86,15 @@ func (r *{{v.type}}) DumpString() string {
 
 %% if (v.fields.length === 0) { %%
 func (r *{{v.type}}) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+%% if (v.type === 'String') { %%
+  w.Write([]byte(blue("'", r.GetText(), "'")))
+%% } else if (v.type === 'Char') { %%
+  w.Write([]byte(blue(r.GetText())))
+%% } else if (v.type === 'Integer') { %%
+  w.Write([]byte(mag(r.GetText())))
+%% } else { %%
+  w.Write([]byte(yel(r.GetText())))
+%% } %%
 }
 %% } else { %%
 

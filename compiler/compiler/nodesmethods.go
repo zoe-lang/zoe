@@ -2125,7 +2125,9 @@ func (r *BaseIdent) DumpString() string {
 
 
 func (r *BaseIdent) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
@@ -2158,7 +2160,9 @@ func (r *Null) DumpString() string {
 
 
 func (r *Null) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
@@ -2191,7 +2195,9 @@ func (r *False) DumpString() string {
 
 
 func (r *False) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
@@ -2224,7 +2230,9 @@ func (r *True) DumpString() string {
 
 
 func (r *True) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
@@ -2257,7 +2265,9 @@ func (r *Char) DumpString() string {
 
 
 func (r *Char) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(blue(r.GetText())))
+
 }
 
 
@@ -2365,7 +2375,9 @@ func (r *String) DumpString() string {
 
 
 func (r *String) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(blue("'", r.GetText(), "'")))
+
 }
 
 
@@ -2398,7 +2410,9 @@ func (r *Integer) DumpString() string {
 
 
 func (r *Integer) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(mag(r.GetText())))
+
 }
 
 
@@ -2431,7 +2445,9 @@ func (r *Float) DumpString() string {
 
 
 func (r *Float) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
@@ -2464,7 +2480,9 @@ func (r *Void) DumpString() string {
 
 
 func (r *Void) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
@@ -2497,7 +2515,9 @@ func (r *Eof) DumpString() string {
 
 
 func (r *Eof) Dump(w io.Writer) {
-  w.Write([]byte(cyan(r.GetText())))
+
+  w.Write([]byte(yel(r.GetText())))
+
 }
 
 
