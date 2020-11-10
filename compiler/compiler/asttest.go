@@ -1,7 +1,6 @@
 package zoe
 
 import (
-	"bytes"
 	"log"
 	"regexp"
 	"strings"
@@ -41,9 +40,7 @@ func (c *ZoeContext) TestFileAst() {
 		p := color.NoColor
 		color.NoColor = true
 
-		var buf bytes.Buffer
-		n.Dump(&buf)
-		test := cleanup(buf.Bytes())
+		test := cleanup([]byte(n.DumpString()))
 
 		color.NoColor = p
 

@@ -2,7 +2,10 @@
 
 package zoe
 
-import "io"
+import (
+  "io"
+  "bytes"
+)
 
 
 func (p *Position) CreateNamespace() *Namespace {
@@ -21,6 +24,12 @@ func (r *Namespace) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Namespace) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -122,6 +131,12 @@ func (r *Fragment) EnsureTuple() *Tuple {
 
 }
 
+func (r *Fragment) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Fragment) Dump(w io.Writer) {
@@ -189,6 +204,12 @@ func (r *TypeDecl) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *TypeDecl) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -326,6 +347,12 @@ func (r *Union) EnsureTuple() *Tuple {
 
 }
 
+func (r *Union) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Union) Dump(w io.Writer) {
@@ -393,6 +420,12 @@ func (r *ImportAs) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *ImportAs) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -494,6 +527,12 @@ func (r *ImportList) EnsureTuple() *Tuple {
 
 }
 
+func (r *ImportList) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *ImportList) Dump(w io.Writer) {
@@ -591,6 +630,12 @@ func (r *Var) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Var) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -719,6 +764,12 @@ func (r *Operation) EnsureTuple() *Tuple {
 
 }
 
+func (r *Operation) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Operation) Dump(w io.Writer) {
@@ -815,6 +866,12 @@ func (r *Template) EnsureTuple() *Tuple {
 
 }
 
+func (r *Template) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Template) Dump(w io.Writer) {
@@ -885,6 +942,12 @@ func (r *FnDef) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *FnDef) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -1031,6 +1094,12 @@ func (r *Signature) EnsureTuple() *Tuple {
 
 }
 
+func (r *Signature) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Signature) Dump(w io.Writer) {
@@ -1128,6 +1197,12 @@ func (r *FnCall) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *FnCall) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -1229,6 +1304,12 @@ func (r *GetIndex) EnsureTuple() *Tuple {
 
 }
 
+func (r *GetIndex) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *GetIndex) Dump(w io.Writer) {
@@ -1317,6 +1398,12 @@ func (r *SetIndex) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *SetIndex) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -1436,6 +1523,12 @@ func (r *If) EnsureTuple() *Tuple {
 
 }
 
+func (r *If) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *If) Dump(w io.Writer) {
@@ -1553,6 +1646,12 @@ func (r *FnDecl) EnsureTuple() *Tuple {
 
 }
 
+func (r *FnDecl) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *FnDecl) Dump(w io.Writer) {
@@ -1659,6 +1758,12 @@ func (r *Tuple) EnsureTuple() *Tuple {
 
 }
 
+func (r *Tuple) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Tuple) Dump(w io.Writer) {
@@ -1728,6 +1833,12 @@ func (r *VarTuple) EnsureTuple() *Tuple {
 
 }
 
+func (r *VarTuple) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *VarTuple) Dump(w io.Writer) {
@@ -1790,6 +1901,12 @@ func (r *Block) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Block) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -1861,6 +1978,12 @@ func (r *Return) EnsureTuple() *Tuple {
 
 }
 
+func (r *Return) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 
 func (r *Return) Dump(w io.Writer) {
@@ -1922,6 +2045,12 @@ func (r *Ident) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Ident) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -1988,6 +2117,12 @@ func (r *BaseIdent) EnsureTuple() *Tuple {
 
 }
 
+func (r *BaseIdent) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 func (r *BaseIdent) Dump(w io.Writer) {
   w.Write([]byte(cyan(r.GetText())))
@@ -2013,6 +2148,12 @@ func (r *Null) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Null) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -2042,6 +2183,12 @@ func (r *False) EnsureTuple() *Tuple {
 
 }
 
+func (r *False) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 func (r *False) Dump(w io.Writer) {
   w.Write([]byte(cyan(r.GetText())))
@@ -2067,6 +2214,12 @@ func (r *True) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *True) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -2096,6 +2249,12 @@ func (r *String) EnsureTuple() *Tuple {
 
 }
 
+func (r *String) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 func (r *String) Dump(w io.Writer) {
   w.Write([]byte(cyan(r.GetText())))
@@ -2121,6 +2280,12 @@ func (r *Integer) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Integer) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 
@@ -2150,6 +2315,12 @@ func (r *Float) EnsureTuple() *Tuple {
 
 }
 
+func (r *Float) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
 
 func (r *Float) Dump(w io.Writer) {
   w.Write([]byte(cyan(r.GetText())))
@@ -2175,6 +2346,12 @@ func (r *Eof) EnsureTuple() *Tuple {
   res.AddChildren(r)
   return res
 
+}
+
+func (r *Eof) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
 }
 
 

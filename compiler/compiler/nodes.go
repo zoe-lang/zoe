@@ -15,6 +15,7 @@ func appendNode(parent Node, target *[]Node, assign Node) {
 }
 
 type Node interface {
+	DumpString() string
 	Dump(w io.Writer)
 	SetError()
 	GetPosition() *Position

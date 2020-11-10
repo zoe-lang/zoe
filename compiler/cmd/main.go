@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -17,7 +16,7 @@ func main() {
 
 	for _, fname := range os.Args[1:] {
 
-		fmt.Print(`Handling '`, blue(fname), "'\n\n")
+		_, _ = fmt.Print(`Handling '`, blue(fname), "'\n\n")
 		ctx, err := zoe.NewZoeContext(fname)
 		if err != nil {
 			log.Print(err)
@@ -25,9 +24,7 @@ func main() {
 		}
 
 		res := ctx.ParseFile()
-		var buf bytes.Buffer
-		res.Dump(&buf)
-		_, _ = os.Stdout.WriteString(buf.String() + "\n\n")
+		_, _ = os.Stdout.WriteString(res.DumpString() + "\n\n")
 		ctx.TestFileAst()
 
 		for _, err := range ctx.Errors {
