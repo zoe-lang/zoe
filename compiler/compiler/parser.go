@@ -241,26 +241,29 @@ func init() {
 
 	nud(TK_QUOTE, parseQuote)
 
-	terminal(KW_NULL, func(tk *Token) Node {
+	nud(KW_NULL, func(c *ZoeContext, tk *Token, lbp int) Node {
 		return tk.CreateNull()
 	})
 
-	terminal(TK_CHAR, func(tk *Token) Node {
+	nud(TK_CHAR, func(c *ZoeContext, tk *Token, lbp int) Node {
 		return tk.CreateChar()
 	})
 
-	terminal(TK_NUMBER, func(tk *Token) Node {
+	nud(TK_NUMBER, func(c *ZoeContext, tk *Token, lbp int) Node {
 		return tk.CreateInteger()
 	})
 
-	terminal(TK_RAWSTR, func(tk *Token) Node {
+	nud(TK_RAWSTR, func(c *ZoeContext, tk *Token, lbp int) Node {
 		return tk.CreateString()
 	})
 
-	terminal(TK_ID, func(tk *Token) Node {
+	nud(TK_ID, func(c *ZoeContext, tk *Token, lbp int) Node {
 		return tk.CreateBaseIdent()
 	})
 
+	nud(KW_VOID, func(c *ZoeContext, tk *Token, lbp int) Node {
+		return tk.CreateVoid()
+	})
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

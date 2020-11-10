@@ -114,10 +114,6 @@ func nud(tk TokenKind, fn func(c *ZoeContext, tk *Token, lbp int) Node) {
 	s.nud = fn
 }
 
-func terminal(tk TokenKind, create func(tk *Token) Node) {
-	nud(tk, func(c *ZoeContext, tk *Token, _ int) Node { return create(tk) })
-}
-
 // // parseUntil calls expression several times until landing on a token
 // func parseUntil(c *ZoeContext, nk NodeKind, lst *Token, until TokenKind, rbp int) Node {
 // 	res := make([]Node, 0)

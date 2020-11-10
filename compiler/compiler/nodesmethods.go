@@ -2516,6 +2516,39 @@ func (r *Float) Dump(w io.Writer) {
 
 
 
+func (p *Position) CreateVoid() *Void {
+  res := &Void{}
+  res.ExtendPosition(p)
+  return res
+}
+
+func (tk *Token) CreateVoid() *Void {
+  return tk.Position.CreateVoid()
+}
+
+func (r *Void) EnsureTuple() *Tuple {
+
+  res := &Tuple{}
+  res.AddChildren(r)
+  return res
+
+}
+
+func (r *Void) DumpString() string {
+  var res bytes.Buffer
+  r.Dump(&res)
+  return res.String()
+}
+
+
+func (r *Void) Dump(w io.Writer) {
+  w.Write([]byte(cyan(r.GetText())))
+}
+
+
+
+
+
 func (p *Position) CreateEof() *Eof {
   res := &Eof{}
   res.ExtendPosition(p)

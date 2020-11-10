@@ -315,6 +315,10 @@ type Float struct {
 	NodeBase
 }
 
+type Void struct {
+	NodeBase
+}
+
 type Eof struct {
 	NodeBase
 }
