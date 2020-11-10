@@ -1,5 +1,19 @@
 package zoe
 
+type tkstack struct {
+	top  int
+	prev *tkstack
+}
+
+func (t *tkstack) push() *tkstack {
+	n := &tkstack{top: 0, prev: t}
+	return n
+}
+
+func (t *tkstack) pop() *tkstack {
+	return t.prev
+}
+
 type LexerError struct {
 	Filename string
 	Message  string
@@ -23,6 +37,7 @@ func (z *ZoeContext) Lex() error {
 	cond := yyctop
 	comment := 0 // recursive comments
 	doc_comment := false
+	var brace_stack *tkstack
 
 	var marker int
 
@@ -141,8 +156,23 @@ func (z *ZoeContext) Lex() error {
 			<top> ")"   { addToken(TK_RPAREN); goto yyc_top }
 			<top> "["   { addToken(TK_LBRACE); goto yyc_top }
 			<top> "]"   { addToken(TK_RBRACE); goto yyc_top }
-			<top> "{"   { addToken(TK_LBRACKET); goto yyc_top }
-			<top> "}"   { addToken(TK_RBRACKET); goto yyc_top }
+			<top> "{"   {
+				addToken(TK_LBRACKET)
+				if brace_stack != nil {
+					brace_stack.top++
+				}
+				goto yyc_top
+			}
+			<top> "}"   {
+				addToken(TK_RBRACKET)
+				if brace_stack != nil {
+					if brace_stack.top == 0 {
+						brace_stack = brace_stack.pop()
+						goto yyc_str
+					}
+				}
+				goto yyc_top
+			}
 			<top> "<"   { addToken(TK_LT); goto yyc_top }
 			<top> ">"   { addToken(TK_GT); goto yyc_top }
 			<top> "|"   { addToken(TK_PIPE); goto yyc_top }
@@ -197,7 +227,11 @@ func (z *ZoeContext) Lex() error {
 
 			<str> "\\" . => str { addToken(TK_CHAR); goto yyc_str }
 			<str> "\"" => str { addToken(TK_QUOTE); goto yyc_top }
-			<str> "{" => top { addToken(TK_LBRACKET); goto yyc_top }
+			<str> "{" => top {
+				addToken(TK_LBRACKET)
+				brace_stack = brace_stack.push()
+				goto yyc_top
+			}
 			<str> [^"\\{]+ => str { addToken(TK_RAWSTR); goto yyc_str }
 
 			<str> * { return err() }

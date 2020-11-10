@@ -1,0 +1,4 @@
+
+type Toto is Map@(String, Int)
+
+var a: Slice@String
