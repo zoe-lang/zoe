@@ -1,5 +1,5 @@
 #(?
-  (importas 'io' <nil>)
+  (importas 'io' null)
 #)
 import 'io'
 

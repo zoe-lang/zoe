@@ -362,11 +362,27 @@ func parseImport(c *ZoeContext, tk *Token, _ int) Node {
 		if !v.Is(KW_AS) || !is_ident {
 			v.ReportError("expected 'as' <ident>")
 		}
-		return tk.CreateImportAs().SetPath(v.Left()).SetAs(ident)
+		return tk.CreateImport().SetPath(v.Left()).SetAs(ident)
 	case *FnCall:
-		return tk.CreateImportList().SetPath(v.Left).SetNames(v.Args)
+		res := tk.CreateFragment()
+		mod := v.Left
+		for _, a := range v.Args.Children {
+			switch im := a.(type) {
+			case *Operation:
+				if ident, ok := im.Right().(*BaseIdent); ok {
+					res.AddChildren(im.CreateImport().SetPath(mod).SetSubPath(im.Left()).SetAs(ident))
+				}
+				continue
+			case *BaseIdent:
+				res.AddChildren(im.CreateImport().SetPath(mod).SetSubPath(im).SetAs(im))
+				continue
+			}
+			a.ReportError(`invalid import statement`)
+		}
+		return res
+		// return tk.CreateImportList().SetPath(v.Left).SetNames(v.Args)
 	case *String:
-		return tk.CreateImportAs().SetPath(v)
+		return tk.CreateImport().SetPath(v)
 	}
 
 	import_exp.ReportError(`invalid import statement`)

@@ -46,7 +46,7 @@ func (r *Namespace) Dump(w io.Writer) {
       if r.Identifier != nil {
         r.Identifier.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -58,7 +58,7 @@ func (r *Namespace) Dump(w io.Writer) {
       if r.Block != nil {
         r.Block.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -226,7 +226,7 @@ func (r *TypeDecl) Dump(w io.Writer) {
       if r.Ident != nil {
         r.Ident.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -238,7 +238,7 @@ func (r *TypeDecl) Dump(w io.Writer) {
       if r.Template != nil {
         r.Template.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -250,7 +250,7 @@ func (r *TypeDecl) Dump(w io.Writer) {
       if r.Def != nil {
         r.Def.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -442,7 +442,7 @@ func (r *Struct) Dump(w io.Writer) {
       if r.Fields != nil {
         r.Fields.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -482,17 +482,17 @@ func (r *Struct) SetFields(other *VarTuple) *Struct {
 
 
 
-func (p *Position) CreateImportAs() *ImportAs {
-  res := &ImportAs{}
+func (p *Position) CreateImport() *Import {
+  res := &Import{}
   res.ExtendPosition(p)
   return res
 }
 
-func (tk *Token) CreateImportAs() *ImportAs {
-  return tk.Position.CreateImportAs()
+func (tk *Token) CreateImport() *Import {
+  return tk.Position.CreateImport()
 }
 
-func (r *ImportAs) EnsureTuple() *Tuple {
+func (r *Import) EnsureTuple() *Tuple {
 
   res := &Tuple{}
   res.AddChildren(r)
@@ -500,7 +500,7 @@ func (r *ImportAs) EnsureTuple() *Tuple {
 
 }
 
-func (r *ImportAs) DumpString() string {
+func (r *Import) DumpString() string {
   var res bytes.Buffer
   r.Dump(&res)
   return res.String()
@@ -508,9 +508,9 @@ func (r *ImportAs) DumpString() string {
 
 
 
-func (r *ImportAs) Dump(w io.Writer) {
+func (r *Import) Dump(w io.Writer) {
 
-  w.Write([]byte("(importas "))
+  w.Write([]byte("(import "))
 
 
 
@@ -520,7 +520,19 @@ func (r *ImportAs) Dump(w io.Writer) {
       if r.Path != nil {
         r.Path.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
+      }
+
+      w.Write([]byte(" "))
+
+
+
+
+
+      if r.SubPath != nil {
+        r.SubPath.Dump(w)
+      } else {
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -532,7 +544,7 @@ func (r *ImportAs) Dump(w io.Writer) {
       if r.As != nil {
         r.As.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -551,7 +563,7 @@ func (r *ImportAs) Dump(w io.Writer) {
 
 
 
-func (r *ImportAs) SetPath(other Node) *ImportAs {
+func (r *Import) SetPath(other Node) *Import {
   r.Path = other
   if other != nil {
     r.ExtendPosition(other)
@@ -565,7 +577,22 @@ func (r *ImportAs) SetPath(other Node) *ImportAs {
 
 
 
-func (r *ImportAs) EnsureAs(fn func (a *BaseIdent)) *ImportAs {
+
+func (r *Import) SetSubPath(other Node) *Import {
+  r.SubPath = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
+
+
+
+
+
+
+
+func (r *Import) EnsureAs(fn func (a *BaseIdent)) *Import {
   if r.As == nil {
     r.As = &BaseIdent{}
   }
@@ -575,113 +602,8 @@ func (r *ImportAs) EnsureAs(fn func (a *BaseIdent)) *ImportAs {
 }
 
 
-func (r *ImportAs) SetAs(other *BaseIdent) *ImportAs {
+func (r *Import) SetAs(other *BaseIdent) *Import {
   r.As = other
-  if other != nil {
-    r.ExtendPosition(other)
-  }
-  return r
-}
-
-
-
-
-
-func (p *Position) CreateImportList() *ImportList {
-  res := &ImportList{}
-  res.ExtendPosition(p)
-  return res
-}
-
-func (tk *Token) CreateImportList() *ImportList {
-  return tk.Position.CreateImportList()
-}
-
-func (r *ImportList) EnsureTuple() *Tuple {
-
-  res := &Tuple{}
-  res.AddChildren(r)
-  return res
-
-}
-
-func (r *ImportList) DumpString() string {
-  var res bytes.Buffer
-  r.Dump(&res)
-  return res.String()
-}
-
-
-
-func (r *ImportList) Dump(w io.Writer) {
-
-  w.Write([]byte("(importlist "))
-
-
-
-
-
-
-      if r.Path != nil {
-        r.Path.Dump(w)
-      } else {
-        w.Write([]byte(mag("<nil>")))
-      }
-
-      w.Write([]byte(" "))
-
-
-
-
-
-      if r.Names != nil {
-        r.Names.Dump(w)
-      } else {
-        w.Write([]byte(mag("<nil>")))
-      }
-
-
-
-
-
-  w.Write([]byte(")"))
-
-}
-
-
-
-
-
-
-
-
-
-func (r *ImportList) SetPath(other Node) *ImportList {
-  r.Path = other
-  if other != nil {
-    r.ExtendPosition(other)
-  }
-  return r
-}
-
-
-
-
-
-
-
-func (r *ImportList) EnsureNames(fn func (n *Tuple)) *ImportList {
-  if r.Names == nil {
-    r.Names = &Tuple{}
-  }
-  fn(r.Names)
-  r.ExtendPosition(r.Names)
-  return r
-}
-
-
-func (r *ImportList) SetNames(other *Tuple) *ImportList {
-  r.Names = other
   if other != nil {
     r.ExtendPosition(other)
   }
@@ -730,7 +652,7 @@ func (r *Var) Dump(w io.Writer) {
       if r.Ident != nil {
         r.Ident.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -742,7 +664,7 @@ func (r *Var) Dump(w io.Writer) {
       if r.TypeExp != nil {
         r.TypeExp.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -754,7 +676,7 @@ func (r *Var) Dump(w io.Writer) {
       if r.Exp != nil {
         r.Exp.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -862,7 +784,7 @@ func (r *Operation) Dump(w io.Writer) {
       if r.Token != nil {
         r.Token.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -964,7 +886,7 @@ func (r *Template) Dump(w io.Writer) {
       if r.Args != nil {
         r.Args.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1042,7 +964,7 @@ func (r *FnDef) Dump(w io.Writer) {
       if r.Template != nil {
         r.Template.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1054,7 +976,7 @@ func (r *FnDef) Dump(w io.Writer) {
       if r.Signature != nil {
         r.Signature.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1066,7 +988,7 @@ func (r *FnDef) Dump(w io.Writer) {
       if r.Definition != nil {
         r.Definition.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1192,7 +1114,7 @@ func (r *Signature) Dump(w io.Writer) {
       if r.Args != nil {
         r.Args.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1204,7 +1126,7 @@ func (r *Signature) Dump(w io.Writer) {
       if r.ReturnTypeExp != nil {
         r.ReturnTypeExp.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1297,7 +1219,7 @@ func (r *FnCall) Dump(w io.Writer) {
       if r.Left != nil {
         r.Left.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1309,7 +1231,7 @@ func (r *FnCall) Dump(w io.Writer) {
       if r.Args != nil {
         r.Args.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1402,7 +1324,7 @@ func (r *GetIndex) Dump(w io.Writer) {
       if r.Left != nil {
         r.Left.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1414,7 +1336,7 @@ func (r *GetIndex) Dump(w io.Writer) {
       if r.Index != nil {
         r.Index.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1498,7 +1420,7 @@ func (r *SetIndex) Dump(w io.Writer) {
       if r.Left != nil {
         r.Left.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1510,7 +1432,7 @@ func (r *SetIndex) Dump(w io.Writer) {
       if r.Index != nil {
         r.Index.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1522,7 +1444,7 @@ func (r *SetIndex) Dump(w io.Writer) {
       if r.Value != nil {
         r.Value.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1621,7 +1543,7 @@ func (r *If) Dump(w io.Writer) {
       if r.Cond != nil {
         r.Cond.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1633,7 +1555,7 @@ func (r *If) Dump(w io.Writer) {
       if r.Then != nil {
         r.Then.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1645,7 +1567,7 @@ func (r *If) Dump(w io.Writer) {
       if r.Else != nil {
         r.Else.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -1744,7 +1666,7 @@ func (r *FnDecl) Dump(w io.Writer) {
       if r.Ident != nil {
         r.Ident.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
       w.Write([]byte(" "))
@@ -1756,7 +1678,7 @@ func (r *FnDecl) Dump(w io.Writer) {
       if r.FnDef != nil {
         r.FnDef.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 
@@ -2076,7 +1998,7 @@ func (r *Return) Dump(w io.Writer) {
       if r.Expr != nil {
         r.Expr.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 
 

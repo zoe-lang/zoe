@@ -115,7 +115,7 @@ func (r *{{v.type}}) Dump(w io.Writer) {
       if r.{{f.name}} != nil {
         r.{{f.name}}.Dump(w)
       } else {
-        w.Write([]byte(mag("<nil>")))
+        w.Write([]byte(mag("null")))
       }
 %%      if (__i < v.fields.length) { %%
       w.Write([]byte(" "))

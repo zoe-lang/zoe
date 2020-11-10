@@ -12,8 +12,7 @@
     )
   )
 #)
-template $T
-fn test(a: $T) -> $T { }
+fn test@$T(a: $T) -> $T { }
 
 # ???
 $if $.target == 'windows' {
@@ -30,8 +29,7 @@ $if $.target == 'windows' {
     )
   )
 #)
-template $T, $U
-type MyType = struct (
+type MyType@($T, $U) = struct (
   field: $T
   field2: $U
 )
@@ -54,8 +52,7 @@ var t MyType@(String, Int)
 #   - there are restrictions on what is creatable at compile time...
 
 # At compile time, types are introspectable. These statements are inlined
-template $U
-fn toString(u $U) -> String {
+fn toString@$U(u: $U) -> String {
   $.log('this method is deprecated') # compile time log
   if $.hasTrait(u, Stringable) { # if is inline since it only contains comptime expressions
     return u@Stringable.toString()

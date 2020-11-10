@@ -116,16 +116,11 @@ type Struct struct {
 	Fields *VarTuple
 }
 
-type ImportAs struct {
+type Import struct {
 	NodeBase
-	Path Node
-	As   *BaseIdent
-}
-
-type ImportList struct {
-	NodeBase
-	Path  Node
-	Names *Tuple
+	Path    Node
+	SubPath Node
+	As      *BaseIdent
 }
 
 type Var struct {

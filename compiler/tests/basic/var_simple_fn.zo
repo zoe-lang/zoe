@@ -1,8 +1,8 @@
 #(?
   (var
     b
-    <nil>
-    (fndef <nil> (signature [] <nil>) {2})
+    null
+    (fndef null (signature [] null) {2})
   )
 #)
 var b = fn () => 2
@@ -10,10 +10,10 @@ var b = fn () => 2
 #(?
   (var
     b
-    <nil>
+    null
     (fndef
-      <nil>
-      (signature [(var a String <nil>)] String )
+      null
+      (signature [(var a String null)] String )
       {(return a)}
     )
   )
