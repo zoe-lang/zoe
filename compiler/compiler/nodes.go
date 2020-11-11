@@ -118,9 +118,9 @@ type Struct struct {
 
 type Import struct {
 	NodeBase
+	As      *BaseIdent
 	Path    Node
 	SubPath Node
-	As      *BaseIdent
 }
 
 type Var struct {

@@ -517,6 +517,18 @@ func (r *Import) Dump(w io.Writer) {
 
 
 
+      if r.As != nil {
+        r.As.Dump(w)
+      } else {
+        w.Write([]byte(mag("null")))
+      }
+
+      w.Write([]byte(" "))
+
+
+
+
+
       if r.Path != nil {
         r.Path.Dump(w)
       } else {
@@ -535,18 +547,6 @@ func (r *Import) Dump(w io.Writer) {
         w.Write([]byte(mag("null")))
       }
 
-      w.Write([]byte(" "))
-
-
-
-
-
-      if r.As != nil {
-        r.As.Dump(w)
-      } else {
-        w.Write([]byte(mag("null")))
-      }
-
 
 
 
@@ -555,6 +555,30 @@ func (r *Import) Dump(w io.Writer) {
 
 }
 
+
+
+
+
+
+
+
+func (r *Import) EnsureAs(fn func (a *BaseIdent)) *Import {
+  if r.As == nil {
+    r.As = &BaseIdent{}
+  }
+  fn(r.As)
+  r.ExtendPosition(r.As)
+  return r
+}
+
+
+func (r *Import) SetAs(other *BaseIdent) *Import {
+  r.As = other
+  if other != nil {
+    r.ExtendPosition(other)
+  }
+  return r
+}
 
 
 
@@ -580,30 +604,6 @@ func (r *Import) SetPath(other Node) *Import {
 
 func (r *Import) SetSubPath(other Node) *Import {
   r.SubPath = other
-  if other != nil {
-    r.ExtendPosition(other)
-  }
-  return r
-}
-
-
-
-
-
-
-
-func (r *Import) EnsureAs(fn func (a *BaseIdent)) *Import {
-  if r.As == nil {
-    r.As = &BaseIdent{}
-  }
-  fn(r.As)
-  r.ExtendPosition(r.As)
-  return r
-}
-
-
-func (r *Import) SetAs(other *BaseIdent) *Import {
-  r.As = other
   if other != nil {
     r.ExtendPosition(other)
   }

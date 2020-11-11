@@ -241,6 +241,14 @@ func init() {
 
 	nud(TK_QUOTE, parseQuote)
 
+	nud(KW_TRUE, func(c *ZoeContext, tk *Token, lbp int) Node {
+		return tk.CreateTrue()
+	})
+
+	nud(KW_FALSE, func(c *ZoeContext, tk *Token, lbp int) Node {
+		return tk.CreateFalse()
+	})
+
 	nud(KW_NULL, func(c *ZoeContext, tk *Token, lbp int) Node {
 		return tk.CreateNull()
 	})
