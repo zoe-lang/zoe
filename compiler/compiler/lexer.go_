@@ -71,8 +71,6 @@ func (z *ZoeContext) Lex() error {
 		updateLines()
 
 		start = offset
-		n.EndLine = line
-		n.EndColumn = col
 
 		is_meaningful := kind != TK_WHITESPACE && kind != TK_COMMENT
 

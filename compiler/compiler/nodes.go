@@ -77,13 +77,6 @@ func (n *NodeBase) ExtendPosition(otherp Positioned) {
 	} else if other.Line == pos.Line {
 		pos.Column = minInt(pos.Column, other.Column)
 	}
-
-	if other.EndLine > pos.EndLine {
-		pos.EndLine = other.EndLine
-		pos.EndColumn = other.EndColumn
-	} else if other.EndLine == pos.EndLine {
-		pos.EndColumn = maxInt(pos.EndColumn, other.EndColumn)
-	}
 }
 
 /////////////////////////////////////////////////////////////////////////////

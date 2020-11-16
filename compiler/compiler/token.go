@@ -10,13 +10,11 @@ type TokenKind int
 
 type Position struct {
 	// should I include the source code as well ?
-	Context   *ZoeContext
-	Start     uint32
-	End       uint32
-	Line      uint32
-	Column    uint32
-	EndLine   uint32
-	EndColumn uint32
+	Context *ZoeContext
+	Start   uint32
+	End     uint32
+	Line    uint32
+	Column  uint32
 }
 
 func (p Position) GetPosition() *Position {
