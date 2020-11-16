@@ -12,14 +12,14 @@ var mag = color.New(color.FgMagenta).SprintFunc()
 var blue = color.New(color.FgBlue).SprintFunc()
 var grey = color.New(color.Faint).SprintFunc()
 
-func maxInt(a, b int) int {
+func maxInt(a, b uint32) uint32 {
 	if a > b {
 		return a
 	}
 	return b
 }
 
-func minInt(a, b int) int {
+func minInt(a, b uint32) uint32 {
 	if a < b {
 		return a
 	}
