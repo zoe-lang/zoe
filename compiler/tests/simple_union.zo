@@ -10,3 +10,7 @@ type Toto is
   | null
 
 type Toto2 is Hey | null
+
+fn test() -> Hey | Toto { }
+
+fn test2() -> struct(field1: Int) { }

@@ -91,6 +91,10 @@ func init() {
 	lbp += 2
 
 	nud(KW_RETURN, func(c *ZoeContext, tk *Token, lbp int) Node {
+		if c.Peek(TK_RPAREN, TK_RBRACKET) {
+			// return can only return nothing if it is at the end of a block or expression
+			return tk.CreateReturn()
+		}
 		return tk.CreateReturn().SetExpr(c.Expression(lbp))
 	})
 
