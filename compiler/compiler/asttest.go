@@ -1,11 +1,7 @@
 package zoe
 
 import (
-	"log"
 	"regexp"
-	"strings"
-
-	"github.com/fatih/color"
 )
 
 var reNoSuperflousSpace = regexp.MustCompilePOSIX(`[ \n\t\r]+`)
@@ -30,28 +26,28 @@ func cleanup(str []byte) []byte {
 // For every node at the root of the file, we're going to try
 // and find a matching doc comment containing an AST dump.
 // We'll then parse it, dump it, and compare the dump to the dump of the corresponding AST.
-func (c *ZoeContext) TestFileAst() {
-	for n, cmt := range c.DocCommentMap {
-		// found it !
-		str := []byte(cmt.String())
-		str = []byte(strings.TrimSpace(string(str[3 : len(str)-2]))) // remove the comment marks
-		// trim the fat, remove excess
-		str = cleanup(str)
-		p := color.NoColor
-		color.NoColor = true
+func (c *File) TestFileAst() {
+	// for n, cmt := range c.DocCommentMap {
+	// 	// found it !
+	// 	str := []byte(cmt.String())
+	// 	str = []byte(strings.TrimSpace(string(str[3 : len(str)-2]))) // remove the comment marks
+	// 	// trim the fat, remove excess
+	// 	str = cleanup(str)
+	// 	p := color.NoColor
+	// 	color.NoColor = true
 
-		test := cleanup([]byte(n.DumpString()))
+	// 	test := cleanup([]byte(n.DumpString()))
 
-		color.NoColor = p
+	// 	color.NoColor = p
 
-		if string(test) != string(str) {
-			log.Print("src: ", grey(n.GetText()), "\n")
-			log.Print("expected: ", yel(string(str)))
-			log.Print("result:   ", red(string(test)))
-		} else {
-			log.Print("src: ", grey(n.GetText()), "\n")
-			log.Print("ok: ", green(string(str)), "\n")
-		}
-	}
+	// 	if string(test) != string(str) {
+	// 		log.Print("src: ", grey(n.GetText()), "\n")
+	// 		log.Print("expected: ", yel(string(str)))
+	// 		log.Print("result:   ", red(string(test)))
+	// 	} else {
+	// 		log.Print("src: ", grey(n.GetText()), "\n")
+	// 		log.Print("ok: ", green(string(str)), "\n")
+	// 	}
+	// }
 
 }

@@ -17,20 +17,21 @@ func main() {
 	for _, fname := range os.Args[1:] {
 
 		_, _ = fmt.Print(`Handling '`, blue(fname), "'\n\n")
-		ctx, err := zoe.NewZoeContext(fname)
+		file, err := zoe.NewFile(fname)
 		if err != nil {
 			log.Printf("-- %v", err)
-			if ctx != nil && ctx.Start != nil {
-				_, _ = fmt.Print(ctx.Start.ToSlice())
-			}
+			// if ctx != nil && ctx.Start != nil {
+			// 	_, _ = fmt.Print(ctx.Start.ToSlice())
+			// }
 			continue
 		}
 
-		res := ctx.ParseFile()
-		_, _ = os.Stdout.WriteString(res.DumpString() + "\n\n")
-		ctx.TestFileAst()
+		file.Parse()
+		log.Printf("%v", file.Nodes)
+		// _, _ = os.Stdout.WriteString(res.DumpString() + "\n\n")
+		// file.TestFileAst()
 
-		for _, err := range ctx.Errors {
+		for _, err := range file.Errors {
 			err.Print(os.Stderr)
 		}
 	}

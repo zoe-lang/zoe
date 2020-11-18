@@ -1,331 +1,121 @@
 package zoe
 
-import (
-	"io"
+// Nodes are loaded into one big array to avoid too much work for the gc.
+
+type NodePosition int
+type AstNodeKind int
+type Flag int
+
+const (
+	FLAG_LOCAL Flag = 1 << iota
 )
 
-func setNode(parent Node, target *Node, assign Node) {
-	parent.ExtendPosition(assign)
-	*target = assign
-}
+// Identifiers are interned for faster lookup in a concurrent-safe interning store
+// so that we can have namespaces that are maps of int32 (string id) => int32 (node position)
 
-func appendNode(parent Node, target *[]Node, assign Node) {
-	parent.ExtendPosition(assign)
-	*target = append(*target, assign)
-}
+const (
+	NODE_UNAOP AstNodeKind = 1 << 10
+	NODE_BINOP AstNodeKind = 1 << 12
+)
 
-type Node interface {
-	DumpString() string
-	Dump(w io.Writer)
-	SetError()
-	GetPosition() *Position
-	GetText() string
-	ExtendPosition(other Positioned)
-	ReportError(msg ...string)
-	EnsureTuple() *Tuple
-}
+const (
+	NODE_EMPTY     AstNodeKind = iota // "<>"
+	NODE_ID                           // {{ str(n.Value) }}
+	NODE_LITERAL                      // {{ lit(n.Value) }}
+	NODE_DECL_FN                      // "decl-fn" signature block
+	NODE_DECL_TYPE                    // "decl-type" template? expr
+	NODE_DECL_NMSP                    // "decl-namespace" ident decl_block
+	NODE_DECL_VAR                     // "decl-var" ident expr? expr?
 
-type NodeBase struct {
-	Position
-	IsError bool
-}
+	NODE_RETURN // "return"
+	NODE_STRUCT // "struct"
+	NODE_UNION  // "union"
 
-//////////////////// LIST NODES //////////////////////
+	// node used for declaration blocks such as namespaces, files, and implement blocks
+	NODE_DECL_BLOCK // "{{" <- "}}"
+	// block contains code blocks
+	NODE_BLOCK  // "{" <- "}" ?
+	NODE_TUPLE  // "[" <- "]"
+	NODE_ARGS   // "args"
+	NODE_STRING // "str"
 
-/////////////////////////////////////////////////////////////////////////
+	NODE_FN        // "fn"
+	NODE_SIGNATURE // "signature"
+	NODE_TEMPLATE  // "template"
+	NODE_IF        // "if"
+	NODE_WHILE     // "while"
 
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
+	NODE_LIT_NULL
+	NODE_LIT_VOID
+	NODE_LIT_FALSE
+	NODE_LIT_TRUE
+	NODE_LIT_CHAR
+	NODE_LIT_RAWSTR
+	NODE_LIT_NUMBER
+)
 
-// NODEBASE
+const (
+	NODE_UNA_PLUS   AstNodeKind = NODE_UNAOP + iota // "+"
+	NODE_UNA_MIN                                    // "-"
+	NODE_UNA_NOT                                    // "!"
+	NODE_UNA_BITNOT                                 // "~"
 
-func (n *NodeBase) SetError() {
-	n.IsError = true
-}
+	NODE_BIN_ASSIGN    AstNodeKind = NODE_BINOP + iota // "="
+	NODE_BIN_PLUS                                      // "+"
+	NODE_BIN_MIN                                       // "-"
+	NODE_BIN_DIV                                       // "/"
+	NODE_BIN_MUL                                       // "*"
+	NODE_BIN_MOD                                       // "%"
+	NODE_BIN_EQ                                        // "=="
+	NODE_BIN_NEQ                                       // "!="
+	NODE_BIN_GTEQ                                      // ">="
+	NODE_BIN_GT                                        // ">"
+	NODE_BIN_LTEQ                                      // "<="
+	NODE_BIN_LT                                        // "<"
+	NODE_BIN_LSHIFT                                    // "<<"
+	NODE_BIN_RSHIFT                                    // ">>"
+	NODE_BIN_BITANDEQ                                  // "&="
+	NODE_BIN_BITAND                                    // "&"
+	NODE_BIN_BITOR                                     // "|"
+	NODE_BIN_BITXOR                                    // "^"
+	NODE_BIN_OR                                        // "||"
+	NODE_BIN_AND                                       // "&&"
+	NODE_BIN_IS                                        // "is"
+	NODE_BIN_CAST                                      // "cast"
+	NODE_BIN_CALL                                      // "call"
+	NODE_BIN_TPLACCESS                                 // "tplcall"
+	NODE_BIN_DOT                                       // "."
+	NODE_BIN_NMSP                                      // "::"
+)
 
-func (n *NodeBase) ReportError(msg ...string) {
-	n.IsError = true
-	n.Context.reportError(n.Position, msg...)
-}
-
-func (n *NodeBase) GetPosition() *Position {
-	return &n.Position
-}
-
-// ExtendPosition extends the position of the node
-func (n *NodeBase) ExtendPosition(otherp Positioned) {
-	other := otherp.GetPosition()
-	if other.Line == 0 {
-		// do not try to absorb a faulty position
-		return
-	}
-
-	pos := &n.Position
-
-	if pos.Line == 0 {
-		// In the case that this position is faulty, give it the other one
-		*pos = *other
-		return
-	}
-
-	pos.Start = minInt(pos.Start, other.Start)
-	pos.End = maxInt(pos.End, other.End)
-
-	if other.Line < pos.Line {
-		pos.Line = other.Line
-		pos.Column = other.Column
-	} else if other.Line == pos.Line {
-		pos.Column = minInt(pos.Column, other.Column)
-	}
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-type Namespace struct {
-	NodeBase
-	Identifier Node
-	Block      *Block
-}
-
-type Fragment struct {
-	NodeBase
-	Children []Node
-}
-
-type TypeDecl struct {
-	NodeBase
-	Ident    *BaseIdent
-	Template *Template
-	Def      Node
-}
-
-type Union struct {
-	NodeBase
-	TypeExprs []Node
-}
-
-type Struct struct {
-	NodeBase
-	Fields *VarTuple
-}
-
-type Import struct {
-	NodeBase
-	As      *BaseIdent
-	Path    Node
-	SubPath Node
-}
-
-type Var struct {
-	NodeBase
-	Ident   *BaseIdent
-	TypeExp Node
-	Exp     Node // Exp can be potentially empty
-}
-
-type Operation struct {
-	NodeBase
-	Token    *Token
-	Operands []Node
-}
-
-func (o *Operation) Is(tk TokenKind) bool {
-	return o.Token.Kind == tk
-}
-
-func (o *Operation) IsBinary() bool {
-	return len(o.Operands) == 2
-}
-
-func (o *Operation) IsUnary() bool {
-	return len(o.Operands) == 1
-}
-
-func (o *Operation) Left() Node {
-	return o.Operands[0]
-}
-
-func (o *Operation) Right() Node {
-	return o.Operands[1]
-}
-
-///////////////////////////////////////////////////////////////
-// TEMPLATE
-
-type Template struct {
-	NodeBase
-	Args *VarTuple
-	// maybe probably here would go a where clause
-}
-
-///////////////////////////////////////////////////////////////
-// FNDEF
-
-type FnDef struct {
-	NodeBase
-	Template   *Template
-	Signature  *Signature
-	Definition *Block
-}
-
-type Signature struct {
-	NodeBase
-	Args          *VarTuple
-	ReturnTypeExp Node
-}
-
-type FnCall struct {
-	NodeBase
-	Left Node
-	Args *Tuple
-}
-
-type GetIndex struct {
-	NodeBase
-	Left  Node
-	Index Node
-}
-
-type SetIndex struct {
-	NodeBase
-	Left  Node
-	Index Node
-	Value Node
-}
-
-type If struct {
-	NodeBase
-	Cond Node
-	Then Node
-	Else Node
-}
-
-///////////////////////////////////////////////////////////////
-// FNDECL
-
-type FnDecl struct {
-	NodeBase
-	Ident *BaseIdent
-	FnDef *FnDef
-}
-
-///////////////////////////////////////////////////////////////
-// BLOCK
-
-type Tuple struct {
-	NodeBase
-	Children []Node
-}
-
-type VarTuple struct {
-	NodeBase
-	Vars []*Var
-}
-
-// Transforms a tuple to arguments
-func (t *Tuple) ToVars() *VarTuple {
-	tup := &VarTuple{}
-	for _, c := range t.Children {
-		v := coerceToVar(c)
-		if v != nil {
-			tup.AddVars(v)
-		}
-	}
-	return tup
-}
-
-///////////////////////////////////////////////////////////////
-// BLOCK
-
-type Block struct {
-	NodeBase
-	Children []Node
-}
-
-///////////////////////////////////////////////////////////////
-// RETURN
-
-type Return struct {
-	NodeBase
-	Expr Node
-}
-
-///////////////////////////////////////////////////////////////
-// ID
-
-type Ident struct {
-	NodeBase
-	Path []*BaseIdent
-}
-
-type BaseIdent struct {
-	NodeBase
-}
-
-///////////////////////////////////////////////////////////////
-// STRING
-
-////////////////////////////////////////////////////////////////////////
 //
+const (
+	LIT_FALSE uint32 = iota
+	LIT_TRUE
+	LIT_NULL
+	LIT_VOID
+)
 
-/////////////////////////////////////////////////
-
-type Null struct {
-	NodeBase
+type AstNode struct {
+	Kind        AstNodeKind
+	Range       Range        // the range inside the source file. an enclosing node updates its range according to its internal nodes
+	IsIncorrect bool         // true if the node was tagged as being incorrect and thus should not be type checked
+	Value       int          // can represent either a boolean (1 or 0), a node position, or a string id
+	Next        NodePosition // The next node position as defined by its parent node
 }
 
-type False struct {
-	NodeBase
+// op: Node(NODE_BINOP_PLUS, value: idx:FIRST) first(TYPE_IDENT, next: second) second(NODE_LIT_INT, next: 0)
+
+// SetIncorrect marks the node as being incorrect. The type checker should ignore these as this flag
+// is set if the underlying node representation makes no sense.
+func (a *AstNode) SetIncorrect() {
+	a.IsIncorrect = true
 }
 
-type True struct {
-	NodeBase
+func (a *AstNode) SetFlag(value Flag) {
+	a.Value &= int(value)
 }
 
-type Char struct {
-	NodeBase
-}
-
-type Str struct {
-	NodeBase
-	Children []Node
-}
-
-type String struct {
-	NodeBase
-}
-
-type Integer struct {
-	NodeBase
-}
-
-type Float struct {
-	NodeBase
-}
-
-type Void struct {
-	NodeBase
-}
-
-type Eof struct {
-	NodeBase
-}
-
-func coerceToVar(n Node) *Var {
-	switch v := n.(type) {
-	case *Operation:
-		if v.Is(TK_EQ) && len(v.Operands) == 2 {
-			// this is perfect, check that left is
-			if id, ok := v.Operands[0].(*BaseIdent); ok {
-				return n.GetPosition().CreateVar().SetExp(v.Operands[1]).SetIdent(id)
-			}
-		}
-	case *BaseIdent:
-		res := &Var{}
-		return res.SetIdent(v)
-	case *Var:
-		return v
-	}
-	n.ReportError(`variable declaration expected`)
-	return nil
+func (a *AstNode) HasFlag(value Flag) bool {
+	return a.Value&int(value) != 0
 }

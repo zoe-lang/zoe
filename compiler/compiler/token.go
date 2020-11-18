@@ -1,71 +1,53 @@
 package zoe
 
-import (
-	"encoding/json"
-	"fmt"
-	"io"
-)
-
 type TokenKind int
+type TokenPos int
 
-type Position struct {
+type Range struct {
 	// should I include the source code as well ?
-	Context *ZoeContext
-	Start   uint32
-	End     uint32
-	Line    uint32
-	Column  uint32
+	Start  uint32
+	End    uint32
+	Line   uint32
+	Column uint32
 }
 
-func (p Position) GetPosition() *Position {
+func (p Range) GetPosition() *Range {
 	return &p
 }
 
-func (p *Position) GetText() string {
-	return string(p.Context.data[p.Start:p.End])
+func (r *Range) Extend(other Range) {
+	if r.Start == 0 {
+		*r = other
+		return
+	}
+
+	if r.Line == other.Line {
+		r.Column = minInt(r.Column, other.Column)
+	} else {
+		r.Column = other.Column
+	}
+	r.Start = minInt(r.Start, other.Start)
+	r.Line = minInt(r.Line, other.Line)
+	r.End = maxInt(r.End, other.End)
 }
 
 type Positioned interface {
-	GetPosition() *Position
+	GetPosition() *Range
 }
 
 type Token struct {
-	Position
-	Kind   TokenKind
-	Next   *Token
-	WsNext *Token
+	Kind TokenKind
+	Range
 }
 
-func (t *Token) ToSlice() []string {
-	res := make([]string, 0)
-	for t != nil {
-		res = append(res, t.String())
-		t = t.Next
-	}
-	return res
-}
-
-func (t *Token) Dump(w io.Writer) {
-	_, _ = w.Write([]byte(t.GetText()))
-}
-
-func (t *Token) GetPosition() *Position {
-	return &t.Position
+func (t Token) getSym() *prattTk {
+	return &syms[t.Kind]
 }
 
 func (t *Token) panicIfNot(k TokenKind) {
 	if t.Kind != k {
 		panic(`requested ` + t.KindStr() + ` but got ` + tokstr[k])
 	}
-}
-
-func (t *Token) MarshalJSON() ([]byte, error) {
-	if t == nil {
-		return []byte("<nil>"), nil
-	}
-	return json.Marshal(map[string]interface{}{
-		"Value": t.String(),
-	})
 }
 
 func (t *Token) Is(tk TokenKind) bool {
@@ -78,29 +60,6 @@ func (t *Token) Is(tk TokenKind) bool {
 func (t *Token) IsSkippable() bool {
 	kind := t.Kind
 	return kind == TK_WHITESPACE || kind == TK_COMMENT
-}
-
-func (t *Token) String() string {
-	if t == nil {
-		return "<nil>"
-	}
-	if t.Kind < 0 {
-		return "ERROR"
-	}
-	if t.Kind == TK_EOF {
-		// return "EOF"
-		return "*"
-	}
-	// return fmt.Sprintf("%#v", string(z.Context.data[z.Start:z.End]))
-	return t.Position.GetText()
-}
-
-func (t *Token) Debug() string {
-	return fmt.Sprint(t.String(), ":", t.KindStr())
-	// if z == nil {
-	// 	return "<nil nil>"
-	// }
-	// return z.KindStr() + " " + z.String()
 }
 
 func (t *Token) KindStr() string {

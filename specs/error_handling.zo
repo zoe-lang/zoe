@@ -3,18 +3,19 @@
   Errors are handled specially by the compiler.
 #)
 
-# Errors need to keep informations about other errors as well
+# Does all sort of things
+# And does them well
 type ErrorLocation is struct (
-  filename: String = $.vars.current_file
-  line: Size = $.vars.current_line
-  column: Size = $.vars.current_column
-  prev: *ErrorLocation | null
+  filename String = $.vars.current_file
+  line Size = $.vars.current_line
+  column Size = $.vars.current_column
+  prev *ErrorLocation | null
 )
 
-# somewhere, in the compiler
+# Somewhere, in the compiler
 type Error is struct (
-  message: String
-  payload: any
+  message String
+  payload any
   location *ErrorLocation
 )
 implements {

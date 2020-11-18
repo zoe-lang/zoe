@@ -10,34 +10,34 @@ import (
 )
 
 type ZoeError struct {
-	Position Position
-	Message  string
+	Context *File
+	Range   Range
+	Message string
 }
 
 func (err ZoeError) Print(w io.Writer) {
-	fred.Fprint(w, err.Position.Context.Filename+" ")
-	fgreen.Fprint(w, err.Position.Line)
+	fred.Fprint(w, err.Context.Filename+" ")
+	fgreen.Fprint(w, err.Range.Line)
 	_, _ = w.Write([]byte(": " + err.Message + "\n"))
 }
 
-// ZoeContext holds the current parsing context
+// File holds the current parsing context
 // also does the error handling stuff.
-type ZoeContext struct {
-	Start    *Token
-	WsStart  *Token
-	End      *Token
-	WsEnd    *Token
+type File struct {
 	Filename string
-	Current  *Token
+	Tokens   []Token
+	Nodes    []AstNode
 	Errors   []ZoeError
 	data     []byte
-	Root     Node
 
-	DocCommentMap   map[Node]*Token // contains the doc comments related to given nodes
-	RootDocComments []*Token
+	current *Token
+	tkpos   uint32
+
+	DocCommentMap map[uint32]uint32 // node position => token position
 }
 
-func NewZoeContext(filename string) (*ZoeContext, error) {
+// NewFile
+func NewFile(filename string) (*File, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -49,12 +49,12 @@ func NewZoeContext(filename string) (*ZoeContext, error) {
 		return nil, err
 	}
 
-	ctx := &ZoeContext{
-		Filename:        filename,
-		Errors:          make([]ZoeError, 0),
-		data:            append(data, '\x00'),
-		DocCommentMap:   make(map[Node]*Token),
-		RootDocComments: make([]*Token, 0),
+	ctx := &File{
+		Filename:      filename,
+		Errors:        make([]ZoeError, 0),
+		data:          append(data, '\x00'),
+		DocCommentMap: make(map[uint32]uint32),
+		// RootDocComments: make([]*Token, 0),
 	}
 
 	lxerr := ctx.Lex()
@@ -62,42 +62,28 @@ func NewZoeContext(filename string) (*ZoeContext, error) {
 		return ctx, errors.Wrap(lxerr, "lexing failed")
 	}
 
-	ctx.Current = ctx.Start
-	if ctx.Current.IsSkippable() {
-		ctx.advance()
-	}
-
 	return ctx, nil
 }
 
-func (c *ZoeContext) currentSym() (*Token, *prattTk) {
-	res := c.Current
-	return res, &syms[res.Kind]
+func (c *File) GetTokenText(tk TokenPos) string {
+	return c.GetRangeText(c.Tokens[tk].Range)
 }
 
-func (c *ZoeContext) isEof() bool {
-	return c.Current == nil
+func (c *File) GetRangeText(p Range) string {
+	return string(c.data[p.Start:p.End])
 }
 
-func (c *ZoeContext) advance() {
-	if c.Current != nil {
-		c.Current = c.Current.Next
-	}
+func (c *File) isEof() bool {
+	return c.current == nil
 }
 
-func (c *ZoeContext) reportErrorAtCurrentPosition(message ...string) {
-	var pos Position
-	if c.Current == nil {
-		pos = c.End.Position
-	} else {
-		pos = c.Current.Position
-	}
-	c.reportError(pos, message...)
-}
-
-func (c *ZoeContext) reportError(pos Positioned, message ...string) {
+func (c *File) reportError(pos Positioned, message ...string) {
 	c.Errors = append(c.Errors, ZoeError{
-		Position: *pos.GetPosition(),
-		Message:  strings.Join(message, ""),
+		Range:   *pos.GetPosition(),
+		Message: strings.Join(message, ""),
 	})
+}
+
+func (c *File) createNodeBuilder() nodeBuilder {
+	return nodeBuilder{file: c, nodes: c.Nodes, tokens: c.Tokens}
 }

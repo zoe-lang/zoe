@@ -27,7 +27,7 @@ func (l LexerError) Error() string {
 }
 
 // Lex
-func (z *ZoeContext) Lex() error {
+func (z *File) Lex() error {
 	/*!types:re2c*/
 	data, length := z.data, uint32(len(z.data))
 	var offset uint32 = 0
@@ -60,9 +60,8 @@ func (z *ZoeContext) Lex() error {
 	}
 
 	var addTokenBounds = func(kind TokenKind, offsetStart uint32, offsetEnd uint32) {
-		n := &Token{}
+		n := Token{}
 		// n.Value = string(value)
-		n.Context = z
 		n.Start = start + offsetStart
 		n.End = offset + offsetEnd
 		n.Kind = kind
@@ -73,26 +72,11 @@ func (z *ZoeContext) Lex() error {
 		start = offset
 
 		is_meaningful := kind != TK_WHITESPACE && kind != TK_COMMENT
+		if is_meaningful {
+			z.Tokens = append(z.Tokens, n)
+		}
 
 		// count lines and columns before adding
-
-		if z.WsEnd == nil {
-			z.WsStart = n
-			z.WsEnd = n
-		} else {
-			z.WsEnd.WsNext = n
-			z.WsEnd = n
-		}
-
-		if is_meaningful {
-			if z.End == nil {
-				z.Start = n
-				z.End = n
-			} else {
-				z.End.Next = n
-				z.End = n
-			}
-		}
 	}
 
 	var addToken = func(kind TokenKind) {

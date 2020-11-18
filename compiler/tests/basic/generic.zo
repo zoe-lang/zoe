@@ -1,4 +1,5 @@
 
 type Toto is Map@(String, Int)
 
-var a: Slice@String
+var a: Slice@String = ["toto"]
+os::print("toto")
