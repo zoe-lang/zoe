@@ -1,5 +1,5 @@
 
-#? (import 'io' io)
+#? (import 'io' ~ io)
 import 'io' as io
 
 #(?
@@ -20,7 +20,7 @@ namespace hello::World {
 }
 
 #(?
-  (namespace Toto {(importlist 'fmt' [hey])})
+  (namespace Toto {(import 'fmt' ~ hey)})
 #)
 namespace Toto {
   import 'fmt' ( hey )

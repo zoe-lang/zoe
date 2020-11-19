@@ -132,12 +132,25 @@ func (b *nodeBuilder) createIdNode(tk TokenPos) NodePosition {
 	return idnode
 }
 
-func (b *nodeBuilder) appender(from NodePosition) appender {
-	return appender{builder: b, first: from, pos: from}
+func (b *nodeBuilder) appender(from NodePosition) *appender {
+	return &appender{builder: b, first: from, pos: from}
+}
+
+func (b *nodeBuilder) fragmenter() *fragment {
+	return &fragment{builder: b}
 }
 
 func (b *nodeBuilder) getTokenText(tk TokenPos) string {
 	return b.file.GetTokenText(tk)
+}
+
+// cloneNode shallow clones a node, mostly to help it have a different next
+func (b *nodeBuilder) cloneNode(pos NodePosition) NodePosition {
+	var n = b.nodes[pos]
+	l := len(b.nodes)
+	n.Next = 0
+	b.nodes = append(b.nodes, n)
+	return NodePosition(l)
 }
 
 ///////////////////////////////////////////////////////////

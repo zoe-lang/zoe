@@ -272,18 +272,49 @@ func ledError(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
 
 func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	// import is always (imp module subexp name)
-	mod := b.createIfTokenOrEmpty(TK_RAWSTR, func(tk TokenPos) NodePosition {
+	// module is either a string or a path expression
+	var mod NodePosition
+
+	mod = b.createIfToken(TK_RAWSTR, func(tk TokenPos) NodePosition {
 		return b.createNodeFromToken(tk, NODE_LIT_RAWSTR)
 	})
+
+	if mod == 0 {
+		mod = b.ExpressionTokenRbp(TK_COLCOL)
+	}
 
 	if as := b.consume(KW_AS); as != 0 {
 		name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
 			return b.createIdNode(tk)
 		})
-		return b.createNodeFromToken(tk, NODE_IMPORT, mod, b.createEmptyNode(), name)
+		return b.createNodeFromToken(tk, NODE_IMPORT, mod, name, b.createEmptyNode())
 	}
 
-	return b.createEmptyNode()
+	if b.consume(TK_LPAREN) == 0 {
+		b.reportErrorAtToken(tk, "malformed import expression, expected '(' or 'as'")
+		return b.createEmptyNode()
+	}
+
+	fragment := b.fragmenter()
+	for !b.currentTokenIs(TK_RPAREN) && !b.isEof() {
+		mod2 := b.cloneNode(mod)
+		cur := b.current
+		id := b.ExpressionTokenRbp(TK_COLCOL)
+
+		if b.consume(KW_AS) != 0 {
+			as := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
+				return b.createIdNode(tk)
+			})
+			fragment.append(b.createNodeFromToken(cur, NODE_IMPORT, mod2, id, as))
+		} else {
+			id2 := b.createIdNode(cur)
+			fragment.append(b.createNodeFromToken(cur, NODE_IMPORT, mod2, id, id2))
+		}
+		b.consume(TK_COMMA)
+	}
+	b.expect(TK_RPAREN)
+
+	return fragment.first
 }
 
 ///////////////////////////////////////////////////////
