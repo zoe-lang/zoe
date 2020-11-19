@@ -2,9 +2,9 @@
 #(?
   (fncall hello ['world'])
 #)
-hello('world')
+hello("world")
 
 #(?
   (fncall hello [1 2 [3 4] 'world'])
 #)
-hello(1, 2, (3,4), 'world')
+hello(1, 2, (3,4), "world")

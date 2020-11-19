@@ -34,6 +34,32 @@ func init() {
 		syms[i].led = ledError
 	}
 
+	nud(TK_LPAREN, func(b *nodeBuilder, tk TokenPos, lbp int) NodePosition {
+		// We are going to check if we have several components to the paren, or just
+		// one, in which case we just send it back.
+		// an empty () parenthesis block is an error as it doesn't mean anything.
+
+		exp := b.Expression(0)
+		// check if we end with a parenthesis
+		if b.consume(TK_RPAREN) != 0 {
+			return exp
+		}
+		b.expect(TK_COMMA)
+
+		tuple := b.createNodeFromToken(tk, NODE_TUPLE)
+		app := b.appender(tuple)
+		app.append(exp)
+
+		for !b.currentTokenIs(TK_RPAREN) && !b.isEof() {
+			exp := b.Expression(0)
+			b.consume(TK_COMMA) // there can be a comma
+			app.append(exp)
+		}
+
+		b.expect(TK_RPAREN)
+		return tuple
+	})
+
 	nud(KW_NAMESPACE, func(b *nodeBuilder, tk TokenPos, lbp int) NodePosition {
 		res := b.createNodeFromToken(tk, NODE_DECL_NMSP)
 		// res.Block = res.CreateBlock()
@@ -196,6 +222,23 @@ func init() {
 
 	// lbp_colcol := lbp
 	binary(TK_COLCOL, NODE_BIN_NMSP)
+
+	led(TK_LPAREN, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
+		// function call !
+		call := b.createNodeFromToken(tk, NODE_BIN_CALL)
+		args := b.createNodeFromToken(tk, NODE_ARGS)
+		app := b.appender(args)
+		b.setNodeChildren(call, left, args)
+
+		for !b.isEof() && !b.currentTokenIs(TK_RPAREN) {
+			exp := b.Expression(0)
+			app.append(exp)
+			b.consume(TK_COMMA)
+		}
+		b.expect(TK_RPAREN)
+
+		return call
+	})
 
 	lbp += 2
 	// all the terminals. Lbp was raised, but this is not necessary
