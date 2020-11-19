@@ -2,7 +2,8 @@ package zoe
 
 func (f *File) Parse() {
 	b := f.createNodeBuilder()
-	b.parseFile()
+	f.RootNodePos = b.parseFile()
+	f.Nodes = b.nodes
 }
 
 // At the top level, just parse everything we can
@@ -34,6 +35,7 @@ func init() {
 		res := b.createNodeFromToken(tk, NODE_DECL_NMSP)
 		// res.Block = res.CreateBlock()
 		name := b.Expression(0)
+		b.expect(TK_LBRACKET)
 		block := parseBlock(b, tk, 0)
 
 		// should be b.createNamespace(tk.Range, name, block)
@@ -472,6 +474,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 	var blk NodePosition
 	if c.currentTokenIs(TK_LBRACE) {
+		c.advance()
 		blk = parseBlock(c, c.current, 0)
 	} else {
 		blk = c.createEmptyNode()
@@ -484,8 +487,6 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	blk := b.createNodeFromCurrentToken(NODE_BLOCK)
 	app_blk := b.appender(blk)
-
-	b.expect(TK_LBRACKET)
 
 	for !b.currentTokenIs(TK_RBRACKET) {
 		for b.consume(TK_SEMICOLON) != 0 {
@@ -594,16 +595,11 @@ func parseVar(c *nodeBuilder, tk TokenPos, rbp int) NodePosition {
 		ident = c.createEmptyNode()
 	}
 
-	var typenode NodePosition
 	// there might be a type expression right after the name declaration
-	if c.currentTokenIs(TK_COLON) {
-		// once we have scanned our ident, try to figure out whether
-		// a type was provided. We scan above '=' level to avoid
-		// eating it
-		typenode = c.ExpressionTokenRbp(TK_EQ)
-	} else {
-		typenode = c.createEmptyNode()
-	}
+	typenode := c.createIfTokenOrEmpty(TK_COLON, func(tk TokenPos) NodePosition {
+		// We scan above '=' level to avoid eating it
+		return c.ExpressionTokenRbp(TK_EQ)
+	})
 
 	// default value !
 	var expnode NodePosition

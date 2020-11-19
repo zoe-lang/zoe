@@ -6,6 +6,8 @@ type NodePosition int
 type AstNodeKind int
 type Flag int
 
+type NodeArray []AstNode
+
 const (
 	FLAG_LOCAL Flag = 1 << iota
 )
@@ -45,11 +47,11 @@ const (
 	NODE_IF        // "if"
 	NODE_WHILE     // "while"
 
-	NODE_LIT_NULL
-	NODE_LIT_VOID
-	NODE_LIT_FALSE
-	NODE_LIT_TRUE
-	NODE_LIT_CHAR
+	NODE_LIT_NULL  // "null"
+	NODE_LIT_VOID  // "void"
+	NODE_LIT_FALSE // "false"
+	NODE_LIT_TRUE  // "true"
+	NODE_LIT_CHAR  //
 	NODE_LIT_RAWSTR
 	NODE_LIT_NUMBER
 )

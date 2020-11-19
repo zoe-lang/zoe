@@ -27,7 +27,8 @@ func main() {
 		}
 
 		file.Parse()
-		log.Printf("%v", file.Nodes)
+		file.PrintNode(os.Stderr, file.RootNodePos)
+		// log.Printf("%v", file.Nodes)
 		// _, _ = os.Stdout.WriteString(res.DumpString() + "\n\n")
 		// file.TestFileAst()
 

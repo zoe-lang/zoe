@@ -24,11 +24,12 @@ func (err ZoeError) Print(w io.Writer) {
 // File holds the current parsing context
 // also does the error handling stuff.
 type File struct {
-	Filename string
-	Tokens   []Token
-	Nodes    []AstNode
-	Errors   []ZoeError
-	data     []byte
+	Filename    string
+	Tokens      []Token
+	Nodes       NodeArray
+	RootNodePos NodePosition
+	Errors      []ZoeError
+	data        []byte
 
 	current *Token
 	tkpos   uint32
@@ -88,7 +89,6 @@ func (c *File) reportError(pos Positioned, message ...string) {
 func (f *File) createNodeBuilder() nodeBuilder {
 	return nodeBuilder{
 		file:          f,
-		nodes:         f.Nodes,
 		tokens:        f.Tokens,
 		tokensLen:     TokenPos(len(f.Tokens)),
 		doccommentMap: f.DocCommentMap,

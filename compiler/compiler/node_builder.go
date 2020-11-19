@@ -2,7 +2,7 @@ package zoe
 
 type nodeBuilder struct {
 	file          *File
-	nodes         []AstNode
+	nodes         NodeArray
 	tokens        []Token
 	current       TokenPos
 	tokensLen     TokenPos
