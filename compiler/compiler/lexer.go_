@@ -63,7 +63,7 @@ func (z *File) Lex() error {
 		n := Token{}
 		// n.Value = string(value)
 		n.Start = start + offsetStart
-		n.End = offset + offsetEnd
+		n.End = offset - offsetEnd
 		n.Kind = kind
 		n.Line = line
 		n.Column = col
@@ -196,7 +196,7 @@ func (z *File) Lex() error {
 			<top> "#?" [^\n]* { addToken(TK_DOCCOMMENT); goto yyc_top }
 			<top> "#" [^\n]* { addToken(TK_COMMENT); goto yyc_top }
 			<top> "\"" => str { addToken(TK_QUOTE); goto yyc_str }
-			<top> "'" ([^'] | "\\'")* "'" { addToken(TK_RAWSTR); goto yyc_top }
+			<top> "'" ([^'] | "\\'")* "'" { addTokenBounds(TK_RAWSTR, 1, 1); goto yyc_top }
 
 			<comment> [^#]+ :=> comment
 			<comment> "#" :=> comment

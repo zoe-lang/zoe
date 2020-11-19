@@ -158,11 +158,13 @@ func (a *appender) append(pos NodePosition) {
 	// we have a fragment).
 	if first == a.pos {
 		target.Value = int(pos) // the start position
-		a.pos = pos
 	} else {
 		target.Next = pos
-		a.pos = pos
 	}
+	for nodes[pos].Next != 0 {
+		pos = nodes[pos].Next
+	}
+	a.pos = pos
 	nodes[first].Range.Extend(nodes[pos].Range)
 }
 
@@ -181,13 +183,14 @@ func (f *fragment) append(pos NodePosition) {
 		return
 	}
 
-	first := f.first
 	nodes := f.builder.nodes
 	target := &nodes[f.last]
-	// FIXME check if pos already has a Next (this shouldn't be the case, unless
-	// we have a fragment).
-	target.Next = pos
-	f.last = pos
 
-	nodes[first].Range.Extend(nodes[pos].Range)
+	target.Next = pos
+
+	for nodes[pos].Next != 0 {
+		pos = nodes[pos].Next
+	}
+
+	f.last = pos
 }
