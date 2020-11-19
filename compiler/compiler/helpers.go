@@ -11,6 +11,7 @@ var yel = color.New(color.FgYellow).SprintFunc()
 var mag = color.New(color.FgMagenta).SprintFunc()
 var blue = color.New(color.FgBlue).SprintFunc()
 var grey = color.New(color.Faint).SprintFunc()
+var bblue = color.New(color.FgHiBlue, color.Bold).SprintFunc()
 
 func maxInt(a, b uint32) uint32 {
 	if a > b {

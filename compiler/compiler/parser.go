@@ -164,6 +164,7 @@ func init() {
 
 	lbp += 2
 
+	binary(TK_PIPE, NODE_BIN_BITOR)
 	// conflict with bitwise or !
 	// how the hell am I supposed to tell the difference between the two ?
 	// led(TK_PIPE, func(c *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
