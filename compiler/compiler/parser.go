@@ -112,14 +112,8 @@ func init() {
 
 	lbp += 2
 
-	nud(KW_TEMPLATE, parseTemplate)
-
 	nud(KW_TYPE, parseTypeDecl)
 	nud(KW_STRUCT, parseStruct)
-
-	// ; is a separator that creates a fragment
-	lbp_semicolon = lbp
-	led(TK_SEMICOLON, parseSemiColon)
 
 	lbp += 2
 
@@ -315,6 +309,10 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		return c.createIdNode(tk)
 	})
 
+	tpl := c.createIfTokenOrEmpty(TK_LBRACE, func(tk TokenPos) NodePosition {
+		return parseTemplate(c, tk, 0)
+	})
+
 	args := c.createNodeFromCurrentToken(NODE_ARGS)
 	app := c.appender(args)
 	c.expect(TK_LPAREN)
@@ -336,7 +334,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		// this is a lambda function where the return type is to be inferred.
 		// it also has a body
 		// FIXME what about the generics ????
-		sig := c.createSignature(tk, args, c.createEmptyNode())
+		sig := c.createSignature(tk, tpl, args, c.createEmptyNode())
 		return c.createFn(tk, name, sig, defarrow)
 	}
 
@@ -344,7 +342,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		return c.Expression(0)
 	})
 
-	signature := c.createSignature(tk, args, rettype)
+	signature := c.createSignature(tk, tpl, args, rettype)
 
 	var blk NodePosition
 	if c.currentTokenIs(TK_LBRACKET) {
@@ -358,7 +356,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 // parseBlock parses a block of code
 func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
-	blk := b.createNodeFromCurrentToken(NODE_BLOCK)
+	blk := b.createNodeFromToken(tk, NODE_BLOCK)
 	app_blk := b.appender(blk)
 
 	for !b.currentTokenIs(TK_RBRACKET) {
@@ -380,19 +378,13 @@ func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	return blk
 }
 
-// parseTemplate parses a template declaration
-// it begins with a list of arguments with optional default values
+// parseTemplate parses a template declaration, which is enclosed between [ ]
+// it is expected that '[' has been consumed, and that tk is '['
 func parseTemplate(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
+	tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
+	app := b.appender(tpl)
 
-	name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
-		return b.createIdNode(tk)
-	})
-
-	args := b.createNodeFromToken(b.current, NODE_ARGS)
-	b.expect(TK_LPAREN)
-
-	app := b.appender(args)
-	for !b.isEof() && !b.currentTokenIs(TK_RPAREN) { // missing WHERE
+	for !b.isEof() && !b.currentTokenIs(TK_RBRACE) { // missing WHERE
 		v := b.createExpectToken(TK_ID, func(tk TokenPos) NodePosition {
 			return b.createIdNode(tk)
 		})
@@ -404,18 +396,18 @@ func parseTemplate(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		}
 		b.consume(TK_COMMA)
 	}
-	b.expect(TK_RPAREN)
-
-	b.expect(KW_IS)
-
-	templated := b.Expression(0)
-	return b.createTemplate(tk, name, args, b.createEmptyNode(), templated)
+	b.expect(TK_RBRACE)
+	return tpl
 }
 
 // parseTypeDecl parses a type declaration
 func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	name := c.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
 		return c.createIdNode(tk)
+	})
+
+	tpl := c.createIfTokenOrEmpty(TK_LBRACE, func(tk TokenPos) NodePosition {
+		return parseTemplate(c, tk, 0)
 	})
 
 	if c.consume(KW_IS) == 0 {
@@ -429,12 +421,7 @@ func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	typdef := c.Expression(0)
 	// raise an error if there is no typedef ?
 
-	return c.createType(tk, name, typdef)
-}
-
-func parseSemiColon(c *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
-	// ??? this probably shouldn't happen ?
-	return 0
+	return c.createType(tk, name, tpl, typdef)
 }
 
 func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {

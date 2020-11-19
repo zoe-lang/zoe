@@ -55,7 +55,11 @@ func (f *File) TestFileAst() {
 	for n, cmt := range f.DocCommentMap {
 		// found it !
 		str := []byte(f.GetTokenText(cmt))
-		str = []byte(strings.TrimSpace(string(str[3 : len(str)-2]))) // remove the comment marks
+		if str[1] == '?' {
+			str = []byte(strings.TrimSpace(string(str[2:]))) // remove the comment marks
+		} else {
+			str = []byte(strings.TrimSpace(string(str[3 : len(str)-2]))) // remove the comment marks
+		}
 		// trim the fat, remove excess
 		str = cleanup(str)
 		p := color.NoColor

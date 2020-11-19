@@ -1,22 +1,6 @@
-#(?
-  (var
-    b
-    null
-    (fndef null (signature [] null) {2})
-  )
-#)
+
+#? (var b ~ (fn ~ (signature ~ [] ~) 2))
 var b = fn () => 2
 
-#(?
-  (var
-    b
-    null
-    (fndef
-      null
-      (signature [(var a String null)] String )
-      {(return a)}
-    )
-  )
-
-#)
+#? (var b ~ (fn ~ (signature ~ [(var a String ~)] String) {(return a)}))
 var b = fn (a: String) -> String { return a }

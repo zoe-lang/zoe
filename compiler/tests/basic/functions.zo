@@ -1,56 +1,38 @@
 #(?
-  (fndecl test
-    (fndef
-      (template [(var $T null null)])
-      (signature [(var arg $T null)] $T)
-      {}
-    )
-  )
+  (fn test (signature [$T] [(var arg $T ~)] $T) {})
 #)
-template test($T) is fn (arg: $T) -> $T { }
+fn test[$T](arg: $T) -> $T { }
 
 #(?
-  (typedecl
-    Cbk
-    null
-    (fndef
-      null
-      (signature [(var a String null) (var b Int null)] void)
-      null
-    )
-  )
+  (type Cbk ~ (signature ~ [(var a String ~) (var b Int ~)] void))
 #)
 type Cbk is fn(a: String, b: Int) -> void
 
 #(?
-  (var a null
-    (fndef
-      null
-      (signature
-        [(var a String '')]
-        String
-      )
-      {a}
-    )
-  )
+  (var a ~ (fn ~ (signature ~ [(var a Int 3)] String) {a}))
 #)
-var a = fn (a: String = '') -> String { a }
+var a = fn (a: Int = 3) -> String { a }
 
 # maybe a is typed
 #(?
-  (var a ~ (fn ~ (signature [(var a ~ ~) (var b ~ ~)] ~) (+ a c)))
+  (var a ~ (fn ~ (signature ~ [(var a ~ ~) (var b ~ ~)] ~) (+ a c)))
 #)
 var a = fn (a, b) => a + c
 
 #(?
-  (template [(var $T ~ ~) (var $U ~ ~)] ~ (fn ba (signature [(var a String ~) (var b $T ~)] $U) {(return (. a b))}))
+  (fn ba
+    (signature [$T $U] [(var a String ~) (var b $T ~)] $U)
+    {}
+  )
 #)
-template ba($T, $U) is fn (a: String, b: $T) -> $U { return a.b }
+fn ba[$T, $U](a: String, b: $T) -> $U {
+
+}
 
 #(?
-  (call (. a map) [(fn ~ (signature [(var a ~ ~)] ~) a)])
+  (call (. a map) [(fn ~ (signature [$T] [(var a ~ ~)] ~) a)])
 #)
-a.map(fn (a) => a)
+a.map(fn [$T](a) => a)
 
 
 #(?
