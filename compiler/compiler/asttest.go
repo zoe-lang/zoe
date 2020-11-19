@@ -24,7 +24,7 @@ func cleanup(str []byte) []byte {
 	return s
 }
 
-func (f *File) PrintList(w io.Writer, iter NodePosition) {
+func (f *File) PrintNodeList(w io.Writer, iter NodePosition) {
 	first := true
 	for iter != 0 {
 		if !first {
@@ -35,9 +35,6 @@ func (f *File) PrintList(w io.Writer, iter NodePosition) {
 		f.PrintNode(w, iter)
 		iter = f.Nodes[iter].Next
 	}
-}
-
-func (f *File) PrintNode(w io.Writer, pos NodePosition) {
 }
 
 // For every node at the root of the file, we're going to try

@@ -8,11 +8,14 @@ func (f *File) Parse() {
 
 // At the top level, just parse everything we can
 func (b *nodeBuilder) parseFile() NodePosition {
+	// the error node at position 0
+	b.createEmptyNode()
 
-	res := b.createNode(Range{}, NODE_DECL_NMSP) // should it be a file ?
+	res := b.createNode(Range{}, NODE_FILE) // should it be a file ?
 	app := b.appender(res)
 	for !b.isEof() {
-		app.append(b.Expression(0))
+		r := b.Expression(0)
+		app.append(r)
 	}
 	return res
 }
@@ -207,13 +210,8 @@ func init() {
 	literal(TK_NUMBER, NODE_LIT_NUMBER)
 	literal(TK_RAWSTR, NODE_LIT_RAWSTR)
 
-	nud(TK_ID, func(c *nodeBuilder, tk TokenPos, lbp int) NodePosition {
-		// ids are deduplicated and stored in a special store that will give them unique
-		// numbers across all our files.
-		idstr := internedIds.Save(c.getTokenText(tk))
-		idnode := c.createNodeFromToken(tk, NODE_ID)
-		c.nodes[idnode].Value = idstr
-		return idnode
+	nud(TK_ID, func(b *nodeBuilder, tk TokenPos, lbp int) NodePosition {
+		return b.createIdNode(tk)
 	})
 
 }
@@ -441,7 +439,7 @@ func parseIf(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 	name := c.createIfTokenOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
-		return c.createNodeFromToken(tk, NODE_ID)
+		return c.createIdNode(tk)
 	})
 
 	args := c.createNodeFromCurrentToken(NODE_ARGS)
@@ -539,7 +537,7 @@ func parseTemplate(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 // parseTypeDecl parses a type declaration
 func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	name := c.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
-		return c.createNodeFromToken(tk, NODE_ID)
+		return c.createIdNode(tk)
 	})
 
 	if c.consume(KW_IS) == 0 {
@@ -590,7 +588,7 @@ func parseVar(c *nodeBuilder, tk TokenPos, rbp int) NodePosition {
 	// this may fail, for dubious reasons
 	var ident NodePosition
 	if tkident := c.expect(TK_ID); tkident != 0 {
-		ident = c.createNodeFromToken(tkident, NODE_ID)
+		ident = c.createIdNode(tkident)
 	} else {
 		ident = c.createEmptyNode()
 	}

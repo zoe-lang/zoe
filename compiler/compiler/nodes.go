@@ -16,78 +16,68 @@ const (
 // so that we can have namespaces that are maps of int32 (string id) => int32 (node position)
 
 const (
-	NODE_UNAOP AstNodeKind = 1 << 10
-	NODE_BINOP AstNodeKind = 1 << 12
-)
-
-const (
-	NODE_EMPTY     AstNodeKind = iota // "<>"
-	NODE_ID                           // {{ str(n.Value) }}
-	NODE_LITERAL                      // {{ lit(n.Value) }}
-	NODE_DECL_FN                      // "decl-fn" signature block
-	NODE_DECL_TYPE                    // "decl-type" template? expr
-	NODE_DECL_NMSP                    // "decl-namespace" ident decl_block
-	NODE_DECL_VAR                     // "decl-var" ident expr? expr?
-
-	NODE_RETURN // "return"
-	NODE_STRUCT // "struct"
-	NODE_UNION  // "union"
+	NODE_EMPTY AstNodeKind = iota // grey("#")
 
 	// node used for declaration blocks such as namespaces, files, and implement blocks
-	NODE_DECL_BLOCK // "{{" <- "}}"
+	NODE_FILE       // "file{" ... "}"
+	NODE_DECL_BLOCK // "{{" ... "}}"
 	// block contains code blocks
-	NODE_BLOCK  // "{" <- "}" ?
-	NODE_TUPLE  // "[" <- "]"
-	NODE_ARGS   // "args"
-	NODE_STRING // "str"
+	NODE_BLOCK // "{" ... "}"
+	NODE_TUPLE // "[" ... "]"
+	NODE_ARGS  // "[" ... "]"
 
-	NODE_FN        // "fn"
-	NODE_SIGNATURE // "signature"
-	NODE_TEMPLATE  // "template"
-	NODE_IF        // "if"
-	NODE_WHILE     // "while"
+	NODE_DECL_FN       // "(decl-fn " ... ")"
+	NODE_DECL_TYPE     // "(decl-type " ... ")"
+	NODE_DECL_NMSP     // "(decl-namespace " ... ")"
+	NODE_DECL_VAR      // "(decl-var " ... ")"
+	NODE_RETURN        // "(return " ... ")"
+	NODE_STRUCT        // "(struct " ... ")"
+	NODE_UNION         // "(union " ... ")"
+	NODE_STRING        // "(str " ... ")"
+	NODE_FN            // "(fn " ... ")"
+	NODE_SIGNATURE     // "(signature " ... ")"
+	NODE_TEMPLATE      // "(template " ... ")"
+	NODE_IF            // "(if " ... ")"
+	NODE_WHILE         // "(while " ... ")"
+	NODE_UNA_PLUS      // "(+ " ... ")"
+	NODE_UNA_MIN       // "(- " ... ")"
+	NODE_UNA_NOT       // "(! " ... ")"
+	NODE_UNA_BITNOT    // "(~ " ... ")"
+	NODE_BIN_ASSIGN    // "(= " ... ")"
+	NODE_BIN_PLUS      // "(+ " ... ")"
+	NODE_BIN_MIN       // "(- " ... ")"
+	NODE_BIN_DIV       // "(/ " ... ")"
+	NODE_BIN_MUL       // "(* " ... ")"
+	NODE_BIN_MOD       // "(% " ... ")"
+	NODE_BIN_EQ        // "(== " ... ")"
+	NODE_BIN_NEQ       // "(!= " ... ")"
+	NODE_BIN_GTEQ      // "(>= " ... ")"
+	NODE_BIN_GT        // "(> " ... ")"
+	NODE_BIN_LTEQ      // "(<= " ... ")"
+	NODE_BIN_LT        // "(< " ... ")"
+	NODE_BIN_LSHIFT    // "(<< " ... ")"
+	NODE_BIN_RSHIFT    // "(>> " ... ")"
+	NODE_BIN_BITANDEQ  // "(&= " ... ")"
+	NODE_BIN_BITAND    // "(& " ... ")"
+	NODE_BIN_BITOR     // "(| " ... ")"
+	NODE_BIN_BITXOR    // "(^ " ... ")"
+	NODE_BIN_OR        // "(|| " ... ")"
+	NODE_BIN_AND       // "(&& " ... ")"
+	NODE_BIN_IS        // "(is " ... ")"
+	NODE_BIN_CAST      // "(cast " ... ")"
+	NODE_BIN_CALL      // "(call " ... ")"
+	NODE_BIN_TPLACCESS // "(tplcall " ... ")"
+	NODE_BIN_DOT       // "(. " ... ")"
+	NODE_BIN_NMSP      // "(:: " ... ")"
 
-	NODE_LIT_NULL  // "null"
-	NODE_LIT_VOID  // "void"
-	NODE_LIT_FALSE // "false"
-	NODE_LIT_TRUE  // "true"
-	NODE_LIT_CHAR  //
-	NODE_LIT_RAWSTR
-	NODE_LIT_NUMBER
-)
-
-const (
-	NODE_UNA_PLUS   AstNodeKind = NODE_UNAOP + iota // "+"
-	NODE_UNA_MIN                                    // "-"
-	NODE_UNA_NOT                                    // "!"
-	NODE_UNA_BITNOT                                 // "~"
-
-	NODE_BIN_ASSIGN    AstNodeKind = NODE_BINOP + iota // "="
-	NODE_BIN_PLUS                                      // "+"
-	NODE_BIN_MIN                                       // "-"
-	NODE_BIN_DIV                                       // "/"
-	NODE_BIN_MUL                                       // "*"
-	NODE_BIN_MOD                                       // "%"
-	NODE_BIN_EQ                                        // "=="
-	NODE_BIN_NEQ                                       // "!="
-	NODE_BIN_GTEQ                                      // ">="
-	NODE_BIN_GT                                        // ">"
-	NODE_BIN_LTEQ                                      // "<="
-	NODE_BIN_LT                                        // "<"
-	NODE_BIN_LSHIFT                                    // "<<"
-	NODE_BIN_RSHIFT                                    // ">>"
-	NODE_BIN_BITANDEQ                                  // "&="
-	NODE_BIN_BITAND                                    // "&"
-	NODE_BIN_BITOR                                     // "|"
-	NODE_BIN_BITXOR                                    // "^"
-	NODE_BIN_OR                                        // "||"
-	NODE_BIN_AND                                       // "&&"
-	NODE_BIN_IS                                        // "is"
-	NODE_BIN_CAST                                      // "cast"
-	NODE_BIN_CALL                                      // "call"
-	NODE_BIN_TPLACCESS                                 // "tplcall"
-	NODE_BIN_DOT                                       // "."
-	NODE_BIN_NMSP                                      // "::"
+	NODE_LIT_NULL   // mag("null") ...
+	NODE_LIT_VOID   // mag("void") ...
+	NODE_LIT_FALSE  // mag("false") ...
+	NODE_LIT_TRUE   // mag("true") ...
+	NODE_LIT_CHAR   // green(f.GetRangeText(n.Range))
+	NODE_LIT_RAWSTR // green("'",f.GetRangeText(n.Range),"'")
+	NODE_LIT_NUMBER // mag(f.GetRangeText(n.Range))
+	NODE_ID         // cyan(internedIds.Get(n.Value))
 )
 
 //

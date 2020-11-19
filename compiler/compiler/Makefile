@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
-#nodesmethods.go: genaccessors.js nodes.go
-	#node genaccessors.js > nodesmethods.go
+generated.go: genaccessors.js nodes.go
+	node genaccessors.js > generated.go
 
 lexer.go: lexer.go_
 	re2go -c -r --input-encoding utf8 -c -W lexer.go_ -o lexer.go
@@ -13,4 +13,4 @@ lexer.go: lexer.go_
 	grep -oP 'addToken\(\K[^\)]+' lexer.go_ | sort | uniq | sed -E 's/(.*)/\1: "\1",/' >> lexer.go
 	echo "}" >> lexer.go
 
-all: lexer.go # nodesmethods.go
+all: lexer.go generated.go

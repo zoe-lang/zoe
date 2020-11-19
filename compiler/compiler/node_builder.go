@@ -111,6 +111,13 @@ func (b *nodeBuilder) setNodeChildren(node NodePosition, children ...NodePositio
 	}
 }
 
+func (b *nodeBuilder) createIdNode(tk TokenPos) NodePosition {
+	idstr := internedIds.Save(b.getTokenText(tk))
+	idnode := b.createNodeFromToken(tk, NODE_ID)
+	b.nodes[idnode].Value = idstr
+	return idnode
+}
+
 func (b *nodeBuilder) appender(from NodePosition) appender {
 	return appender{builder: b, first: from, pos: from}
 }
@@ -132,7 +139,7 @@ type appender struct {
 func (a *appender) append(pos NodePosition) {
 	first := a.first
 	nodes := a.builder.nodes
-	target := nodes[a.pos]
+	target := &nodes[a.pos]
 	// FIXME check if pos already has a Next (this shouldn't be the case, unless
 	// we have a fragment).
 	if first == a.pos {
