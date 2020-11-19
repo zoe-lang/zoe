@@ -1,5 +1,8 @@
 package zoe
 
+const ErrorNode NodePosition = 0
+const EmptyNode NodePosition = 1
+
 type nodeBuilder struct {
 	file          *File
 	nodes         NodeArray
@@ -160,5 +163,31 @@ func (a *appender) append(pos NodePosition) {
 		target.Next = pos
 		a.pos = pos
 	}
+	nodes[first].Range.Extend(nodes[pos].Range)
+}
+
+//// More or less the same as appender
+
+type fragment struct {
+	builder *nodeBuilder
+	first   NodePosition
+	last    NodePosition
+}
+
+func (f *fragment) append(pos NodePosition) {
+	if f.first == 0 {
+		f.first = pos
+		f.last = pos
+		return
+	}
+
+	first := f.first
+	nodes := f.builder.nodes
+	target := &nodes[f.last]
+	// FIXME check if pos already has a Next (this shouldn't be the case, unless
+	// we have a fragment).
+	target.Next = pos
+	f.last = pos
+
 	nodes[first].Range.Extend(nodes[pos].Range)
 }

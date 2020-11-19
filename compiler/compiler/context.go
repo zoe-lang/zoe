@@ -66,35 +66,39 @@ func NewFile(filename string) (*File, error) {
 	return ctx, nil
 }
 
-func (c *File) GetTokenText(tk TokenPos) string {
-	return c.GetRangeText(c.Tokens[tk].Range)
+func (f *File) GetTokenText(tk TokenPos) string {
+	return f.GetRangeText(f.Tokens[tk].Range)
 }
 
-func (c *File) GetRangeText(p Range) string {
-	return string(c.data[p.Start:p.End])
+func (f *File) GetRangeText(p Range) string {
+	return string(f.data[p.Start:p.End])
 }
 
-func (c *File) GetNodeText(n NodePosition) string {
-	return c.GetRangeText(c.Nodes[n].Range)
+func (f *File) GetNodeText(n NodePosition) string {
+	return f.GetRangeText(f.Nodes[n].Range)
 }
 
-func (c *File) isEof() bool {
-	return c.current == nil
+func (f *File) isEof() bool {
+	return f.current == nil
 }
 
-func (c *File) reportError(pos Positioned, message ...string) {
-	c.Errors = append(c.Errors, ZoeError{
-		File:    c,
+func (f *File) reportError(pos Positioned, message ...string) {
+	f.Errors = append(f.Errors, ZoeError{
+		File:    f,
 		Range:   *pos.GetPosition(),
 		Message: strings.Join(message, ""),
 	})
 }
 
-func (f *File) createNodeBuilder() nodeBuilder {
-	return nodeBuilder{
+func (f *File) createNodeBuilder() *nodeBuilder {
+	b := nodeBuilder{
 		file:          f,
 		tokens:        f.Tokens,
 		tokensLen:     TokenPos(len(f.Tokens)),
 		doccommentMap: f.DocCommentMap,
 	}
+
+	b.createEmptyNode()
+
+	return &b
 }

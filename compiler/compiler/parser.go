@@ -8,8 +8,6 @@ func (f *File) Parse() {
 
 // At the top level, just parse everything we can
 func (b *nodeBuilder) parseFile() NodePosition {
-	// the error node at position 0
-	b.createEmptyNode()
 
 	res := b.createNode(Range{}, NODE_FILE) // should it be a file ?
 	app := b.appender(res)
