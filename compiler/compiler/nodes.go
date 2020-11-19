@@ -26,18 +26,18 @@ const (
 	NODE_TUPLE // "[" ... "]"
 	NODE_ARGS  // "[" ... "]"
 
-	NODE_DECL_FN       // "(" bblue("fn") " " ... ")"
-	NODE_DECL_TYPE     // "(" bblue("type") " " ... ")"
-	NODE_DECL_NMSP     // "(" bblue("namespace") " " ... ")"
-	NODE_DECL_VAR      // "(" bblue("var") " " ... ")"
+	NODE_FN            // "(" bblue("fn") " " ... ")" 				::: name template args rettype definition
+	NODE_TYPE          // "(" bblue("type") " " ... ")" 			::: name typeexp
+	NODE_NAMESPACE     // "(" bblue("namespace") " " ... ")"  ::: name block
+	NODE_VAR           // "(" bblue("var") " " ... ")"        ::: name typeexp assign
 	NODE_RETURN        // "(return " ... ")"
 	NODE_STRUCT        // "(struct " ... ")"
 	NODE_UNION         // "(union " ... ")"
 	NODE_STRING        // "(str " ... ")"
-	NODE_SIGNATURE     // "(signature " ... ")"
-	NODE_TEMPLATE      // "(template " ... ")"
-	NODE_IF            // "(if " ... ")"
+	NODE_TEMPLATE      // "(template " ... ")"                ::: args
+	NODE_IF            // "(if " ... ")"                      ::: cond thenarm elsearm
 	NODE_WHILE         // "(while " ... ")"
+	NODE_UNA_ELLIPSIS  // "(... " ... ")"
 	NODE_UNA_PLUS      // "(+ " ... ")"
 	NODE_UNA_MIN       // "(- " ... ")"
 	NODE_UNA_NOT       // "(! " ... ")"

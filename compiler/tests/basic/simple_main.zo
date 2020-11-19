@@ -1,4 +1,5 @@
-var a: String, b: String
+var a: String
+var b: String
 var b = 2
 
 var c = ("a", 3)

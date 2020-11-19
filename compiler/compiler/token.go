@@ -16,7 +16,10 @@ func (p Range) GetPosition() *Range {
 }
 
 func (r *Range) Extend(other Range) {
-	if r.Start == 0 {
+	if other.Line == 0 {
+		return
+	}
+	if r.Line == 0 {
 		*r = other
 		return
 	}

@@ -61,7 +61,7 @@ func init() {
 	})
 
 	nud(KW_NAMESPACE, func(b *nodeBuilder, tk TokenPos, lbp int) NodePosition {
-		res := b.createNodeFromToken(tk, NODE_DECL_NMSP)
+		res := b.createNodeFromToken(tk, NODE_NAMESPACE)
 		// res.Block = res.CreateBlock()
 		name := b.Expression(0)
 		b.expect(TK_LBRACKET)
@@ -190,6 +190,7 @@ func init() {
 	lbp += 2
 
 	binary(KW_IS, NODE_BIN_IS)
+	unary(TK_ELLIPSIS, NODE_UNA_ELLIPSIS)
 
 	lbp += 2
 
@@ -507,7 +508,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		// this is a lambda function where the return type is to be inferred.
 		// it also has a body
 		// FIXME what about the generics ????
-		return c.createNodeFromToken(tk, NODE_DECL_FN, name, args, c.createEmptyNode(), defarrow) // empty type
+		return c.createFn(tk, name, c.createEmptyNode(), args, c.createEmptyNode(), defarrow)
 	}
 
 	rettype := c.createIfTokenOrEmpty(TK_ARROW, func(tk TokenPos) NodePosition {
@@ -522,7 +523,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		blk = c.createEmptyNode()
 	}
 
-	return c.createNodeFromToken(tk, NODE_DECL_FN, name, args, rettype, blk)
+	return c.createFn(tk, name, c.createEmptyNode(), args, rettype, blk)
 }
 
 // parseBlock parses a block of code
@@ -595,9 +596,7 @@ func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	typdef := c.Expression(0)
 	// raise an error if there is no typedef ?
 
-	typdecl := c.createNodeFromToken(tk, NODE_DECL_TYPE)
-	c.setNodeChildren(typdecl, name, typdef)
-	return typdecl
+	return c.createType(tk, name, typdef)
 }
 
 func parseSemiColon(c *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
@@ -651,8 +650,6 @@ func parseVar(c *nodeBuilder, tk TokenPos, rbp int) NodePosition {
 		expnode = c.createEmptyNode()
 	}
 
-	varnode := c.createNodeFromToken(tk, NODE_DECL_VAR)
-	c.setNodeChildren(varnode, ident, typenode, expnode)
-	return varnode
+	return c.createVar(tk, ident, typenode, expnode)
 	// Try to parse VAR ourselves
 }
