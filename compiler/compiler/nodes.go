@@ -16,7 +16,7 @@ const (
 // so that we can have namespaces that are maps of int32 (string id) => int32 (node position)
 
 const (
-	NODE_EMPTY AstNodeKind = iota // grey("#")
+	NODE_EMPTY AstNodeKind = iota // grey("~")
 
 	// node used for declaration blocks such as namespaces, files, and implement blocks
 	NODE_FILE       // "file{" ... "}"
@@ -26,15 +26,16 @@ const (
 	NODE_TUPLE // "[" ... "]"
 	NODE_ARGS  // "[" ... "]"
 
-	NODE_FN            // "(" bblue("fn") " " ... ")" 				::: name template args rettype definition
+	NODE_FN            // "(" bblue("fn") " " ... ")" 				::: name signature definition
 	NODE_TYPE          // "(" bblue("type") " " ... ")" 			::: name typeexp
 	NODE_NAMESPACE     // "(" bblue("namespace") " " ... ")"  ::: name block
 	NODE_VAR           // "(" bblue("var") " " ... ")"        ::: name typeexp assign
+	NODE_SIGNATURE     // "(signature " ... ")"               ::: args rettype
 	NODE_RETURN        // "(return " ... ")"
 	NODE_STRUCT        // "(struct " ... ")"
 	NODE_UNION         // "(union " ... ")"
 	NODE_STRING        // "(str " ... ")"
-	NODE_TEMPLATE      // "(template " ... ")"                ::: args
+	NODE_TEMPLATE      // "(template " ... ")"                ::: name args where subject
 	NODE_IF            // "(if " ... ")"                      ::: cond thenarm elsearm
 	NODE_WHILE         // "(while " ... ")"
 	NODE_UNA_ELLIPSIS  // "(... " ... ")"

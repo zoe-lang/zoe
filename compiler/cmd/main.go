@@ -11,12 +11,13 @@ import (
 
 // https://github.com/sourcegraph/go-lsp
 var blue = color.New(color.FgHiBlue).SprintFunc()
+var yel = color.New(color.FgHiYellow).SprintFunc()
 
 func main() {
 
 	for _, fname := range os.Args[1:] {
 
-		_, _ = fmt.Print(`Handling '`, blue(fname), "'\n\n")
+		_, _ = fmt.Print("\nHandling ", yel(fname), "\n")
 		file, err := zoe.NewFile(fname)
 		if err != nil {
 			log.Printf("-- %v", err)
@@ -30,6 +31,7 @@ func main() {
 		// log.Print(file.Nodes)
 		file.PrintNode(os.Stderr, file.RootNodePos)
 		_, _ = os.Stderr.WriteString("\n")
+		file.TestFileAst()
 		// log.Printf("%v", file.Nodes)
 		// _, _ = os.Stdout.WriteString(res.DumpString() + "\n\n")
 		// file.TestFileAst()

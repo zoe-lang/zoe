@@ -74,6 +74,10 @@ func (c *File) GetRangeText(p Range) string {
 	return string(c.data[p.Start:p.End])
 }
 
+func (c *File) GetNodeText(n NodePosition) string {
+	return c.GetRangeText(c.Nodes[n].Range)
+}
+
 func (c *File) isEof() bool {
 	return c.current == nil
 }

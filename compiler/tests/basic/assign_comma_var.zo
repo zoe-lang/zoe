@@ -1,20 +1,4 @@
 #(?
-  (fragment
-    (var a null 3)
-    (var b null 2)
-    (var c
-      null
-      (fndef
-        null
-        (signature [(var a Int32 null)] null)
-        {a}
-      )
-    )
-  )
-#)
-var a = 3, b = 2, c = fn (a: Int32) => a
-
-#(?
   (var
     tup
     null

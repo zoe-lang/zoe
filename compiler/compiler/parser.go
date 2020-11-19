@@ -144,7 +144,7 @@ func init() {
 	lbp_equal = lbp
 
 	// =
-	binary(TK_EQ, NODE_BIN_EQ)
+	binary(TK_EQ, NODE_BIN_ASSIGN)
 	binary(KW_IS, NODE_BIN_IS)
 
 	// fn eats up the expression right next to it
@@ -212,7 +212,23 @@ func init() {
 
 	lbp += 2
 
-	// led(TK_ARROW, parseArrow)
+	led(TK_LPAREN, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
+		// function call !
+		call := b.createNodeFromToken(tk, NODE_BIN_CALL)
+		args := b.createNodeFromToken(tk, NODE_ARGS)
+		app := b.appender(args)
+
+		for !b.isEof() && !b.currentTokenIs(TK_RPAREN) {
+			exp := b.Expression(0)
+			app.append(exp)
+			b.consume(TK_COMMA)
+		}
+		if tk := b.expect(TK_RPAREN); tk != 0 {
+			b.extendRangeFromToken(args, tk)
+		}
+		b.setNodeChildren(call, left, args)
+		return call
+	})
 
 	lbp += 2
 
@@ -224,23 +240,6 @@ func init() {
 
 	// lbp_colcol := lbp
 	binary(TK_COLCOL, NODE_BIN_NMSP)
-
-	led(TK_LPAREN, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
-		// function call !
-		call := b.createNodeFromToken(tk, NODE_BIN_CALL)
-		args := b.createNodeFromToken(tk, NODE_ARGS)
-		app := b.appender(args)
-		b.setNodeChildren(call, left, args)
-
-		for !b.isEof() && !b.currentTokenIs(TK_RPAREN) {
-			exp := b.Expression(0)
-			app.append(exp)
-			b.consume(TK_COMMA)
-		}
-		b.expect(TK_RPAREN)
-
-		return call
-	})
 
 	lbp += 2
 	// all the terminals. Lbp was raised, but this is not necessary
@@ -279,111 +278,6 @@ func ledError(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-// Group expression between two parseParens tokens
-// nk : the node of the list returned when nud
-// lednk : the node of the list returned when led
-// opening : the opening token
-// closing : the closing token
-// reduce : whether it is allowed to reduce the list to the single expression
-// func parseParens() {
-// 	s := &syms[TK_LPAREN]
-// 	s.lbp = lbp
-
-// 	parseParen := func(c *nodeBuilder, tk TokenPos) NodePosition {
-// 		if c.currentTokenIs(TK_RPAREN) {
-// 			// () is the empty tuple
-// 			res := tk.CreateTuple()
-// 			res.ExtendPosition(c.expect(TK_RPAREN))
-// 			return res
-// 		}
-
-// 		exp := c.Expression(0)
-
-// 		_, is_tuple := exp.(*Tuple)
-// 		if is_tuple {
-// 			// we only include the parenthesis in the position if exp is a tuple
-// 			exp.ExtendPosition(tk)
-// 		}
-
-// 		if !c.currentTokenIs(TK_RPAREN) {
-// 			c.reportError(tk.Position, `missing closing ')'`)
-// 		} else {
-// 			if is_tuple {
-// 				exp.ExtendPosition(c.current)
-// 			}
-// 			c.advance()
-// 		}
-
-// 		return exp
-// 	}
-
-// 	//
-// 	s.led = func(c *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
-// 		exp := parseParen(c, tk).EnsureTuple()
-
-// 		// On our left, we may have an FnDef or FnDecl, in which case we will graft
-// 		// ourselves onto them
-// 		switch v := left.(type) {
-// 		case *FnDecl:
-// 			v.FnDef.EnsureSignature(func(v *Signature) {
-// 				v.SetArgs(exp.ToVars())
-// 			})
-// 			return v
-// 		case *FnDef:
-// 			return v.EnsureSignature(func(s *Signature) {
-// 				s.SetArgs(exp.ToVars())
-// 			})
-// 		}
-
-// 		// Otherwise, this is a plain fncall
-// 		return tk.CreateFnCall().SetLeft(left).SetArgs(exp)
-// 	}
-
-// 	//
-// 	s.nud = func(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
-// 		res := parseParen(c, tk)
-// 		return res
-// 	}
-// }
-
-// Handle import
-// func parseImport(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
-// 	import_exp := c.Expression(0)
-// 	// log.Print(module_or_namespace.GetText())
-
-// 	switch v := import_exp.(type) {
-// 	case *Operation:
-// 		ident, is_ident := v.Right().(*BaseIdent)
-// 		if !v.Is(KW_AS) || !is_ident {
-// 			v.ReportError("expected 'as' <ident>")
-// 		}
-// 		return tk.CreateImport().SetPath(v.Left()).SetAs(ident)
-// 	case *FnCall:
-// 		res := tk.CreateFragment()
-// 		mod := v.Left
-// 		for _, a := range v.Args.Children {
-// 			switch im := a.(type) {
-// 			case *Operation:
-// 				if ident, ok := im.Right().(*BaseIdent); ok {
-// 					res.AddChildren(im.CreateImport().SetPath(mod).SetSubPath(im.Left()).SetAs(ident))
-// 				}
-// 				continue
-// 			case *BaseIdent:
-// 				res.AddChildren(im.CreateImport().SetPath(mod).SetSubPath(im).SetAs(im))
-// 				continue
-// 			}
-// 			a.ReportError(`invalid import statement`)
-// 		}
-// 		return res
-// 		// return tk.CreateImportList().SetPath(v.Left).SetNames(v.Args)
-// 	case *String:
-// 		return tk.CreateImport().SetPath(v)
-// 	}
-
-// 	import_exp.ReportError(`invalid import statement`)
-// 	return import_exp
-// }
-
 ///////////////////////////////////////////////////////
 // "
 func parseQuote(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
@@ -398,72 +292,6 @@ func parseQuote(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	// this should transform the result to a string
 	return str
 }
-
-////////////////////////////////////////////////////////
-// ->
-// It has a higher precedence that a function call, and thus attemps to transform
-// a tuple to arguments.
-//
-// Unlike =>, which accepts a single identifier as its left operand,
-// -> *requires* the left member to be a tuple, even if an empty one.
-//
-// It may be followed by a definition with => (that it handles itself)
-// Or by a { which will return a block
-// func parseArrow(c *nodeBuilder, _ TokenPos, left NodePosition) NodePosition {
-// 	// left contains the fndef or fndecl
-// 	right := c.Expression(0)
-// 	var block *Block
-// 	var ok bool
-
-// 	if c.currentTokenIs(TK_LBRACKET) {
-// 		bk := c.current
-// 		if block, ok = c.Expression(0).(*Block); !ok {
-// 			c.reportError(bk, `expected a block`)
-// 		}
-// 	}
-
-// 	// left is necessarily a tuple. any other type is an error
-// 	switch v := left.(type) {
-// 	case *FnDecl:
-// 		v.ExtendPosition(right)
-// 		v.FnDef.Signature.SetReturnTypeExp(right)
-// 		if block != nil {
-// 			v.FnDef.SetDefinition(block)
-// 		}
-// 		return v
-// 	case *FnDef:
-// 		v.ExtendPosition(right)
-// 		v.Signature.SetReturnTypeExp(right)
-// 		if block != nil {
-// 			v.SetDefinition(block)
-// 		}
-// 		return v
-// 	default:
-// 		left.ReportError(`the left side of '->' must be a function definition`)
-// 		return right
-// 	}
-// }
-
-// func parseFnFatArrow(c *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
-// 	// left is a list of arguments
-// 	// right of => is the implementation of the function
-
-// 	impl := c.Expression(0) // it is a block or a single expression
-// 	var block *Block
-// 	var ok bool
-// 	if block, ok = impl.(*Block); !ok {
-// 		block = tk.CreateBlock().AddChildren(impl)
-// 	}
-
-// 	switch v := left.(type) {
-// 	case *FnDef:
-// 		v.SetDefinition(block)
-// 		return v
-// 	}
-
-// 	left.ReportError(`left hand side of '=>' must be a lambda function definition`)
-// 	return left
-// }
 
 /////////////////////////////////////////////////////
 // Special handling for if block
@@ -508,22 +336,24 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		// this is a lambda function where the return type is to be inferred.
 		// it also has a body
 		// FIXME what about the generics ????
-		return c.createFn(tk, name, c.createEmptyNode(), args, c.createEmptyNode(), defarrow)
+		sig := c.createSignature(tk, args, c.createEmptyNode())
+		return c.createFn(tk, name, sig, defarrow)
 	}
 
 	rettype := c.createIfTokenOrEmpty(TK_ARROW, func(tk TokenPos) NodePosition {
 		return c.Expression(0)
 	})
 
+	signature := c.createSignature(tk, args, rettype)
+
 	var blk NodePosition
-	if c.currentTokenIs(TK_LBRACE) {
+	if c.currentTokenIs(TK_LBRACKET) {
 		c.advance()
 		blk = parseBlock(c, c.current, 0)
-	} else {
-		blk = c.createEmptyNode()
+		return c.createFn(tk, name, signature, blk)
 	}
 
-	return c.createFn(tk, name, c.createEmptyNode(), args, rettype, blk)
+	return signature
 }
 
 // parseBlock parses a block of code
@@ -552,31 +382,34 @@ func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 // parseTemplate parses a template declaration
 // it begins with a list of arguments with optional default values
-func parseTemplate(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
+func parseTemplate(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
-	// tup := c.Expression(0).EnsureTuple()
+	name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
+		return b.createIdNode(tk)
+	})
 
-	// // ensure args is a tuple containing variable declarations.
-	// args := tup.ToVars()
-	// tpl.SetArgs(args)
+	args := b.createNodeFromToken(b.current, NODE_ARGS)
+	b.expect(TK_LPAREN)
 
-	// // Where clause would come here, most likely
+	app := b.appender(args)
+	for !b.isEof() && !b.currentTokenIs(TK_RPAREN) { // missing WHERE
+		v := b.createExpectToken(TK_ID, func(tk TokenPos) NodePosition {
+			return b.createIdNode(tk)
+		})
+		if v == 0 {
+			b.reportErrorAtToken(b.current, "expected a template variable declaration")
+			b.advance()
+		} else {
+			app.append(v)
+		}
+		b.consume(TK_COMMA)
+	}
+	b.expect(TK_RPAREN)
 
-	// templated := c.Expression(0)
-	// // log.Printf("%s (%T)", templated.GetText(), templated)
-	// switch v := templated.(type) {
-	// case *FnDef:
-	// 	v.SetTemplate(tpl)
-	// case *FnDecl:
-	// 	v.EnsureFnDef(func(f *FnDef) { f.SetTemplate(tpl) })
-	// case *TypeDecl:
-	// 	v.SetTemplate(tpl)
-	// default:
-	// 	templated.ReportError("template blocks must be followed by 'fn' or 'type'")
-	// }
+	b.expect(KW_IS)
 
-	// return templated
-	return 0
+	templated := b.Expression(0)
+	return b.createTemplate(tk, name, args, b.createEmptyNode(), templated)
 }
 
 // parseTypeDecl parses a type declaration
@@ -626,7 +459,7 @@ func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 // parse a variable statement, but also a variable declaration inside
 // an argument list of a function signature
-func parseVar(c *nodeBuilder, tk TokenPos, rbp int) NodePosition {
+func parseVar(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	// first, try to scan the ident
 	// this may fail, for dubious reasons
 	var ident NodePosition

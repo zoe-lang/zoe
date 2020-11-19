@@ -55,6 +55,17 @@ func (b *nodeBuilder) createIfToken(tk TokenKind, fn func(tk TokenPos) NodePosit
 	return 0
 }
 
+// Doesn't create an empty node
+func (b *nodeBuilder) createExpectToken(tk TokenKind, fn func(tk TokenPos) NodePosition) NodePosition {
+	if b.currentTokenIs(tk) {
+		cur := b.current
+		b.advance()
+		return fn(cur)
+	}
+	b.reportErrorAtToken(b.current, "expected "+tokstr[tk]+" but got '"+b.getTokenText(b.current)+"'")
+	return 0
+}
+
 func (b *nodeBuilder) createAndExpectOrEmpty(tk TokenKind, fn func(tk TokenPos) NodePosition) NodePosition {
 	res := b.createIfToken(tk, fn)
 	if res == 0 {
@@ -149,5 +160,5 @@ func (a *appender) append(pos NodePosition) {
 		target.Next = pos
 		a.pos = pos
 	}
-	nodes[first].Range.Extend(target.Range)
+	nodes[first].Range.Extend(nodes[pos].Range)
 }
