@@ -1,11 +1,5 @@
-#(?
-  (importas 'io' null)
-#)
-import 'io'
 
-#(?
-  (importas 'io' io)
-#)
+#? (import 'io' io)
 import 'io' as io
 
 #(?

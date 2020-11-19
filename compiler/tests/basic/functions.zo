@@ -1,22 +1,13 @@
-#(?
-  (fn test (signature [$T] [(var arg $T ~)] $T) {})
-#)
+#? (fn test (signature [$T] [(var arg $T ~)] $T) {})
 fn test[$T](arg: $T) -> $T { }
 
-#(?
-  (type Cbk ~ (signature ~ [(var a String ~) (var b Int ~)] void))
-#)
+#? (type Cbk ~ (signature ~ [(var a String ~) (var b Int ~)] void))
 type Cbk is fn(a: String, b: Int) -> void
 
-#(?
-  (var a ~ (fn ~ (signature ~ [(var a Int 3)] String) {a}))
-#)
+#? (var a ~ (fn ~ (signature ~ [(var a Int 3)] String) {a}))
 var a = fn (a: Int = 3) -> String { a }
 
-# maybe a is typed
-#(?
-  (var a ~ (fn ~ (signature ~ [(var a ~ ~) (var b ~ ~)] ~) (+ a c)))
-#)
+#? (var a ~ (fn ~ (signature ~ [(var a ~ ~) (var b ~ ~)] ~) (+ a c)))
 var a = fn (a, b) => a + c
 
 #(?
@@ -29,13 +20,9 @@ fn ba[$T, $U](a: String, b: $T) -> $U {
 
 }
 
-#(?
-  (call (. a map) [(fn ~ (signature [$T] [(var a ~ ~)] ~) a)])
-#)
+#? (call (. a map) [(fn ~ (signature [$T] [(var a ~ ~)] ~) a)])
 a.map(fn [$T](a) => a)
 
 
-#(?
-  (call c [a b])
-#)
+#? (call c [a b])
 c(a, b)

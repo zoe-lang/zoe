@@ -38,6 +38,7 @@ const (
 	NODE_TEMPLATE      // "[" ... "]"
 	NODE_IF            // "(if " ... ")"                      ::: cond thenarm elsearm
 	NODE_WHILE         // "(while " ... ")"
+	NODE_IMPORT        // "(" bblue("import") " " ... ")"
 	NODE_UNA_ELLIPSIS  // "(... " ... ")"
 	NODE_UNA_PLUS      // "(+ " ... ")"
 	NODE_UNA_MIN       // "(- " ... ")"

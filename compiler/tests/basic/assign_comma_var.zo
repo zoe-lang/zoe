@@ -1,8 +1,2 @@
-#(?
-  (var
-    tup
-    null
-    [c d]
-  )
-#)
+#? (var tup ~ [c d])
 var tup = (c, d)

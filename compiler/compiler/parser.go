@@ -90,7 +90,7 @@ func init() {
 
 	nud(KW_VAR, parseVar)
 
-	// nud(KW_IMPORT, parseImport)
+	nud(KW_IMPORT, parseImport)
 
 	lbp += 2
 
@@ -271,6 +271,22 @@ func ledError(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
+	// import is always (imp module subexp name)
+	mod := b.createIfTokenOrEmpty(TK_RAWSTR, func(tk TokenPos) NodePosition {
+		return b.createNodeFromToken(tk, NODE_LIT_RAWSTR)
+	})
+
+	if as := b.consume(KW_AS); as != 0 {
+		name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
+			return b.createIdNode(tk)
+		})
+		return b.createNodeFromToken(tk, NODE_IMPORT, mod, b.createEmptyNode(), name)
+	}
+
+	return b.createEmptyNode()
+}
 
 ///////////////////////////////////////////////////////
 // "
