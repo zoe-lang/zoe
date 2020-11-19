@@ -10,13 +10,13 @@ import (
 )
 
 type ZoeError struct {
-	Context *File
+	File    *File
 	Range   Range
 	Message string
 }
 
 func (err ZoeError) Print(w io.Writer) {
-	fred.Fprint(w, err.Context.Filename+" ")
+	fred.Fprint(w, err.File.Filename+" ")
 	fgreen.Fprint(w, err.Range.Line)
 	_, _ = w.Write([]byte(": " + err.Message + "\n"))
 }
@@ -33,7 +33,7 @@ type File struct {
 	current *Token
 	tkpos   uint32
 
-	DocCommentMap map[uint32]uint32 // node position => token position
+	DocCommentMap map[NodePosition]TokenPos // node position => token position
 }
 
 // NewFile
@@ -53,7 +53,7 @@ func NewFile(filename string) (*File, error) {
 		Filename:      filename,
 		Errors:        make([]ZoeError, 0),
 		data:          append(data, '\x00'),
-		DocCommentMap: make(map[uint32]uint32),
+		DocCommentMap: make(map[NodePosition]TokenPos),
 		// RootDocComments: make([]*Token, 0),
 	}
 
@@ -79,11 +79,18 @@ func (c *File) isEof() bool {
 
 func (c *File) reportError(pos Positioned, message ...string) {
 	c.Errors = append(c.Errors, ZoeError{
+		File:    c,
 		Range:   *pos.GetPosition(),
 		Message: strings.Join(message, ""),
 	})
 }
 
-func (c *File) createNodeBuilder() nodeBuilder {
-	return nodeBuilder{file: c, nodes: c.Nodes, tokens: c.Tokens}
+func (f *File) createNodeBuilder() nodeBuilder {
+	return nodeBuilder{
+		file:          f,
+		nodes:         f.Nodes,
+		tokens:        f.Tokens,
+		tokensLen:     TokenPos(len(f.Tokens)),
+		doccommentMap: f.DocCommentMap,
+	}
 }

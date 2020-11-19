@@ -1,7 +1,5 @@
 package zoe
 
-import "log"
-
 func (f *File) Parse() {
 	b := f.createNodeBuilder()
 	b.parseFile()
@@ -11,7 +9,6 @@ func (f *File) Parse() {
 func (b *nodeBuilder) parseFile() NodePosition {
 
 	res := b.createNode(Range{}, NODE_DECL_NMSP) // should it be a file ?
-	log.Print("??")
 	app := b.appender(res)
 	for !b.isEof() {
 		app.append(b.Expression(0))

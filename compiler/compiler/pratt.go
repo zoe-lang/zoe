@@ -35,7 +35,7 @@ func (b *nodeBuilder) consume(tk TokenKind) TokenPos {
 
 func (b *nodeBuilder) expect(tk TokenKind) TokenPos {
 	if b.current >= b.tokensLen {
-		b.reportErrorAtToken(b.current, `unexpected end of file`)
+		b.reportErrorAtToken(b.current-1, `unexpected end of file`)
 		return 0
 	}
 	cur := b.current

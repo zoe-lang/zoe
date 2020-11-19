@@ -112,7 +112,7 @@ func (b *nodeBuilder) setNodeChildren(node NodePosition, children ...NodePositio
 }
 
 func (b *nodeBuilder) appender(from NodePosition) appender {
-	return appender{nodes: b.nodes, first: from, pos: from}
+	return appender{builder: b, first: from, pos: from}
 }
 
 func (b *nodeBuilder) getTokenText(tk TokenPos) string {
@@ -124,14 +124,15 @@ func (b *nodeBuilder) getTokenText(tk TokenPos) string {
 
 // appender is a type used to update list of nodes
 type appender struct {
-	nodes []AstNode
-	first NodePosition
-	pos   NodePosition
+	builder *nodeBuilder
+	first   NodePosition
+	pos     NodePosition
 }
 
 func (a *appender) append(pos NodePosition) {
 	first := a.first
-	target := &a.nodes[a.pos]
+	nodes := a.builder.nodes
+	target := nodes[a.pos]
 	// FIXME check if pos already has a Next (this shouldn't be the case, unless
 	// we have a fragment).
 	if first == a.pos {
@@ -141,5 +142,5 @@ func (a *appender) append(pos NodePosition) {
 		target.Next = pos
 		a.pos = pos
 	}
-	a.nodes[first].Range.Extend(target.Range)
+	nodes[first].Range.Extend(target.Range)
 }
