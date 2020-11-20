@@ -36,6 +36,7 @@ const (
 	NODE_UNION         // "(union " ... ")"
 	NODE_STRING        // "(str " ... ")"
 	NODE_TEMPLATE      // "[" ... "]"
+	NODE_ARRAY_LITERAL // "(array " ... ")"
 	NODE_IF            // "(if " ... ")"                      ::: cond thenarm elsearm
 	NODE_WHILE         // "(while " ... ")"
 	NODE_IMPORT        // "(" bblue("import") " " ... ")"
@@ -67,7 +68,7 @@ const (
 	NODE_BIN_IS        // "(is " ... ")"
 	NODE_BIN_CAST      // "(cast " ... ")"
 	NODE_BIN_CALL      // "(call " ... ")"
-	NODE_BIN_TPLACCESS // "(tplcall " ... ")"
+	NODE_BIN_INDEX     // "(index " ... ")"
 	NODE_BIN_DOT       // "(. " ... ")"
 	NODE_BIN_NMSP      // "(:: " ... ")"
 

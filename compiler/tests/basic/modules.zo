@@ -1,27 +1,18 @@
 
-#? (import 'io' ~ io)
+#? (import 'io' io ~)
 import 'io' as io
 
 #(?
-  (importlist 'mod1' [val])
-#)
-import 'mod1' ( val )
-
-#(?
-  (importlist 'fmt' [hello (as world ok)])
-#)
-import 'fmt' ( hello, world as ok )
-
-#(?
-  (namespace (ident hello World) {})
+  (namespace (:: hello World) {
+    (import 'fmt' hello hello)
+    (import 'fmt' ok world)
+  })
 #)
 namespace hello::World {
-
+  import 'fmt' ( hello, world as ok )
 }
 
-#(?
-  (namespace Toto {(import 'fmt' ~ hey)})
-#)
+#? (namespace Toto {(import 'fmt' hey hey)})
 namespace Toto {
   import 'fmt' ( hey )
 }

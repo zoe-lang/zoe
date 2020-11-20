@@ -12,7 +12,7 @@
     )
   )
 #)
-template test($T) is fn (a: $T) -> $T { }
+fn test[$T](a: $T) -> $T { }
 
 # ???
 $if $.target == 'windows' {
@@ -29,7 +29,7 @@ $if $.target == 'windows' {
     )
   )
 #)
-template MyType($T, $U) is struct (
+type MyType[$T, $U] is struct (
   field: $T
   field2: $U
 )
@@ -42,7 +42,7 @@ template MyType($T, $U) is struct (
     )
   )
 #)
-var t MyType@(String, Int)
+var t: MyType[String, Int]
 
 
 ############ Compile time
@@ -52,8 +52,7 @@ var t MyType@(String, Int)
 #   - there are restrictions on what is creatable at compile time...
 
 # At compile time, types are introspectable. These statements are inlined
-template toString($U) is
-fn (u: $U) -> String {
+fn toString[$U](u: $U) -> String {
   $.log('this method is deprecated') # compile time log
   if $.hasTrait(u, Stringable) { # if is inline since it only contains comptime expressions
     return u@Stringable.toString()
@@ -75,7 +74,7 @@ fn (u: $U) -> String {
 }
 
 fn main() {
-  template Type($T) is struct (a: $T)
+  type Type[$T] is struct (a: $T)
 
   fn doStuff() -> String {
 

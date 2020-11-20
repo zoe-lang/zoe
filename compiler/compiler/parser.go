@@ -73,6 +73,23 @@ func init() {
 	// { , a block
 	nud(TK_LBRACKET, parseBlock)
 
+	nud(TK_LBRACE, func(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
+		// function call !
+		array := b.createNodeFromToken(tk, NODE_ARRAY_LITERAL)
+		app := b.appender(array)
+
+		for !b.isEof() && !b.currentTokenIs(TK_RBRACE) {
+			exp := b.Expression(0)
+			app.append(exp)
+			b.consume(TK_COMMA)
+		}
+		if tk := b.expect(TK_RBRACE); tk != 0 {
+			b.extendRangeFromToken(array, tk)
+		}
+
+		return array
+	})
+
 	// The doc comment forwards the results but sets itself first on the node that resulted
 	// Doc comments whose next meaningful token are other doc comments or the end of the file
 	// are added at the module level
@@ -202,6 +219,24 @@ func init() {
 	// led(TK_FATARROW, parseFnFatArrow)
 	// binary(NODE_FNDEF, TK_FATARROW)
 
+	led(TK_LBRACE, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
+		// function call !
+		call := b.createNodeFromToken(tk, NODE_BIN_INDEX)
+		args := b.createNodeFromToken(tk, NODE_ARGS)
+		app := b.appender(args)
+
+		for !b.isEof() && !b.currentTokenIs(TK_RBRACE) {
+			exp := b.Expression(0)
+			app.append(exp)
+			b.consume(TK_COMMA)
+		}
+		if tk := b.expect(TK_RBRACE); tk != 0 {
+			b.extendRangeFromToken(args, tk)
+		}
+		b.setNodeChildren(call, left, args)
+		return call
+	})
+
 	lbp += 2
 
 	led(TK_LPAREN, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
@@ -299,16 +334,16 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	for !b.currentTokenIs(TK_RPAREN) && !b.isEof() {
 		mod2 := b.cloneNode(mod)
 		cur := b.current
-		id := b.ExpressionTokenRbp(TK_COLCOL)
+		path := b.ExpressionTokenRbp(TK_COLCOL)
 
 		if b.consume(KW_AS) != 0 {
 			as := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
 				return b.createIdNode(tk)
 			})
-			fragment.append(b.createNodeFromToken(cur, NODE_IMPORT, mod2, id, as))
+			fragment.append(b.createNodeFromToken(cur, NODE_IMPORT, mod2, as, path))
 		} else {
 			id2 := b.createIdNode(cur)
-			fragment.append(b.createNodeFromToken(cur, NODE_IMPORT, mod2, id, id2))
+			fragment.append(b.createNodeFromToken(cur, NODE_IMPORT, mod2, id2, path))
 		}
 		b.consume(TK_COMMA)
 	}

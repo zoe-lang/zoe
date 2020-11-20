@@ -97,6 +97,11 @@ func (f *File) PrintNode(w io.Writer, pos NodePosition) {
     f.PrintNodeList(w, NodePosition(n.Value))
     w.Write([]byte("]"))
 
+  case NODE_ARRAY_LITERAL:
+    w.Write([]byte("(array "))
+    f.PrintNodeList(w, NodePosition(n.Value))
+    w.Write([]byte(")"))
+
   case NODE_IF:
     w.Write([]byte("(if "))
     f.PrintNodeList(w, NodePosition(n.Value))
@@ -254,8 +259,8 @@ func (f *File) PrintNode(w io.Writer, pos NodePosition) {
     f.PrintNodeList(w, NodePosition(n.Value))
     w.Write([]byte(")"))
 
-  case NODE_BIN_TPLACCESS:
-    w.Write([]byte("(tplcall "))
+  case NODE_BIN_INDEX:
+    w.Write([]byte("(index "))
     f.PrintNodeList(w, NodePosition(n.Value))
     w.Write([]byte(")"))
 
