@@ -26,13 +26,14 @@
 #)
 
 # A future may be awaited
-type Future = struct {
+type Future is struct {
 
 }
 
 # Empty struct
-type Ok = struct {  }
+type Ok is struct {  }
 
 # ??
-type Result<T> = T
+type Result[$T] is $T | null
+type Opt[$T] is $T | null
 

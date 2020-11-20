@@ -1,0 +1,40 @@
+import './iterator' ( Iterable, Iterator )
+
+#(?
+  Slices are kinda like arrays.
+#)
+template $T
+type Slice is struct (
+  length: Size
+  capacity: Size
+  ptr: *$T
+)
+implements Iterable.$T {
+
+  fn Iterable@getIterator() { Slice::Iterator(slc = this, pos = 0) }
+
+}
+
+namespace Slice {
+
+  #(?
+
+  #)
+  template $T
+  type SliceIterator is struct (
+    slc: *Slice@($T)
+    pos: Size
+  ) implements Iterator<$T> {
+
+    fn size() { this.slc.length }
+
+    unsafe fn next() {
+      if this.pos < this.slc.length {
+        this.pos++
+        return this.slc[this.pos]
+      }
+      Iterator::Stop
+    }
+  }
+
+}

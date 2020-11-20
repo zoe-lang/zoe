@@ -357,7 +357,7 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 func parseQuote(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	str := c.createNodeFromToken(tk, NODE_STRING)
 	app := c.appender(str)
-	for !c.currentTokenIs(TK_QUOTE) {
+	for !c.isEof() && !c.currentTokenIs(TK_QUOTE) {
 		app.append(c.Expression(0))
 	}
 	if tk2 := c.expect(TK_QUOTE); tk2 != 0 {
@@ -398,8 +398,10 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	c.expect(TK_LPAREN)
 	for !c.currentTokenIs(TK_RPAREN, TK_ARROW, TK_FATARROW) {
 		arg := parseVar(c, c.current, 0)
-		if args != 0 {
+		if arg != 0 {
 			app.append(arg)
+		} else {
+			c.advance()
 		}
 		c.consume(TK_COMMA)
 		// test for comma presence
@@ -509,12 +511,16 @@ func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	c.expect(TK_LPAREN)
 
 	app := c.appender(stru)
-	for !c.currentTokenIs(TK_RPAREN) {
+	for !c.isEof() && !c.currentTokenIs(TK_RPAREN, TK_RBRACE, TK_RBRACKET) {
 		// parse a var declaration
 		v := parseVar(c, c.current, 0)
-		// FIXME ensure a field has a type declaration, as struct
-		// fields should have them whether they have defaults or not
-		app.append(v)
+		if v == 0 {
+			c.advance()
+		} else {
+			// FIXME ensure a field has a type declaration, as struct
+			// fields should have them whether they have defaults or not
+			app.append(v)
+		}
 	}
 
 	if tk := c.expect(TK_RPAREN); tk != 0 {
@@ -548,6 +554,11 @@ func parseVar(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		expnode = c.Expression(0)
 	} else {
 		expnode = c.createEmptyNode()
+	}
+
+	if c.current == tk {
+		// no var here
+		return 0
 	}
 
 	return c.createVar(tk, ident, typenode, expnode)

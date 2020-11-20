@@ -12,7 +12,7 @@ never # A special type that can't be a value but that is factored out when used 
   # would receive its value.
 
 #?     VAR
-var a Int # A variable may be freely assigned to
+var a: Int
 var b = \b
 
 #?
@@ -28,8 +28,8 @@ type MyAlias is AnotherType
 
 #? Structs
 type MyType is struct (
-  hello String
-  world Int
+  hello: String
+  world: Int
 )
 
 
@@ -43,10 +43,10 @@ type SomeUnion is
 
 
 #? Generics
-# Generic types must begin with $, which marks the fact that they're not runtime values.
-type MyType<$T, $U> is struct (
-  field $T
-  field2 $U
+# Generic types names must begin with $, which marks the fact that they're not runtime values.
+type MyType[$T, $U] is struct (
+  field: $T
+  field2: $U
 )
 # Generic types may have bounds which limits what type can be used and give informations
 # to the compiler about the types used
@@ -85,7 +85,7 @@ fn doSomething(val any) -> null { }
 # Generic types may reuse other generic types.
 # Where clauses do not have to be re-specified, but errors may be triggered
 # upon using the new type in ways that don't validate the underlying type's where clauses.
-type MyType<$Type> is AnotherType<$Type>
+type MyType[$Type] is AnotherType[$Type]
 
 
 type TSomeTrait is trait (
@@ -144,9 +144,9 @@ var b MyStruct # May be alright.
 # It has compiler support in that the [] construct maps to the Slice type, and [ ] permits both
 # access and setting an index.
 # For reference, here is its definition
-type Slice<$T> = struct (
-  len Int
-  ptr *$T
+type Slice[$T] = struct (
+  len: Int
+  ptr: *$T
 )
 # It has a default value, which is the empty slice.
 
@@ -201,7 +201,7 @@ my_ptr = 0x10002030
 
   References have no arithmetic. References may not be converted to pointers.
 #)
-var my_ref &SomeStruct = &SomeStruct(2, "hello !")
+var my_ref *SomeStruct = &SomeStruct(2, "hello !")
 my_ref.* = SomeStruct(3, "world !")
 my_ref.field = 3 # Perfectly possible, without a need to explicitely dereference.
 
@@ -211,10 +211,10 @@ my_ref.field = 3 # Perfectly possible, without a need to explicitely dereference
 
 # Let's consider these types
 type Foo is struct (
-  field String
+  field: String
 )
 type Bar is struct (
-  field2 String
+  field2: String
 )
 type FooBar is Foo + Bar
 
@@ -236,7 +236,7 @@ var w = c@Bar # w is &Bar
 
 # A type that has several traits or several structs can specify which it wants to use
 # before a method or field access
-type MyType = Struct1 + Struct2
+type MyType is Struct1 + Struct2
 implements TDoesStuff, TDoesMoreStuff
 var c = MyType()
 c@Struct1.field

@@ -21,19 +21,19 @@ import 'std/string' ( String as BaseString )
 
 # This type stays entirely compatible with the original String type and values may
 # be freely assigned from one type to the other.
-type String = BaseString
+type String is BaseString
 implements {
 
   #(?
     add a replaceCustom()
     In its implementation, replaceCustom may use methods hidden
   #)
-  doStuff() -> String {
+  fn doStuff() -> String {
     return BaseString.replace(this, 'a', 'aa')
   }
 
   #? replace shadows the original replace() signature, but does not disable it entirely.
-  replace(arg1 String, arg2 String) -> String {
+  fn replace(arg1 String, arg2 String) -> String {
     # We can always cast back to this
     return this@BaseString.replace(arg1, arg2 + '/')
   }

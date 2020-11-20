@@ -17,6 +17,9 @@ func (b *nodeBuilder) reportError(rng Range, msg ...string) {
 }
 
 func (b *nodeBuilder) reportErrorAtToken(tk TokenPos, msg ...string) {
+	if tk >= b.tokensLen {
+		tk = b.tokensLen - 1
+	}
 	rng := b.tokens[tk]
 	b.file.reportError(rng, msg...)
 }

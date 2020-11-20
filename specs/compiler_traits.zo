@@ -13,7 +13,7 @@ namespace MyType {
 
 type MyType is struct (
   arr: [][]&SomeOtherType # Slices are baked into the language
-) implements @GetIndex =  {
+) implements GetIndex =  {
   fn getIndex(idx: Int) -> Int {
     this.arr[idx]
   }
@@ -30,14 +30,14 @@ type Slice[$T] is struct (
 ) implements {
 
   slice(start: Int, end: Int) -> Slice<$T> {
-    return Slice<$T>{len: end - start, ptr: this.ptr + start}
+    return Slice[$T]{len: end - start, ptr: this.ptr + start}
   }
 
 }
 
 namespace Slice {
 
-  fn new<$T>(l: Int) -> Slice<$T> {
+  fn new[$T](l: Int) -> Slice<$T> {
     return Slice<$T>{
       len: l,
       ptr: mem::alloc<$T>(l) # Is alloc builtin ?
@@ -53,7 +53,7 @@ type Char is UInt8 {
 
 type Rune is UInt
 
-type String is Slice<Char> {
+type String is Slice[Char] {
 
 }
 
@@ -73,7 +73,7 @@ namespace String {
 }
 
 
-struct Map<$Key@Hashable, $Value> {
+struct Map[$Key@Hashable, $Value] {
   # ...
   local arr: ($Value | null)[]
 
@@ -93,22 +93,24 @@ struct Map<$Key@Hashable, $Value> {
     return value
   }
 
-  values() -> Map::ValueIterator<$Value> { return Map::ValueIterator::new(this) }
-  keys() -> Map::KeyIterator<$Key> { return Map::KeyIterator::new<$Key>(this) }
+  values() -> Map::ValueIterator<$Value> { return Map::ValueIterator::new[$Value](this) }
+  keys() -> Map::KeyIterator<$Key> { return Map::KeyIterator::new[$Key](this) }
   pairs() -> Map::PairIterator<$Key, $Value> => { return Map::PairIterator<$Key, $Value>::new(this) }
 }
 
 namespace Map::ValueIterator {
   # any is unusable
-  struct ValueIterator<$Value> (map: Map<$Value, any>) implements @Iterator<$Value> = struct (
+  type ValueIterator[$Value] is struct (
 
-  )
+  ) implements Iterator[$Value] {
 
-  fn new<$Value>(map: Map<$Value, any>) =>
+  }
+
+  fn new[$Value](map: Map[$Value, any]) -> ValueIterator[$Value] { }
 }
 
 fn main() {
-  let m = Map::new<String, String>(200)
+  let m = Map::new[String, String](200)
   m.set('hello', 'world')
   m.set('pouet', 'hey')
 

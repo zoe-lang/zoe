@@ -1,0 +1,27 @@
+
+#(?
+  ... !
+#)
+template $T
+type Iterator is trait (
+  #? Get the size of the ensemble being iterated over
+  fn next() -> $T
+) implements {
+  fn size() -> Size | Error {
+    Iterator::Stop
+  }
+}
+
+namespace Iterator {
+
+  type Stop is value #?????
+
+}
+
+#(?
+  Iterators... !
+#)
+template $T
+type Iterable is trait (
+  fn getIterator() -> Iterator@($T)
+)

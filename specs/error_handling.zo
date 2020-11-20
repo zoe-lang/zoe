@@ -6,17 +6,17 @@
 # Does all sort of things
 # And does them well
 type ErrorLocation is struct (
-  filename String = $.vars.current_file
-  line Size = $.vars.current_line
-  column Size = $.vars.current_column
-  prev *ErrorLocation | null
+  filename: String = $.vars.current_file
+  line: Size = $.vars.current_line
+  column: Size = $.vars.current_column
+  prev: *ErrorLocation | null
 )
 
 # Somewhere, in the compiler
 type Error is struct (
-  message String
-  payload any
-  location *ErrorLocation
+  message: String
+  payload: any
+  location: *ErrorLocation
 )
 implements {
 
@@ -28,7 +28,7 @@ implements {
 }
 
 type FileError is Error + struct (
-  filename String
+  filename: String
 )
 
 # The compiler knows that FileError is an error, and thus allows for it to be used in try blocks
