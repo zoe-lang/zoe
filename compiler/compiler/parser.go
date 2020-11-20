@@ -48,7 +48,7 @@ func init() {
 		app := b.appender(tuple)
 		app.append(exp)
 
-		for !b.currentTokenIs(TK_RPAREN) && !b.isEof() {
+		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
 			b.consume(TK_COMMA) // there can be a comma
 			app.append(exp)
@@ -78,7 +78,7 @@ func init() {
 		array := b.createNodeFromToken(tk, NODE_ARRAY_LITERAL)
 		app := b.appender(array)
 
-		for !b.isEof() && !b.currentTokenIs(TK_RBRACE) {
+		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
 			app.append(exp)
 			b.consume(TK_COMMA)
@@ -225,7 +225,7 @@ func init() {
 		args := b.createNodeFromToken(tk, NODE_ARGS)
 		app := b.appender(args)
 
-		for !b.isEof() && !b.currentTokenIs(TK_RBRACE) {
+		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
 			app.append(exp)
 			b.consume(TK_COMMA)
@@ -245,7 +245,7 @@ func init() {
 		args := b.createNodeFromToken(tk, NODE_ARGS)
 		app := b.appender(args)
 
-		for !b.isEof() && !b.currentTokenIs(TK_RPAREN) {
+		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
 			app.append(exp)
 			b.consume(TK_COMMA)
@@ -331,7 +331,7 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	}
 
 	fragment := b.fragmenter()
-	for !b.currentTokenIs(TK_RPAREN) && !b.isEof() {
+	for b.asLongAsNotClosingToken() {
 		mod2 := b.cloneNode(mod)
 		cur := b.current
 		path := b.ExpressionTokenRbp(TK_COLCOL)
@@ -441,7 +441,7 @@ func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	blk := b.createNodeFromToken(tk, NODE_BLOCK)
 	app_blk := b.appender(blk)
 
-	for !b.currentTokenIs(TK_RBRACKET) {
+	for b.asLongAsNotClosingToken() {
 		for b.consume(TK_SEMICOLON) != 0 {
 			// advance as much as we can if we have semi colons in the input
 		}
@@ -466,7 +466,7 @@ func parseTemplate(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
 	app := b.appender(tpl)
 
-	for !b.isEof() && !b.currentTokenIs(TK_RBRACE) { // missing WHERE
+	for b.asLongAsNotClosingToken() { // missing WHERE
 		v := b.createExpectToken(TK_ID, func(tk TokenPos) NodePosition {
 			return b.createIdNode(tk)
 		})

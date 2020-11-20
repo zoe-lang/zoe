@@ -10,6 +10,25 @@ type prattTk struct {
 	led func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition // when landing on it as an operator
 }
 
+var closingTokens = [TK__MAX]bool{}
+
+func init() {
+	for i := range closingTokens {
+		closingTokens[i] = true
+	}
+	closingTokens[TK_RBRACE] = false
+	closingTokens[TK_RPAREN] = false
+	closingTokens[TK_RBRACKET] = false
+}
+
+func (b *nodeBuilder) asLongAsNotClosingToken() bool {
+	cur := b.current
+	if cur >= b.tokensLen {
+		return false
+	}
+	return closingTokens[b.tokens[cur].Kind]
+}
+
 func (b *nodeBuilder) currentTokenIs(tk ...TokenKind) bool {
 	if b.current >= b.tokensLen {
 		return false
