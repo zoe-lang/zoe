@@ -21,6 +21,15 @@ func init() {
 	closingTokens[TK_RBRACKET] = false
 }
 
+// asLongAsNotClosingToken replies true as long as the current token is not
+// a closing token such as ')', '}' or ']'
+// This is to be in for loops when inside of balanced expressions.
+// When we have for instance an opening '(', we *still* want to break the loop
+// if the current token is ']', because that means there is a syntax error and
+// the ']' is most likely trying to close a balancing [ started before the parenthesized
+// group and the ')' has been omitted by the user. In effect, this is as if we "inserted"
+// the closing token, which will be reporting as missing by an expect right after
+// the loop.
 func (b *nodeBuilder) asLongAsNotClosingToken() bool {
 	cur := b.current
 	if cur >= b.tokensLen {
