@@ -147,7 +147,9 @@ func (b *nodeBuilder) getTokenText(tk TokenPos) string {
 	return b.file.GetTokenText(tk)
 }
 
-// cloneNode shallow clones a node, mostly to help it have a different next
+// cloneNode shallow clones a node, mostly to help it have a different next,
+// as "children" of nodes are not slices but just positions inside
+// the node array.
 func (b *nodeBuilder) cloneNode(pos NodePosition) NodePosition {
 	var n = b.nodes[pos]
 	l := len(b.nodes)
@@ -184,7 +186,8 @@ func (a *appender) append(pos NodePosition) {
 	nodes[first].Range.Extend(nodes[pos].Range)
 }
 
-//// More or less the same as appender
+// More or less the same as appender, except there is no node node to append to.
+// they just go behind each other.
 
 type fragment struct {
 	builder *nodeBuilder

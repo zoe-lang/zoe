@@ -2,15 +2,20 @@
 #(?
   ... !
 #)
-template $T
-type Iterator is trait (
+type Iterator[$T] is trait (
   #? Get the size of the ensemble being iterated over
   fn next() -> $T
-) implements {
+) implements Sliceable (
+
+  fn zobi@Sliceable(arg1, arg2) {
+    return 3
+  }
+
   fn size() -> Size | Error {
     Iterator::Stop
   }
-}
+)
+
 
 namespace Iterator {
 

@@ -1,6 +1,28 @@
 #(
   Zoe uses error by values.
-  Errors are handled specially by the compiler.
+  Errors are handled specially by the compiler, notably to make error handling
+  a little easier in regards to call-stack management.
+
+  Objectives are ;
+    - The compiled code must be able to differentiate an error from a regular
+      type with a single comparison
+      Errors could be tagged unions by default, or something.
+    - Errors are varied and might embark different kind of information. The programmer
+      must be able to differentiate between the types easily without necessarily
+      having to specify all the errors types a function might return (because this
+      is really cumbersome)
+        * maybe the compiler could just offer the error return type by default
+          and offer to extract the information of which errors are returned
+          by a given function as a bonus from inference.
+        * Or maybe we use the Return[$T] type, which has any as its error or something.
+    - Adding stack information should almost be a noop so that error generation
+      is as fast as possible and does not slow down the program
+        * error creation sites should thus be generated at compile time
+        * stack information is something that should be able to be left off for
+          releases
+    - Unhandled errors should be flagged as compilation error so that errors don't
+      go unnoticed. This should probably be done as checking that a given variable
+      doesn't reach the end of control flow with still "| error" in its type.
 #)
 
 # Does all sort of things
@@ -27,20 +49,22 @@ implements {
 
 }
 
-type FileError is Error + struct (
+# The compiler should enforce the fact that a type that embarks error
+# as a component must end its name with "Error"
+type AccessError is error + struct (
   filename: String
 )
 
 # The compiler knows that FileError is an error, and thus allows for it to be used in try blocks
-fn test() -> Int32 | Error {
+fn test() -> Int32 | error {
   if some_condition {
     return 32
   }
-  return os::FileError(message = 'Something happened', filename = 'Yes')
+  return io::AccessError(message = 'Something happened', filename = 'Yes')
 }
 
 # error is like any, except it's only error types
-fn test2() -> SomeResult | Error {
+fn test2() -> Result[SomeResult] {
   var te = try test() catch te.wrap(FileError('mais naan'))
 
   var val = switch typeof te
