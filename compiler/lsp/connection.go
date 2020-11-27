@@ -35,6 +35,10 @@ type LspRequest struct {
 	Params         *fastjson.Value
 }
 
+func (r *LspRequest) RawParams() []byte {
+	return r.Params.MarshalTo(nil)
+}
+
 func (r *LspRequest) ReplyEmpty() error {
 	return nil
 }
@@ -51,6 +55,23 @@ func (r *LspRequest) Reply(val interface{}) {
 		"result":  val,
 	})
 	log.Print("replying ", string(mars))
+	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
+		log.Fatal("err not nil", err)
+	}
+}
+
+func (r *LspRequest) ReplyError(val interface{}) {
+	if r.IsNotification {
+		log.Print(red("error "), r.Method, " is a notification and must not be replied to")
+		return
+	}
+
+	mars, _ := json.Marshal(map[string]interface{}{
+		"id":      r.Id,
+		"jsonrpc": "2.0",
+		"error":   val,
+	})
+	log.Print("replying error ", string(mars))
 	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
 		log.Fatal("err not nil", err)
 	}
@@ -99,7 +120,12 @@ func (l *LspConnection) HandleMessage(message []byte) {
 		} else {
 			log.Print(green("*"), " handling ", green(method))
 		}
-		hld(&req) // should handle any errors returned by hld
+		if err := hld(&req); err != nil {
+			req.ReplyError(map[string]interface{}{
+				"code":    -32700,
+				"message": err.Error(),
+			})
+		} // should handle any errors returned by hld
 	} else {
 		log.Print(red("error "), "no handler found for method '", yel(method), "'")
 	}
