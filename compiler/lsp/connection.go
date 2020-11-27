@@ -43,6 +43,7 @@ func (r *LspRequest) ReplyEmpty() error {
 	return nil
 }
 
+// Reply to the request if it was one.
 func (r *LspRequest) Reply(val interface{}) {
 	if r.IsNotification {
 		log.Print(red("error "), r.Method, " is a notification and must not be replied to")
@@ -60,6 +61,7 @@ func (r *LspRequest) Reply(val interface{}) {
 	}
 }
 
+// Send back an error to the requester
 func (r *LspRequest) ReplyError(val interface{}) {
 	if r.IsNotification {
 		log.Print(red("error "), r.Method, " is a notification and must not be replied to")
@@ -78,6 +80,8 @@ func (r *LspRequest) ReplyError(val interface{}) {
 }
 
 // LspConnection is in charge of reading a request and sending back the results
+// It also holds a reference to a compiler session, where it will manipulate the
+// files as they get edited.
 type LspConnection struct {
 	io.ReadWriteCloser
 	receivedShutdown bool
