@@ -3,6 +3,15 @@
   Errors are handled specially by the compiler, notably to make error handling
   a little easier in regards to call-stack management.
 
+  Types don't have RTTI, but they have an int value, which indicates at least if they're
+  an error or not.
+  DISCUSSION: There is no way at runtime to get the traits implemented by a given type.
+              This may only happen at compile time.
+              The reason being that it is most likely a slow operation.
+              Oooor, a type may be cast into an implementing interface if requested,
+              which would mean that a type is always
+              {is_error, types_len, struct1, struct2, trait1, trait2, trait3} ?
+
   Objectives are ;
     - The compiled code must be able to differentiate an error from a regular
       type with a single comparison
