@@ -1,8 +1,5 @@
 package zoe
 
-const ErrorNode NodePosition = 0
-const EmptyNode NodePosition = 1
-
 type nodeBuilder struct {
 	file          *File
 	nodes         NodeArray
@@ -24,14 +21,29 @@ func (b *nodeBuilder) reportErrorAtToken(tk TokenPos, msg ...string) {
 	b.file.reportError(rng, msg...)
 }
 
-func (b *nodeBuilder) createEmptyNode() NodePosition {
-	return b.createNode(Range{}, NODE_EMPTY)
-}
-
 func (b *nodeBuilder) createNodeFromToken(tk TokenPos, nk AstNodeKind, children ...NodePosition) NodePosition {
 	res := b.createNode(b.tokens[tk].Range, nk)
-	if len(children) > 0 {
-		b.setNodeChildren(res, children...)
+	node := &b.nodes[res]
+	l := len(children)
+	if l > 0 {
+		node.ArgLen = l
+		node.Arg1 = children[0]
+		b.extendsNodeRangeFromNode(res, children[0])
+	}
+	if l > 1 {
+		node.Arg2 = children[1]
+		b.extendsNodeRangeFromNode(res, children[1])
+	}
+	if l > 2 {
+		node.Arg3 = children[2]
+		b.extendsNodeRangeFromNode(res, children[2])
+	}
+	if l > 3 {
+		node.Arg4 = children[3]
+		b.extendsNodeRangeFromNode(res, children[3])
+	}
+	if l > 4 {
+		panic("can't create node with more than 4 children, there is an error in the parser")
 	}
 	return res
 }
@@ -76,7 +88,7 @@ func (b *nodeBuilder) createAndExpectOrEmpty(tk TokenKind, fn func(tk TokenPos) 
 	res := b.createIfToken(tk, fn)
 	if res == 0 {
 		b.reportErrorAtToken(b.current, "expected '", tokstr[tk], "'")
-		return b.createEmptyNode()
+		return EmptyNode
 	}
 	return res
 }
@@ -84,7 +96,7 @@ func (b *nodeBuilder) createAndExpectOrEmpty(tk TokenKind, fn func(tk TokenPos) 
 func (b *nodeBuilder) createIfTokenOrEmpty(tk TokenKind, fn func(tk TokenPos) NodePosition) NodePosition {
 	res := b.createIfToken(tk, fn)
 	if res == 0 {
-		return b.createEmptyNode()
+		return EmptyNode
 	}
 	return res
 }
@@ -100,6 +112,19 @@ func (b *nodeBuilder) extendNodeRange(ni NodePosition, rng Range) {
 	b.nodes[ni].Range.Extend(rng)
 }
 
+func (b *nodeBuilder) extendsNodeRangeFromNode(ni NodePosition, other NodePosition) {
+	for other != EmptyNode {
+		o := &b.nodes[other]
+		b.extendNodeRange(ni, o.Range)
+
+		if o.Next == EmptyNode {
+			break
+		}
+
+		other = o.Next
+	}
+}
+
 func (b *nodeBuilder) extendRangeFromToken(ni NodePosition, tk TokenPos) {
 	b.extendNodeRange(ni, b.tokens[tk].Range)
 }
@@ -107,26 +132,12 @@ func (b *nodeBuilder) extendRangeFromToken(ni NodePosition, tk TokenPos) {
 ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////
 
-// repeat a block until cbk returns 0 (empty node)
-func (b *nodeBuilder) repeat(rng Range, nk AstNodeKind, cbk func() NodePosition) NodePosition {
-	res := b.createNode(rng, nk)
-	app := b.appender(res)
-	for true {
-		pos := cbk()
-		if pos == 0 {
-			break
-		}
-		app.append(pos)
-	}
-	return res
-}
-
-func (b *nodeBuilder) setNodeChildren(node NodePosition, children ...NodePosition) {
-	app := b.appender(node)
-	for _, c := range children {
-		app.append(c)
-	}
-}
+// func (b *nodeBuilder) setNodeChildren(node NodePosition, children ...NodePosition) {
+// 	app := b.appender(node)
+// 	for _, c := range children {
+// 		app.append(c)
+// 	}
+// }
 
 func (b *nodeBuilder) createIdNode(tk TokenPos) NodePosition {
 	idstr := internedIds.Save(b.getTokenText(tk))
@@ -135,16 +146,18 @@ func (b *nodeBuilder) createIdNode(tk TokenPos) NodePosition {
 	return idnode
 }
 
-func (b *nodeBuilder) appender(from NodePosition) *appender {
-	return &appender{builder: b, first: from, pos: from}
-}
-
-func (b *nodeBuilder) fragmenter() *fragment {
+func (b *nodeBuilder) fragment() *fragment {
 	return &fragment{builder: b}
 }
 
 func (b *nodeBuilder) getTokenText(tk TokenPos) string {
 	return b.file.GetTokenText(tk)
+}
+
+func (b *nodeBuilder) createBinOp(tk TokenPos, kind AstNodeKind, left NodePosition, right NodePosition) NodePosition {
+	res := b.createNodeFromToken(tk, kind, left, right)
+	b.nodes[res].Value = 2 // number of args
+	return res
 }
 
 // cloneNode shallow clones a node, mostly to help it have a different next,
@@ -161,34 +174,7 @@ func (b *nodeBuilder) cloneNode(pos NodePosition) NodePosition {
 ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////
 
-// appender is a type used to update list of nodes
-type appender struct {
-	builder *nodeBuilder
-	first   NodePosition
-	pos     NodePosition
-}
-
-func (a *appender) append(pos NodePosition) {
-	first := a.first
-	nodes := a.builder.nodes
-	target := &nodes[a.pos]
-	// FIXME check if pos already has a Next (this shouldn't be the case, unless
-	// we have a fragment).
-	if first == a.pos {
-		target.Value = int(pos) // the start position
-	} else {
-		target.Next = pos
-	}
-	for nodes[pos].Next != 0 {
-		pos = nodes[pos].Next
-	}
-	a.pos = pos
-	nodes[first].Range.Extend(nodes[pos].Range)
-}
-
-// More or less the same as appender, except there is no node node to append to.
-// they just go behind each other.
-
+// A list of nodes
 type fragment struct {
 	builder *nodeBuilder
 	first   NodePosition
@@ -196,7 +182,7 @@ type fragment struct {
 }
 
 func (f *fragment) append(pos NodePosition) {
-	if f.first == 0 {
+	if f.first == EmptyNode {
 		f.first = pos
 		f.last = pos
 		return
@@ -207,7 +193,7 @@ func (f *fragment) append(pos NodePosition) {
 
 	target.Next = pos
 
-	for nodes[pos].Next != 0 {
+	for nodes[pos].Next != EmptyNode {
 		pos = nodes[pos].Next
 	}
 

@@ -11,8 +11,8 @@ type Range struct {
 	Column uint32
 }
 
-func (p Range) GetPosition() *Range {
-	return &p
+func (r Range) GetPosition() *Range {
+	return &r
 }
 
 func (r *Range) Extend(other Range) {

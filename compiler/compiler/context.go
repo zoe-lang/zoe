@@ -98,7 +98,7 @@ func (f *File) createNodeBuilder() *nodeBuilder {
 		doccommentMap: f.DocCommentMap,
 	}
 
-	b.createEmptyNode()
+	b.createNode(Range{}, NODE_EMPTY)
 
 	return &b
 }

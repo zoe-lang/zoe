@@ -34,26 +34,41 @@ All different types are `node`s in the AST.
 
 # "Grammar"
 
-```
+```bash
 
-top-level = [ declaration* ]
+top-level = {...exp}
 
-declaration = decl-fn | decl-type | decl-var | decl-namespace
+declaration = fn | type | var | namespace | import
 
-decl:namespace = ( decl:namespace [ declaration* ] )
-decl:var = ( decl:var identifier exp exp? ) -- id, type, default value
-decl:type = ( decl:type identifier templated-typedef ) -- exp must resolve to a valid type
-decl:fn = ( decl:fn identifier fndef | templated-fndef )
+import = (import )
+namespace = (namespace block)
+var = (var identifier type:exp? value:exp?) -- id, type, default value
+type = (type identifier template? value:exp) -- exp must resolve to a valid type
 
-templated-typedef = (template [ exp+ ] fndef)
+# A fn with a nil block is just a signature/function pointer declaration
+#   - it is only valid in a type expression
+# A fn without identifier is a lambda expression and is only valid as a function
+# value, or as a type.
+# Function pointer declarations may have a name (?)
+fn = (fn identifier? signature block?)
 
-fndef =      ( fndef [exp+] exp )
-typedef =    ( type identifier struct-def | union-def | exp ) -- exp must refer to a valid type or a valid constant
-struct-def = ( struct [decl:var+] )
-union-def =  ( union [exp+] ) -- exp must resolve to a valid type or a valid constant
+# template variables must be prefixed by '$'
+# args names must always be lower-case
+# return type is optional only in lambda or inline functions as it can be infered
+signature = (signature template:[...var] args:[...var] return-type:exp?)
+
+
+template = [...var] # vars
+
+block = {...exp}
+
+typedef = ( type identifier struct-def | union-def | exp ) -- exp must refer to a valid type or a valid constant
+struct = ( struct [...var] )
+union-def =  ( union [...exp] ) -- exp must resolve to a valid type or a valid constant
 
 exp =
   | identifier
+  | declaration
   | number
   | raw-string
   | character
@@ -69,12 +84,10 @@ exp =
       exp
       exp
     )
-  | ( + | - exp )
-  | ( - exp exp )
-  | ( - exp )
+  | ( +|- exp )
   | ( get-index exp exp ) -- exp1 will be indexed, exp2 is the index
   | ( set-index exp exp exp ) -- exp1 will be indexed, exp2 is the index, exp3 the new value
-  | ( call exp [ exp* ] )
+  | ( call exp [...exp] )
 ```
 
 # Fragment

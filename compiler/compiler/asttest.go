@@ -29,7 +29,44 @@ func cleanup(str []byte) []byte {
 	return s
 }
 
+func (f *File) PrintNode(w io.Writer, iter NodePosition) {
+	n := &f.Nodes[iter]
+	if n.ArgLen > 0 {
+		_, _ = w.Write([]byte{'('})
+	}
+	f.PrintNodeRepr(w, iter)
+	if n.ArgLen > 0 {
+		f.PrintNodeArg(w, n.Arg1)
+	}
+	if n.ArgLen > 1 {
+		f.PrintNodeArg(w, n.Arg2)
+	}
+	if n.ArgLen > 2 {
+		f.PrintNodeArg(w, n.Arg3)
+	}
+	if n.ArgLen > 3 {
+		f.PrintNodeArg(w, n.Arg4)
+	}
+	if n.ArgLen > 0 {
+		_, _ = w.Write([]byte{')'})
+	}
+}
+
+func (f *File) PrintNodeArg(w io.Writer, iter NodePosition) {
+	if iter == EmptyNode {
+		_, _ = w.Write([]byte{' ', '~'})
+		return
+	}
+	_, _ = w.Write([]byte{' '})
+	if f.Nodes[iter].Next != EmptyNode {
+		f.PrintNodeList(w, iter)
+	} else {
+		f.PrintNode(w, iter)
+	}
+}
+
 func (f *File) PrintNodeList(w io.Writer, iter NodePosition) {
+	_, _ = w.Write([]byte("["))
 	first := true
 	for iter != 0 {
 		if !first {
@@ -40,6 +77,7 @@ func (f *File) PrintNodeList(w io.Writer, iter NodePosition) {
 		f.PrintNode(w, iter)
 		iter = f.Nodes[iter].Next
 	}
+	_, _ = w.Write([]byte("]"))
 }
 
 func (f *File) PrintNodeString(n NodePosition) string {

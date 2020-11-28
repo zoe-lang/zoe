@@ -16,12 +16,11 @@ import (
 `)
 
 var tpl_create = Template(`
-func (f *File) PrintNode(w io.Writer, pos NodePosition) {
+func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
   n := f.Nodes[pos]
   switch n.Kind {
 %% for (let n of v.nodes) { %%
-  case {{n.name}}:%% for (let exp of n.exprs) { %%
-    {{exp}}%% } %%
+  case {{n.name}}: w.Write([]byte({{n.exp}}))
 %% } %%
   }
 }
@@ -45,12 +44,12 @@ while (match = re_type.exec(input)) {
   // console.log(match[1], match[2])
   var nodename = match[1]
   const create = []
-  const format = []
-  var match2
-  while (match2 = re_atom.exec(match[2])) {
-    var s = match2[0]
-    format.push(s === '...' ? 'f.PrintNodeList(w, NodePosition(n.Value))': `w.Write([]byte(${s}))`)
-  }
+  const format = match[2].trim()
+  // var match2
+  // while (match2 = re_atom.exec(match[2])) {
+  //   var s = match2[0]
+  //   format.push(s === '...' ? 'f.PrintNodeList(w, NodePosition(n.Value))': `w.Write([]byte(${s}))`)
+  // }
 
   var create_match = match[3]
   if (create_match) {
@@ -61,7 +60,7 @@ while (match = re_type.exec(input)) {
 
   nodes.push({
     name: nodename,
-    exprs: format,
+    exp: format,
     create
   })
 }

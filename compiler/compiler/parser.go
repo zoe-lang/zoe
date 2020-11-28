@@ -9,13 +9,18 @@ func (f *File) Parse() {
 // At the top level, just parse everything we can
 func (b *nodeBuilder) parseFile() NodePosition {
 
-	res := b.createNode(Range{}, NODE_FILE) // should it be a file ?
-	app := b.appender(res)
+	app := b.fragment()
 	for !b.isEof() {
 		r := b.Expression(0)
 		app.append(r)
 	}
-	return res
+	file := b.createNode(Range{}, NODE_FILE)
+	if app.first != EmptyNode {
+		f := &b.nodes[file]
+		f.Arg1 = app.first
+		b.extendsNodeRangeFromNode(file, app.first)
+	}
+	return file
 }
 
 var lbp_equal = 0
@@ -39,35 +44,38 @@ func init() {
 
 		exp := b.Expression(0)
 		// check if we end with a parenthesis
-		if b.consume(TK_RPAREN) != 0 {
+		if pos := b.consume(TK_RPAREN); pos != 0 {
+			b.extendRangeFromToken(exp, pos)
 			return exp
 		}
+
+		// If we didn't encounter ), we want a comma
 		b.expect(TK_COMMA)
 
-		tuple := b.createNodeFromToken(tk, NODE_TUPLE)
-		app := b.appender(tuple)
+		app := b.fragment()
 		app.append(exp)
 
 		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
-			b.consume(TK_COMMA) // there can be a comma
+			if !b.currentTokenIs(TK_RPAREN) {
+				b.expect(TK_COMMA) // there can be a comma
+			}
 			app.append(exp)
 		}
-
-		b.expect(TK_RPAREN)
-		return tuple
+		tup := b.createTuple(tk, app.first)
+		if tok := b.expect(TK_RPAREN); tok != 0 {
+			b.extendRangeFromToken(tup, tok)
+		}
+		return tup
 	})
 
 	nud(KW_NAMESPACE, func(b *nodeBuilder, tk TokenPos, lbp int) NodePosition {
-		res := b.createNodeFromToken(tk, NODE_NAMESPACE)
 		// res.Block = res.CreateBlock()
 		name := b.Expression(0)
 		b.expect(TK_LBRACKET)
 		block := parseBlock(b, tk, 0)
 
-		// should be b.createNamespace(tk.Range, name, block)
-		b.setNodeChildren(res, name, block)
-		return res
+		return b.createNamespace(tk, name, block)
 	})
 
 	// { , a block
@@ -75,14 +83,16 @@ func init() {
 
 	nud(TK_LBRACE, func(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		// function call !
-		array := b.createNodeFromToken(tk, NODE_ARRAY_LITERAL)
-		app := b.appender(array)
+		fragment := b.fragment()
 
 		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
-			app.append(exp)
-			b.consume(TK_COMMA)
+			fragment.append(exp)
+			if !b.currentTokenIs(TK_RBRACE) {
+				b.consume(TK_COMMA)
+			}
 		}
+		array := b.createArrayLiteral(tk, fragment.first)
 		if tk := b.expect(TK_RBRACE); tk != 0 {
 			b.extendRangeFromToken(array, tk)
 		}
@@ -117,7 +127,7 @@ func init() {
 		// by } or ]
 		if c.currentTokenIs(TK_RPAREN, TK_RBRACKET) {
 			// return can only return nothing if it is at the end of a block or expression
-			res = c.createEmptyNode()
+			res = EmptyNode
 		} else {
 			res = c.Expression(lbp)
 		}
@@ -221,39 +231,35 @@ func init() {
 
 	led(TK_LBRACE, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
 		// function call !
-		call := b.createNodeFromToken(tk, NODE_BIN_INDEX)
-		args := b.createNodeFromToken(tk, NODE_ARGS)
-		app := b.appender(args)
+		fragment := b.fragment()
 
 		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
-			app.append(exp)
+			fragment.append(exp)
 			b.consume(TK_COMMA)
 		}
+		index := b.createBinOp(tk, NODE_BIN_INDEX, left, fragment.first)
 		if tk := b.expect(TK_RBRACE); tk != 0 {
-			b.extendRangeFromToken(args, tk)
+			b.extendRangeFromToken(index, tk)
 		}
-		b.setNodeChildren(call, left, args)
-		return call
+		return index
 	})
 
 	lbp += 2
 
 	led(TK_LPAREN, func(b *nodeBuilder, tk TokenPos, left NodePosition) NodePosition {
 		// function call !
-		call := b.createNodeFromToken(tk, NODE_BIN_CALL)
-		args := b.createNodeFromToken(tk, NODE_ARGS)
-		app := b.appender(args)
+		fragment := b.fragment()
 
 		for b.asLongAsNotClosingToken() {
 			exp := b.Expression(0)
-			app.append(exp)
+			fragment.append(exp)
 			b.consume(TK_COMMA)
 		}
+		call := b.createBinOp(tk, NODE_BIN_CALL, left, fragment.first)
 		if tk := b.expect(TK_RPAREN); tk != 0 {
-			b.extendRangeFromToken(args, tk)
+			b.extendRangeFromToken(call, tk)
 		}
-		b.setNodeChildren(call, left, args)
 		return call
 	})
 
@@ -322,15 +328,15 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
 			return b.createIdNode(tk)
 		})
-		return b.createNodeFromToken(tk, NODE_IMPORT, mod, name, b.createEmptyNode())
+		return b.createNodeFromToken(tk, NODE_IMPORT, mod, name, EmptyNode)
 	}
 
 	if b.consume(TK_LPAREN) == 0 {
 		b.reportErrorAtToken(tk, "malformed import expression, expected '(' or 'as'")
-		return b.createEmptyNode()
+		return EmptyNode
 	}
 
-	fragment := b.fragmenter()
+	fragment := b.fragment()
 	for b.asLongAsNotClosingToken() {
 		mod2 := b.cloneNode(mod)
 		cur := b.current
@@ -355,11 +361,11 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 ///////////////////////////////////////////////////////
 // "
 func parseQuote(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
-	str := c.createNodeFromToken(tk, NODE_STRING)
-	app := c.appender(str)
+	fragment := c.fragment()
 	for !c.isEof() && !c.currentTokenIs(TK_QUOTE) {
-		app.append(c.Expression(0))
+		fragment.append(c.Expression(0))
 	}
+	str := c.createString(tk, fragment.first)
 	if tk2 := c.expect(TK_QUOTE); tk2 != 0 {
 		c.extendRangeFromToken(str, tk2)
 	}
@@ -376,9 +382,7 @@ func parseIf(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		return c.Expression(0)
 	})
 
-	node := c.createNodeFromToken(tk, NODE_IF)
-	c.setNodeChildren(node, cond, then, els)
-	return node
+	return c.createIf(tk, cond, then, els)
 }
 
 /////////////////////////////////////////////////////
@@ -393,17 +397,19 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		return parseTemplate(c, tk, 0)
 	})
 
-	args := c.createNodeFromCurrentToken(NODE_ARGS)
-	app := c.appender(args)
+	// args := c.createNodeFromCurrentToken(NODE_TUPLE)
+	args := c.fragment()
 	c.expect(TK_LPAREN)
 	for !c.currentTokenIs(TK_RPAREN, TK_ARROW, TK_FATARROW) {
 		arg := parseVar(c, c.current, 0)
 		if arg != 0 {
-			app.append(arg)
+			args.append(arg)
 		} else {
 			c.advance()
 		}
-		c.consume(TK_COMMA)
+		if !c.currentTokenIs(TK_RPAREN) {
+			c.expect(TK_COMMA)
+		}
 		// test for comma presence
 	}
 	c.expect(TK_RPAREN)
@@ -416,7 +422,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		// this is a lambda function where the return type is to be inferred.
 		// it also has a body
 		// FIXME what about the generics ????
-		sig := c.createSignature(tk, tpl, args, c.createEmptyNode())
+		sig := c.createSignature(tk, tpl, args.first, EmptyNode)
 		return c.createFn(tk, name, sig, defarrow)
 	}
 
@@ -424,7 +430,7 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		return c.Expression(0)
 	})
 
-	signature := c.createSignature(tk, tpl, args, rettype)
+	signature := c.createSignature(tk, tpl, args.first, rettype)
 
 	var blk NodePosition
 	if c.currentTokenIs(TK_LBRACKET) {
@@ -438,8 +444,8 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 // parseBlock parses a block of code
 func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
-	blk := b.createNodeFromToken(tk, NODE_BLOCK)
-	app_blk := b.appender(blk)
+	// blk := b.createNodeFromToken(tk, NODE_BLOCK)
+	app_blk := b.fragment()
 
 	for b.asLongAsNotClosingToken() {
 		for b.consume(TK_SEMICOLON) != 0 {
@@ -453,18 +459,20 @@ func parseBlock(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		app_blk.append(b.Expression(0))
 	}
 
+	block := b.createBlock(tk, app_blk.first)
+
 	if tk := b.expect(TK_RBRACKET); tk != 0 {
-		b.extendRangeFromToken(blk, b.current-1) // FIXME, this is ugly
+		b.extendRangeFromToken(block, tk) // FIXME, this is ugly
 	}
 
-	return blk
+	return block
 }
 
 // parseTemplate parses a template declaration, which is enclosed between [ ]
 // it is expected that '[' has been consumed, and that tk is '['
 func parseTemplate(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
-	tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
-	app := b.appender(tpl)
+	// tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
+	fragment := b.fragment()
 
 	for b.asLongAsNotClosingToken() { // missing WHERE
 		v := b.createExpectToken(TK_ID, func(tk TokenPos) NodePosition {
@@ -474,12 +482,12 @@ func parseTemplate(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 			b.reportErrorAtToken(b.current, "expected a template variable declaration")
 			b.advance()
 		} else {
-			app.append(v)
+			fragment.append(v)
 		}
 		b.consume(TK_COMMA)
 	}
 	b.expect(TK_RBRACE)
-	return tpl
+	return fragment.first
 }
 
 // parseTypeDecl parses a type declaration
@@ -507,10 +515,10 @@ func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 }
 
 func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
-	stru := c.createNodeFromToken(tk, NODE_STRUCT)
+	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
 	c.expect(TK_LPAREN)
 
-	app := c.appender(stru)
+	fragment := c.fragment()
 	for !c.isEof() && !c.currentTokenIs(TK_RPAREN, TK_RBRACE, TK_RBRACKET) {
 		// parse a var declaration
 		v := parseVar(c, c.current, 0)
@@ -519,10 +527,11 @@ func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 		} else {
 			// FIXME ensure a field has a type declaration, as struct
 			// fields should have them whether they have defaults or not
-			app.append(v)
+			fragment.append(v)
 		}
 	}
 
+	stru := c.createStruct(tk, fragment.first)
 	if tk := c.expect(TK_RPAREN); tk != 0 {
 		c.extendRangeFromToken(stru, tk)
 	}
@@ -539,12 +548,13 @@ func parseVar(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	if tkident := c.expect(TK_ID); tkident != 0 {
 		ident = c.createIdNode(tkident)
 	} else {
-		ident = c.createEmptyNode()
+		ident = EmptyNode
 	}
 
 	// there might be a type expression right after the name declaration
 	typenode := c.createIfTokenOrEmpty(TK_COLON, func(tk TokenPos) NodePosition {
-		// We scan above '=' level to avoid eating it
+		// We scan above '=' level to avoid eating it if there is a default value
+		// right after the type declaration
 		return c.ExpressionTokenRbp(TK_EQ)
 	})
 
@@ -553,7 +563,7 @@ func parseVar(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	if c.consume(TK_EQ) != 0 {
 		expnode = c.Expression(0)
 	} else {
-		expnode = c.createEmptyNode()
+		expnode = EmptyNode
 	}
 
 	if c.current == tk {

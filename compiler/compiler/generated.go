@@ -7,302 +7,135 @@ import (
 )
 
 
-func (f *File) PrintNode(w io.Writer, pos NodePosition) {
+func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
   n := f.Nodes[pos]
   switch n.Kind {
 
-  case NODE_EMPTY:
-    w.Write([]byte(grey("~")))
+  case NODE_EMPTY: w.Write([]byte(grey("~")))
 
-  case NODE_FILE:
-    w.Write([]byte("file{"))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte("}"))
+  case NODE_FILE: w.Write([]byte("file"))
 
-  case NODE_DECL_BLOCK:
-    w.Write([]byte("{{"))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte("}}"))
+  case NODE_BLOCK: w.Write([]byte("block"))
 
-  case NODE_BLOCK:
-    w.Write([]byte("{"))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte("}"))
+  case NODE_TUPLE: w.Write([]byte("tuple"))
 
-  case NODE_TUPLE:
-    w.Write([]byte("["))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte("]"))
+  case NODE_FN: w.Write([]byte(bblue("fn")))
 
-  case NODE_ARGS:
-    w.Write([]byte("["))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte("]"))
+  case NODE_TYPE: w.Write([]byte(bblue("type")))
 
-  case NODE_FN:
-    w.Write([]byte("("))
-    w.Write([]byte(bblue("fn")))
-    w.Write([]byte(" "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_NAMESPACE: w.Write([]byte(bblue("namespace")))
 
-  case NODE_TYPE:
-    w.Write([]byte("("))
-    w.Write([]byte(bblue("type")))
-    w.Write([]byte(" "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_VAR: w.Write([]byte(bblue("var")))
 
-  case NODE_NAMESPACE:
-    w.Write([]byte("("))
-    w.Write([]byte(bblue("namespace")))
-    w.Write([]byte(" "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_SIGNATURE: w.Write([]byte("signature"))
 
-  case NODE_VAR:
-    w.Write([]byte("("))
-    w.Write([]byte(bblue("var")))
-    w.Write([]byte(" "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_RETURN: w.Write([]byte("return"))
 
-  case NODE_SIGNATURE:
-    w.Write([]byte("(signature "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_STRUCT: w.Write([]byte("struct"))
 
-  case NODE_RETURN:
-    w.Write([]byte("(return "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_UNION: w.Write([]byte("union"))
 
-  case NODE_STRUCT:
-    w.Write([]byte("(struct "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_STRING: w.Write([]byte("str"))
 
-  case NODE_UNION:
-    w.Write([]byte("(union "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_ARRAY_LITERAL: w.Write([]byte("array"))
 
-  case NODE_STRING:
-    w.Write([]byte("(str "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_IF: w.Write([]byte("if"))
 
-  case NODE_TEMPLATE:
-    w.Write([]byte("["))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte("]"))
+  case NODE_WHILE: w.Write([]byte("while"))
 
-  case NODE_ARRAY_LITERAL:
-    w.Write([]byte("(array "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_IMPORT: w.Write([]byte(bblue("import")))
 
-  case NODE_IF:
-    w.Write([]byte("(if "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_UNA_ELLIPSIS: w.Write([]byte("..."))
 
-  case NODE_WHILE:
-    w.Write([]byte("(while "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_UNA_PLUS: w.Write([]byte("+"))
 
-  case NODE_IMPORT:
-    w.Write([]byte("("))
-    w.Write([]byte(bblue("import")))
-    w.Write([]byte(" "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_UNA_MIN: w.Write([]byte("-"))
 
-  case NODE_UNA_ELLIPSIS:
-    w.Write([]byte("(... "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_UNA_NOT: w.Write([]byte("!"))
 
-  case NODE_UNA_PLUS:
-    w.Write([]byte("(+ "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_UNA_BITNOT: w.Write([]byte("~"))
 
-  case NODE_UNA_MIN:
-    w.Write([]byte("(- "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_ASSIGN: w.Write([]byte("="))
 
-  case NODE_UNA_NOT:
-    w.Write([]byte("(! "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_PLUS: w.Write([]byte("+"))
 
-  case NODE_UNA_BITNOT:
-    w.Write([]byte("(~ "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_MIN: w.Write([]byte("-"))
 
-  case NODE_BIN_ASSIGN:
-    w.Write([]byte("(= "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_DIV: w.Write([]byte("/"))
 
-  case NODE_BIN_PLUS:
-    w.Write([]byte("(+ "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_MUL: w.Write([]byte("*"))
 
-  case NODE_BIN_MIN:
-    w.Write([]byte("(- "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_MOD: w.Write([]byte("%"))
 
-  case NODE_BIN_DIV:
-    w.Write([]byte("(/ "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_EQ: w.Write([]byte("=="))
 
-  case NODE_BIN_MUL:
-    w.Write([]byte("(* "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_NEQ: w.Write([]byte("!="))
 
-  case NODE_BIN_MOD:
-    w.Write([]byte("(% "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_GTEQ: w.Write([]byte(">="))
 
-  case NODE_BIN_EQ:
-    w.Write([]byte("(== "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_GT: w.Write([]byte(">"))
 
-  case NODE_BIN_NEQ:
-    w.Write([]byte("(!= "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_LTEQ: w.Write([]byte("<="))
 
-  case NODE_BIN_GTEQ:
-    w.Write([]byte("(>= "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_LT: w.Write([]byte("<"))
 
-  case NODE_BIN_GT:
-    w.Write([]byte("(> "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_LSHIFT: w.Write([]byte("<<"))
 
-  case NODE_BIN_LTEQ:
-    w.Write([]byte("(<= "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_RSHIFT: w.Write([]byte(">>"))
 
-  case NODE_BIN_LT:
-    w.Write([]byte("(< "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_BITANDEQ: w.Write([]byte("&="))
 
-  case NODE_BIN_LSHIFT:
-    w.Write([]byte("(<< "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_BITAND: w.Write([]byte("&"))
 
-  case NODE_BIN_RSHIFT:
-    w.Write([]byte("(>> "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_BITOR: w.Write([]byte("|"))
 
-  case NODE_BIN_BITANDEQ:
-    w.Write([]byte("(&= "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_BITXOR: w.Write([]byte("^"))
 
-  case NODE_BIN_BITAND:
-    w.Write([]byte("(& "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_OR: w.Write([]byte("||"))
 
-  case NODE_BIN_BITOR:
-    w.Write([]byte("(| "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_AND: w.Write([]byte("&&"))
 
-  case NODE_BIN_BITXOR:
-    w.Write([]byte("(^ "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_IS: w.Write([]byte("is"))
 
-  case NODE_BIN_OR:
-    w.Write([]byte("(|| "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_CAST: w.Write([]byte("cast"))
 
-  case NODE_BIN_AND:
-    w.Write([]byte("(&& "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_CALL: w.Write([]byte("call"))
 
-  case NODE_BIN_IS:
-    w.Write([]byte("(is "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_INDEX: w.Write([]byte("index"))
 
-  case NODE_BIN_CAST:
-    w.Write([]byte("(cast "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_DOT: w.Write([]byte("."))
 
-  case NODE_BIN_CALL:
-    w.Write([]byte("(call "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_BIN_NMSP: w.Write([]byte("::"))
 
-  case NODE_BIN_INDEX:
-    w.Write([]byte("(index "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_LIT_NULL: w.Write([]byte(mag("null")))
 
-  case NODE_BIN_DOT:
-    w.Write([]byte("(. "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_LIT_VOID: w.Write([]byte(mag("void")))
 
-  case NODE_BIN_NMSP:
-    w.Write([]byte("(:: "))
-    f.PrintNodeList(w, NodePosition(n.Value))
-    w.Write([]byte(")"))
+  case NODE_LIT_FALSE: w.Write([]byte(mag("false")))
 
-  case NODE_LIT_NULL:
-    w.Write([]byte(mag("null")))
-    f.PrintNodeList(w, NodePosition(n.Value))
+  case NODE_LIT_TRUE: w.Write([]byte(mag("true")))
 
-  case NODE_LIT_VOID:
-    w.Write([]byte(mag("void")))
-    f.PrintNodeList(w, NodePosition(n.Value))
+  case NODE_LIT_CHAR: w.Write([]byte(green(f.GetRangeText(n.Range))))
 
-  case NODE_LIT_FALSE:
-    w.Write([]byte(mag("false")))
-    f.PrintNodeList(w, NodePosition(n.Value))
+  case NODE_LIT_RAWSTR: w.Write([]byte(green("'",f.GetRangeText(n.Range),"'")))
 
-  case NODE_LIT_TRUE:
-    w.Write([]byte(mag("true")))
-    f.PrintNodeList(w, NodePosition(n.Value))
+  case NODE_LIT_NUMBER: w.Write([]byte(mag(f.GetRangeText(n.Range))))
 
-  case NODE_LIT_CHAR:
-    w.Write([]byte(green(f.GetRangeText(n.Range))))
-
-  case NODE_LIT_RAWSTR:
-    w.Write([]byte(green("'",f.GetRangeText(n.Range),"'")))
-
-  case NODE_LIT_NUMBER:
-    w.Write([]byte(mag(f.GetRangeText(n.Range))))
-
-  case NODE_ID:
-    w.Write([]byte(cyan(internedIds.Get(n.Value))))
+  case NODE_ID: w.Write([]byte(cyan(internedIds.Get(n.Value))))
 
   }
+}
+
+func (b *nodeBuilder) createFile(tk TokenPos, contents NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_FILE, contents)
+}
+
+func (b *nodeBuilder) createBlock(tk TokenPos, contents NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_BLOCK, contents)
+}
+
+func (b *nodeBuilder) createTuple(tk TokenPos, contents NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_TUPLE, contents)
 }
 
 func (b *nodeBuilder) createFn(tk TokenPos, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
@@ -323,6 +156,26 @@ func (b *nodeBuilder) createVar(tk TokenPos, name NodePosition, typeexp NodePosi
 
 func (b *nodeBuilder) createSignature(tk TokenPos, template NodePosition, args NodePosition, rettype NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_SIGNATURE, template, args, rettype)
+}
+
+func (b *nodeBuilder) createReturn(tk TokenPos, exp NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_RETURN, exp)
+}
+
+func (b *nodeBuilder) createStruct(tk TokenPos, varlist NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_STRUCT, varlist)
+}
+
+func (b *nodeBuilder) createUnion(tk TokenPos, members NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_UNION, members)
+}
+
+func (b *nodeBuilder) createString(tk TokenPos, contents NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_STRING, contents)
+}
+
+func (b *nodeBuilder) createArrayLiteral(tk TokenPos, contents NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_ARRAY_LITERAL, contents)
 }
 
 func (b *nodeBuilder) createIf(tk TokenPos, cond NodePosition, thenarm NodePosition, elsearm NodePosition) NodePosition {
