@@ -1,2 +1,2 @@
-#? (var tup ~ [c d])
+#? (var tup ~ (tuple [c d]))
 var tup = (c, d)

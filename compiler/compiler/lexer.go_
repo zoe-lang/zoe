@@ -183,7 +183,7 @@ func (z *File) Lex() error {
 			<top> "%="  { addToken(TK_MODEQ); goto yyc_top }
 			<top> "="   { addToken(TK_EQ); goto yyc_top }
 			<top> "=="  { addToken(TK_EQEQ); goto yyc_top }
-			<top> "=>"  { addToken(TK_FATARROW); goto yyc_top }
+			// <top> "=>"  { addToken(TK_FATARROW); goto yyc_top }
 			<top> "->"  { addToken(TK_ARROW); goto yyc_top }
 			<top> "!="  { addToken(TK_NOTEQ); goto yyc_top }
 			<top> "@"   { addToken(TK_AT); goto yyc_top }

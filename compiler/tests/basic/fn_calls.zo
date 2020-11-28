@@ -1,8 +1,8 @@
 
 #(?
-  (call hello [(str 'world')])
+  (call hello (str 'world'))
 #)
 hello("world")
 
-#? (call hello [1 2 [3 4] (str 'world')])
+#? (call hello [1 2 (tuple [3 4]) (str 'world')])
 hello(1, 2, (3,4), "world")

@@ -31,6 +31,11 @@ func cleanup(str []byte) []byte {
 
 func (f *File) PrintNode(w io.Writer, iter NodePosition) {
 	n := &f.Nodes[iter]
+	if n.Kind == NODE_BLOCK {
+		f.PrintNodeList(w, n.Args[0], [2]byte{'{', '}'})
+		return
+	}
+
 	if n.ArgLen > 0 {
 		_, _ = w.Write([]byte{'('})
 	}
@@ -50,14 +55,14 @@ func (f *File) PrintNodeArg(w io.Writer, iter NodePosition) {
 	}
 	_, _ = w.Write([]byte{' '})
 	if f.Nodes[iter].Next != EmptyNode {
-		f.PrintNodeList(w, iter)
+		f.PrintNodeList(w, iter, [2]byte{'[', ']'})
 	} else {
 		f.PrintNode(w, iter)
 	}
 }
 
-func (f *File) PrintNodeList(w io.Writer, iter NodePosition) {
-	_, _ = w.Write([]byte("["))
+func (f *File) PrintNodeList(w io.Writer, iter NodePosition, pair [2]byte) {
+	_, _ = w.Write([]byte{pair[0]})
 	first := true
 	for iter != 0 {
 		if !first {
@@ -68,7 +73,7 @@ func (f *File) PrintNodeList(w io.Writer, iter NodePosition) {
 		f.PrintNode(w, iter)
 		iter = f.Nodes[iter].Next
 	}
-	_, _ = w.Write([]byte("]"))
+	_, _ = w.Write([]byte{pair[1]})
 }
 
 func (f *File) PrintNodeString(n NodePosition) string {

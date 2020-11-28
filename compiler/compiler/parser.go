@@ -415,18 +415,6 @@ func parseFn(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	}
 	c.expect(TK_RPAREN)
 
-	defarrow := c.createIfToken(TK_FATARROW, func(tk TokenPos) NodePosition {
-		return c.Expression(0)
-	})
-
-	if defarrow != 0 {
-		// this is a lambda function where the return type is to be inferred.
-		// it also has a body
-		// FIXME what about the generics ????
-		sig := c.createSignature(tk, tpl, args.first, EmptyNode)
-		return c.createFn(tk, name, sig, defarrow)
-	}
-
 	rettype := c.createIfTokenOrEmpty(TK_ARROW, func(tk TokenPos) NodePosition {
 		return c.Expression(0)
 	})
