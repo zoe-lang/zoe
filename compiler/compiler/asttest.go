@@ -35,17 +35,8 @@ func (f *File) PrintNode(w io.Writer, iter NodePosition) {
 		_, _ = w.Write([]byte{'('})
 	}
 	f.PrintNodeRepr(w, iter)
-	if n.ArgLen > 0 {
-		f.PrintNodeArg(w, n.Arg1)
-	}
-	if n.ArgLen > 1 {
-		f.PrintNodeArg(w, n.Arg2)
-	}
-	if n.ArgLen > 2 {
-		f.PrintNodeArg(w, n.Arg3)
-	}
-	if n.ArgLen > 3 {
-		f.PrintNodeArg(w, n.Arg4)
+	for i := 0; i < n.ArgLen; i++ {
+		f.PrintNodeArg(w, n.Args[i])
 	}
 	if n.ArgLen > 0 {
 		_, _ = w.Write([]byte{')'})

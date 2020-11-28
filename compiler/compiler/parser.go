@@ -17,7 +17,8 @@ func (b *nodeBuilder) parseFile() NodePosition {
 	file := b.createNode(Range{}, NODE_FILE)
 	if app.first != EmptyNode {
 		f := &b.nodes[file]
-		f.Arg1 = app.first
+		f.ArgLen = 1
+		f.Args[0] = app.first
 		b.extendsNodeRangeFromNode(file, app.first)
 	}
 	return file

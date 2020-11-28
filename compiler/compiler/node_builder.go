@@ -27,23 +27,10 @@ func (b *nodeBuilder) createNodeFromToken(tk TokenPos, nk AstNodeKind, children 
 	l := len(children)
 	if l > 0 {
 		node.ArgLen = l
-		node.Arg1 = children[0]
-		b.extendsNodeRangeFromNode(res, children[0])
-	}
-	if l > 1 {
-		node.Arg2 = children[1]
-		b.extendsNodeRangeFromNode(res, children[1])
-	}
-	if l > 2 {
-		node.Arg3 = children[2]
-		b.extendsNodeRangeFromNode(res, children[2])
-	}
-	if l > 3 {
-		node.Arg4 = children[3]
-		b.extendsNodeRangeFromNode(res, children[3])
-	}
-	if l > 4 {
-		panic("can't create node with more than 4 children, there is an error in the parser")
+		for i, chld := range children {
+			node.Args[i] = chld
+			b.extendsNodeRangeFromNode(res, chld)
+		}
 	}
 	return res
 }

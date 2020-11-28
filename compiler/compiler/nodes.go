@@ -92,11 +92,8 @@ type AstNode struct {
 	IsIncorrect bool  // true if the node was tagged as being incorrect and thus should not be type checked
 	Value       int   // can represent either a boolean (1 or 0), a node position, or a string id
 	ArgLen      int
-	Arg1        NodePosition
-	Arg2        NodePosition
-	Arg3        NodePosition
-	Arg4        NodePosition // probably unused
-	Next        NodePosition // The next node position as defined by its parent node when inside a list (tuples, template params or blocks)
+	Args        [4]NodePosition // probably unused
+	Next        NodePosition    // The next node position as defined by its parent node when inside a list (tuples, template params or blocks)
 }
 
 // op: Node(NODE_BINOP_PLUS, value: idx:FIRST) first(TYPE_IDENT, next: second) second(NODE_LIT_INT, next: 0)
@@ -113,10 +110,4 @@ func (a *AstNode) SetFlag(value Flag) {
 
 func (a *AstNode) HasFlag(value Flag) bool {
 	return a.Value&int(value) != 0
-}
-
-func (a *AstNode) SetSignature(template NodePosition, args NodePosition, ret NodePosition) {
-	a.Arg1 = template
-	a.Arg2 = args
-	a.Arg3 = ret
 }
