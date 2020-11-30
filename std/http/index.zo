@@ -1,8 +1,8 @@
-import 'net'
+import 'net' as net
 
-type Server[$Ctx] is struct {
+type Server[$Ctx] is struct (
 
-} implements {
+) implements {
 
   #(?
     Instanciate a new Server.

@@ -58,7 +58,7 @@ func main() {
 			log.Fatal("accept error:", err)
 		}
 		log.Printf("Client connected [%s]", conn.RemoteAddr().Network())
-		theconn := LspConnection{ReadWriteCloser: conn}
+		theconn := NewConnection(conn)
 		go theconn.ProcessIncomingRequests()
 	}
 }

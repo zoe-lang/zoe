@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 
+	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/fatih/color"
 	"github.com/valyala/fastjson"
 )
@@ -41,6 +42,18 @@ func (r *LspRequest) RawParams() []byte {
 
 func (r *LspRequest) ReplyEmpty() error {
 	return nil
+}
+
+func (r *LspRequest) Notify(method string, params interface{}) {
+	mars, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  method,
+		"params":  params,
+	})
+
+	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
+		log.Fatal("err not nil", err)
+	}
 }
 
 // Reply to the request if it was one.
@@ -85,6 +98,7 @@ func (r *LspRequest) ReplyError(val interface{}) {
 type LspConnection struct {
 	io.ReadWriteCloser
 	receivedShutdown bool
+	Solution         *zoe.Solution
 }
 
 // The Zoe LSP should be capable of being multi user.
@@ -94,6 +108,13 @@ type LspConnection struct {
 // it should be able to create a binary on the fly.
 
 var re_len = regexp.MustCompile(`Content-Length: (\d+)`)
+
+func NewConnection(conn io.ReadWriteCloser) *LspConnection {
+	return &LspConnection{
+		ReadWriteCloser: conn,
+		Solution:        zoe.NewSolution(),
+	}
+}
 
 // message is really the JSON
 // the buffer is guaranteed to be available

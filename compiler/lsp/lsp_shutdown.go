@@ -1,7 +1,5 @@
 package main
 
-import "os"
-
 func init() {
 	handlers["shutdown"] = HandleShutdown
 	handlers["exit"] = HandleExit
@@ -15,10 +13,9 @@ func HandleShutdown(req *LspRequest) error {
 }
 
 func HandleExit(req *LspRequest) error {
-	if req.Conn.receivedShutdown {
-		os.Exit(0)
-	} else {
-		os.Exit(1)
-	}
+	// if req.Conn.receivedShutdown {
+	// 	os.Exit(0)
+	// }
+	// os.Exit(1)
 	return nil
 }

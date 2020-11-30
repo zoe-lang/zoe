@@ -39,18 +39,8 @@ type File struct {
 	DocCommentMap map[NodePosition]TokenPos // node position => token position
 }
 
-// NewFile
-func NewFile(filename string) (*File, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
+func NewFileFromContents(filename string, contents []byte) (*File, error) {
+	data := []byte(contents)
 
 	ctx := &File{
 		Filename:      filename,
@@ -66,6 +56,22 @@ func NewFile(filename string) (*File, error) {
 	}
 
 	return ctx, nil
+
+}
+
+// NewFile
+func NewFile(filename string) (*File, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	return NewFileFromContents(filename, data)
 }
 
 func (f *File) GetTokenText(tk TokenPos) string {
