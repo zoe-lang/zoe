@@ -4,9 +4,9 @@ import './iterator' ( Iterable, Iterator )
   Slices are kinda like arrays.
 #)
 type Slice[$T] is struct (
-  length: Size,
-  capacity: Size,
-  ptr: *$T,
+  length: Size
+  capacity: Size
+  ptr: *$T
 )
 implements Iterable[$T] {
 

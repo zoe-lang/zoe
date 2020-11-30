@@ -515,7 +515,7 @@ func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 			fragment.append(v)
 		}
 		if !c.currentTokenIs(TK_RPAREN) {
-			c.expect(TK_COMMA)
+			c.consume(TK_COMMA)
 		}
 	}
 
