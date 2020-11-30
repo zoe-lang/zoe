@@ -3,16 +3,21 @@
 import 'io' as io
 
 #(?
-  (namespace (. hello World) {
+  (namespace (. hello world) {
     (import 'fmt' hello hello)
     (import 'fmt' ok world)
   })
 #)
-namespace hello.World {
+namespace hello.world {
   import 'fmt' ( hello, world as ok )
 }
 
-#? (namespace Toto {(import 'fmt' hey hey)})
-namespace Toto {
+#? (namespace other {(import (. hello world) hey hey)})
+namespace other {
+  import hello.world ( hey )
+}
+
+#? (namespace toto {(import 'fmt' hey hey)})
+namespace toto {
   import 'fmt' ( hey )
 }

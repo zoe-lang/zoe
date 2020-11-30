@@ -1,5 +1,8 @@
 
+import 'os' as os
+
 type Toto is Map[String, Int]
 
 var a: Slice[String] = ["toto"]
+
 os.print("toto")

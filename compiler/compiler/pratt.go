@@ -86,7 +86,7 @@ func (b *nodeBuilder) currentSym() *prattTk {
 // ExpressionToken parses an expression at the rbp specified by token
 func (b *nodeBuilder) ExpressionTokenRbp(tk TokenKind) NodePosition {
 	s := syms[tk]
-	return b.Expression(s.lbp + 1) // fixme ???
+	return b.Expression(s.lbp - 1) // fixme ???
 }
 
 func (b *nodeBuilder) advance() {
