@@ -28,9 +28,10 @@ type File struct {
 	Tokens      []Token
 	Nodes       NodeArray
 	RootNodePos NodePosition
-	Errors      []ZoeError
-	data        []byte
-	RootScope   *Scope
+	Scopes      []Scope
+
+	Errors []ZoeError
+	data   []byte
 
 	current *Token
 	tkpos   uint32
@@ -52,7 +53,6 @@ func NewFile(filename string) (*File, error) {
 	}
 
 	ctx := &File{
-		RootScope:     NewScope(SCOPE_NAMESPACE),
 		Filename:      filename,
 		Errors:        make([]ZoeError, 0),
 		data:          append(data, '\x00'),
@@ -93,14 +93,19 @@ func (f *File) reportError(pos Positioned, message ...string) {
 }
 
 func (f *File) createNodeBuilder() *nodeBuilder {
+
 	b := nodeBuilder{
 		file:          f,
 		tokens:        f.Tokens,
 		tokensLen:     TokenPos(len(f.Tokens)),
+		scopes:        make([]Scope, 0),
 		doccommentMap: f.DocCommentMap,
 	}
 
-	b.createNode(Range{}, NODE_EMPTY)
+	// root scope
+	b.ScopeNew(SCOPE_NAMESPACE)
+
+	b.createNode(Range{}, NODE_EMPTY, 0)
 
 	return &b
 }

@@ -5,9 +5,9 @@ import (
 )
 
 type prattTk struct {
-	lbp int                                                                             // left binding power
-	nud func(b *nodeBuilder, scope *Scope, tk TokenPos, lbp int) NodePosition           // when landing on it as a value or prefix
-	led func(b *nodeBuilder, scope *Scope, tk TokenPos, left NodePosition) NodePosition // when landing on it as an operator
+	lbp int                                                                                    // left binding power
+	nud func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition           // when landing on it as a value or prefix
+	led func(b *nodeBuilder, scope ScopePosition, tk TokenPos, left NodePosition) NodePosition // when landing on it as an operator
 }
 
 var closingTokens = [TK__MAX]bool{}
@@ -92,7 +92,7 @@ func (b *nodeBuilder) isEof() bool {
 }
 
 // Expression is the standard Pratt parser Expression function
-func (b *nodeBuilder) Expression(scope *Scope, rbp int) NodePosition {
+func (b *nodeBuilder) Expression(scope ScopePosition, rbp int) NodePosition {
 	// This is an error case, but has to be handled
 	if b.isEof() {
 		// error ?
@@ -130,8 +130,8 @@ func (b *nodeBuilder) Expression(scope *Scope, rbp int) NodePosition {
 
 func literal(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
-	s.nud = func(b *nodeBuilder, scope *Scope, tk TokenPos, lbp int) NodePosition {
-		return b.createNodeFromToken(tk, nk)
+	s.nud = func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition {
+		return b.createNodeFromToken(tk, nk, scope)
 	}
 }
 
@@ -143,10 +143,10 @@ func binary(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
 	s.lbp = precedence
 
-	s.led = func(lbp int) func(b *nodeBuilder, scope *Scope, tk TokenPos, left NodePosition) NodePosition {
-		return func(b *nodeBuilder, scope *Scope, tk TokenPos, left NodePosition) NodePosition {
+	s.led = func(lbp int) func(b *nodeBuilder, scope ScopePosition, tk TokenPos, left NodePosition) NodePosition {
+		return func(b *nodeBuilder, scope ScopePosition, tk TokenPos, left NodePosition) NodePosition {
 			right := b.Expression(scope, lbp-1)
-			return b.createNodeFromToken(tk, nk, left, right)
+			return b.createNodeFromToken(tk, nk, scope, left, right)
 		}
 	}(precedence)
 }
@@ -154,20 +154,20 @@ func binary(tk TokenKind, nk AstNodeKind) {
 func unary(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
 	rbp := lbp - 1
-	s.nud = func(b *nodeBuilder, scope *Scope, tk TokenPos, _ int) NodePosition {
+	s.nud = func(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
 		right := b.Expression(scope, rbp)
-		return b.createNodeFromToken(tk, nk, right)
+		return b.createNodeFromToken(tk, nk, scope, right)
 		// return NewNode(nk, tk.Position, c.Expression(rbp))
 	}
 }
 
-func led(tk TokenKind, fn func(b *nodeBuilder, scope *Scope, tk TokenPos, left NodePosition) NodePosition) {
+func led(tk TokenKind, fn func(b *nodeBuilder, scope ScopePosition, tk TokenPos, left NodePosition) NodePosition) {
 	s := &syms[tk]
 	s.lbp = lbp
 	s.led = fn
 }
 
-func nud(tk TokenKind, fn func(b *nodeBuilder, scope *Scope, tk TokenPos, lbp int) NodePosition) {
+func nud(tk TokenKind, fn func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition) {
 	s := &syms[tk]
 	s.nud = fn
 }

@@ -4,6 +4,7 @@ type nodeBuilder struct {
 	file          *File
 	nodes         NodeArray
 	tokens        []Token
+	scopes        []Scope
 	current       TokenPos
 	tokensLen     TokenPos
 	doccommentMap map[NodePosition]TokenPos
@@ -11,6 +12,10 @@ type nodeBuilder struct {
 
 func (b *nodeBuilder) reportError(rng Range, msg ...string) {
 	b.file.reportError(rng, msg...)
+}
+
+func (b *nodeBuilder) reportErrorAtPosition(pos NodePosition, msg ...string) {
+	b.file.reportError(b.nodes[pos].Range, msg...)
 }
 
 func (b *nodeBuilder) reportErrorAtToken(tk TokenPos, msg ...string) {
@@ -21,8 +26,8 @@ func (b *nodeBuilder) reportErrorAtToken(tk TokenPos, msg ...string) {
 	b.file.reportError(rng, msg...)
 }
 
-func (b *nodeBuilder) createNodeFromToken(tk TokenPos, nk AstNodeKind, children ...NodePosition) NodePosition {
-	res := b.createNode(b.tokens[tk].Range, nk)
+func (b *nodeBuilder) createNodeFromToken(tk TokenPos, nk AstNodeKind, scope ScopePosition, children ...NodePosition) NodePosition {
+	res := b.createNode(b.tokens[tk].Range, nk, scope)
 	node := &b.nodes[res]
 	l := len(children)
 	if l > 0 {
@@ -35,18 +40,18 @@ func (b *nodeBuilder) createNodeFromToken(tk TokenPos, nk AstNodeKind, children 
 	return res
 }
 
-func (b *nodeBuilder) createNodeFromCurrentToken(nk AstNodeKind) NodePosition {
-	return b.createNodeFromToken(b.current, nk)
+func (b *nodeBuilder) createNodeFromCurrentToken(nk AstNodeKind, scope ScopePosition) NodePosition {
+	return b.createNodeFromToken(b.current, nk, scope)
 }
 
 // createNode creates a node in the underlying node slice
 // it should not be called directly. Rather, the different
 // create...() provide a safer way to create the ast as it should
 // provide checks and balances.
-func (b *nodeBuilder) createNode(rng Range, kind AstNodeKind) NodePosition {
+func (b *nodeBuilder) createNode(rng Range, kind AstNodeKind, scope ScopePosition) NodePosition {
 	// maybe we should handle here the capacity of the node arrays ?
 	l := NodePosition(len(b.nodes))
-	b.nodes = append(b.nodes, AstNode{Kind: kind, Range: rng})
+	b.nodes = append(b.nodes, AstNode{Kind: kind, Range: rng, Scope: scope})
 	return l
 }
 
@@ -126,9 +131,9 @@ func (b *nodeBuilder) extendRangeFromToken(ni NodePosition, tk TokenPos) {
 // 	}
 // }
 
-func (b *nodeBuilder) createIdNode(tk TokenPos) NodePosition {
+func (b *nodeBuilder) createIdNode(tk TokenPos, scope ScopePosition) NodePosition {
 	idstr := internedIds.Save(b.getTokenText(tk))
-	idnode := b.createNodeFromToken(tk, NODE_ID)
+	idnode := b.createNodeFromToken(tk, NODE_ID, scope)
 	b.nodes[idnode].Value = idstr
 	return idnode
 }
@@ -141,8 +146,8 @@ func (b *nodeBuilder) getTokenText(tk TokenPos) string {
 	return b.file.GetTokenText(tk)
 }
 
-func (b *nodeBuilder) createBinOp(tk TokenPos, kind AstNodeKind, left NodePosition, right NodePosition) NodePosition {
-	res := b.createNodeFromToken(tk, kind, left, right)
+func (b *nodeBuilder) createBinOp(tk TokenPos, kind AstNodeKind, scope ScopePosition, left NodePosition, right NodePosition) NodePosition {
+	res := b.createNodeFromToken(tk, kind, scope, left, right)
 	b.nodes[res].Value = 2 // number of args
 	return res
 }

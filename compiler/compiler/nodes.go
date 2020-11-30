@@ -89,8 +89,9 @@ const (
 type AstNode struct {
 	Kind        AstNodeKind
 	Range       Range // the range inside the source file. an enclosing node updates its range according to its internal nodes
-	IsIncorrect bool  // true if the node was tagged as being incorrect and thus should not be type checked
-	Value       int   // can represent either a boolean (1 or 0), a node position, or a string id
+	Scope       ScopePosition
+	IsIncorrect bool // true if the node was tagged as being incorrect and thus should not be type checked
+	Value       int  // can represent either a boolean (1 or 0), a node position, or a string id
 	ArgLen      int
 	Args        [4]NodePosition // probably unused
 	Next        NodePosition    // The next node position as defined by its parent node when inside a list (tuples, template params or blocks)

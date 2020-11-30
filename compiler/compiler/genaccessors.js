@@ -27,8 +27,8 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 %% for (let n of v.nodes.filter(n => n.create.length)) { %%
 func (b *nodeBuilder) create{{
     n.name.replace('NODE', '').toLowerCase().replace(/_[a-z]/g, m => m[1].toUpperCase())
-  }}(tk TokenPos, {{n.create.map(c => c + ' NodePosition').join(', ')}}) NodePosition {
-  return b.createNodeFromToken(tk, {{n.name}}, {{n.create.join(', ')}})
+  }}(tk TokenPos, scope ScopePosition, {{n.create.map(c => c + ' NodePosition').join(', ')}}) NodePosition {
+  return b.createNodeFromToken(tk, {{n.name}}, scope, {{n.create.join(', ')}})
 }
 %% } %%
 `)
