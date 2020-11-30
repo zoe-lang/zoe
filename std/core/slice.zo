@@ -3,28 +3,21 @@ import './iterator' ( Iterable, Iterator )
 #(?
   Slices are kinda like arrays.
 #)
-template $T
-type Slice is struct (
-  length: Size
-  capacity: Size
-  ptr: *$T
+type Slice[$T] is struct (
+  length: Size,
+  capacity: Size,
+  ptr: *$T,
 )
-implements Iterable.$T {
+implements Iterable[$T] {
 
-  fn Iterable@getIterator() { Slice::Iterator(slc = this, pos = 0) }
+  method bounds() -> Range[Int32] { range(0, this.length) }
 
-}
+  method getIterator@Iterable() { SliceIterator(slc = this, pos = 0) }
 
-namespace Slice {
-
-  #(?
-
-  #)
-  template $T
   type SliceIterator is struct (
-    slc: *Slice@($T)
+    slc: *Slice[$T]
     pos: Size
-  ) implements Iterator<$T> {
+  ) implements Iterator[$T] {
 
     fn size() { this.slc.length }
 
@@ -33,7 +26,7 @@ namespace Slice {
         this.pos++
         return this.slc[this.pos]
       }
-      Iterator::Stop
+      Iterator.Stop()
     }
   }
 

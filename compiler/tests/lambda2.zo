@@ -1,1 +1,1 @@
-a.map(fn (a, i) => a)
+a.map(fn (a, i) { a })

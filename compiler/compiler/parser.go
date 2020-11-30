@@ -318,7 +318,7 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	})
 
 	if mod == 0 {
-		mod = b.ExpressionTokenRbp(TK_DOT)
+		mod = b.Expression(syms[TK_DOT].lbp - 1)
 	}
 
 	if as := b.consume(KW_AS); as != 0 {
@@ -337,7 +337,7 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	for b.asLongAsNotClosingToken() {
 		mod2 := b.cloneNode(mod)
 		cur := b.current
-		path := b.ExpressionTokenRbp(TK_DOT)
+		path := b.Expression(syms[TK_DOT].lbp - 1) // we want the tk_dots
 
 		if b.consume(KW_AS) != 0 {
 			as := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
@@ -501,7 +501,7 @@ func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
-	c.expect(TK_LBRACKET)
+	c.expect(TK_LPAREN)
 
 	fragment := c.fragment()
 	for !c.isEof() && !c.currentTokenIs(TK_RPAREN, TK_RBRACE, TK_RBRACKET) {
@@ -514,10 +514,13 @@ func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 			// fields should have them whether they have defaults or not
 			fragment.append(v)
 		}
+		if !c.currentTokenIs(TK_RPAREN) {
+			c.expect(TK_COMMA)
+		}
 	}
 
 	stru := c.createStruct(tk, fragment.first)
-	if tk := c.expect(TK_RBRACKET); tk != 0 {
+	if tk := c.expect(TK_RPAREN); tk != 0 {
 		c.extendRangeFromToken(stru, tk)
 	}
 
@@ -540,7 +543,7 @@ func parseVar(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	typenode := c.createIfTokenOrEmpty(TK_COLON, func(tk TokenPos) NodePosition {
 		// We scan above '=' level to avoid eating it if there is a default value
 		// right after the type declaration
-		return c.ExpressionTokenRbp(TK_EQ)
+		return c.Expression(syms[TK_EQ].lbp + 1) // anything above =
 	})
 
 	// default value !
