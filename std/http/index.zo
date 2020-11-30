@@ -1,0 +1,27 @@
+import 'net'
+
+type Server[$Ctx] is struct {
+
+} implements {
+
+  #(?
+    Instanciate a new Server.
+  #)
+  fn new() -> this {
+
+  }
+
+  method listenAndServe(addr: net.Address) -> Future<void> {
+    addr.accept(fn accept(conn) {
+      # ...
+    })
+  }
+
+}
+
+
+fn main() {
+  var srv = Server[MyCtx].new()
+  srv.listenAndServe(net.Address.localhost(3000))
+  var slc = [1, 2, 3] # Slice[Int]
+}

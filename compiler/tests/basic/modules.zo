@@ -3,12 +3,12 @@
 import 'io' as io
 
 #(?
-  (namespace (:: hello World) {
+  (namespace (. hello World) {
     (import 'fmt' hello hello)
     (import 'fmt' ok world)
   })
 #)
-namespace hello::World {
+namespace hello.World {
   import 'fmt' ( hello, world as ok )
 }
 

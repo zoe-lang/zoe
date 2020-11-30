@@ -16,7 +16,7 @@ fn test[$T](a: $T) -> $T { }
 
 # ???
 $if $.target == 'windows' {
-  type MyType = generic $T struct {
+  type MyType[$T] = struct {
 
   }
 }

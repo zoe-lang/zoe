@@ -112,7 +112,8 @@ func (z *File) Lex() error {
 	  	<top> "var"       => top { addToken(KW_VAR); goto yyc_top }
 			<top> "const"     => top { addToken(KW_CONST); goto yyc_top }
 			<top> "type"      => top { addToken(KW_TYPE); goto yyc_top }
-	  	<top> "fn"        => top { addToken(KW_FN); goto yyc_top }
+			<top> "fn"        => top { addToken(KW_FN); goto yyc_top }
+			<top> "method"    => top { addToken(KW_METHOD); goto yyc_top }
 			<top> "enum"      => top { addToken(KW_ENUM); goto yyc_top }
 			<top> "trait"     => top { addToken(KW_TRAIT); goto yyc_top }
 			<top> "struct"    => top { addToken(KW_STRUCT); goto yyc_top }
@@ -167,7 +168,6 @@ func (z *File) Lex() error {
 			<top> "."   { addToken(TK_DOT); goto yyc_top }
 			<top> ","   { addToken(TK_COMMA); goto yyc_top }
 			<top> ":"   { addToken(TK_COLON); goto yyc_top }
-			<top> "::"  { addToken(TK_COLCOL); goto yyc_top }
 			<top> ";"   { addToken(TK_SEMICOLON); goto yyc_top }
 			<top> "+"   { addToken(TK_PLUS); goto yyc_top }
 			<top> "+="  { addToken(TK_PLUSEQ); goto yyc_top }

@@ -30,13 +30,14 @@ const (
 	NODE_TUPLE // "tuple" ::: contents
 
 	NODE_FN            // bblue("fn") 				::: name signature definition
+	NODE_METHOD        // bblue("method")     ::: name signature definition
 	NODE_TYPE          // bblue("type") 			::: name template typeexp
 	NODE_NAMESPACE     // bblue("namespace")  ::: name block
 	NODE_VAR           // bblue("var")        ::: name typeexp assign
-	NODE_SIGNATURE     // "signature"               ::: template args rettype
-	NODE_RETURN        // "return" 									::: exp
-	NODE_STRUCT        // "struct"                  ::: varlist
-	NODE_UNION         // "union"										::: members
+	NODE_SIGNATURE     // "signature"         ::: template args rettype
+	NODE_RETURN        // "return" 						::: exp
+	NODE_STRUCT        // "struct"            ::: varlist
+	NODE_UNION         // "union"							::: members
 	NODE_STRING        // "str" ::: contents
 	NODE_ARRAY_LITERAL // "array" ::: contents
 	NODE_IF            // "if"                      ::: cond thenarm elsearm
@@ -72,7 +73,6 @@ const (
 	NODE_BIN_CALL      // "call"
 	NODE_BIN_INDEX     // "index"
 	NODE_BIN_DOT       // "."
-	NODE_BIN_NMSP      // "::"
 
 	NODE_LIT_NULL   // mag("null")
 	NODE_LIT_VOID   // mag("void")

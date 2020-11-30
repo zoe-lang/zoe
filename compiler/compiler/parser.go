@@ -169,6 +169,7 @@ func init() {
 
 	// fn eats up the expression right next to it
 	nud(KW_FN, parseFn)
+	nud(KW_METHOD, parseFn)
 
 	lbp += 2
 
@@ -267,16 +268,11 @@ func init() {
 	lbp += 2
 
 	binary(TK_DOT, NODE_BIN_DOT)
-	binary(TK_AT, NODE_BIN_CAST)
 	// binary(KW_AS)
 
 	lbp += 2
-
-	// lbp_colcol := lbp
-	binary(TK_COLCOL, NODE_BIN_NMSP)
-
+	binary(TK_AT, NODE_BIN_CAST)
 	lbp += 2
-	// all the terminals. Lbp was raised, but this is not necessary
 
 	nud(TK_QUOTE, parseQuote)
 
@@ -322,7 +318,7 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	})
 
 	if mod == 0 {
-		mod = b.ExpressionTokenRbp(TK_COLCOL)
+		mod = b.ExpressionTokenRbp(TK_DOT)
 	}
 
 	if as := b.consume(KW_AS); as != 0 {
@@ -341,7 +337,7 @@ func parseImport(b *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	for b.asLongAsNotClosingToken() {
 		mod2 := b.cloneNode(mod)
 		cur := b.current
-		path := b.ExpressionTokenRbp(TK_COLCOL)
+		path := b.ExpressionTokenRbp(TK_DOT)
 
 		if b.consume(KW_AS) != 0 {
 			as := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
@@ -505,7 +501,7 @@ func parseTypeDecl(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 
 func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
-	c.expect(TK_LPAREN)
+	c.expect(TK_LBRACKET)
 
 	fragment := c.fragment()
 	for !c.isEof() && !c.currentTokenIs(TK_RPAREN, TK_RBRACE, TK_RBRACKET) {
@@ -521,7 +517,7 @@ func parseStruct(c *nodeBuilder, tk TokenPos, _ int) NodePosition {
 	}
 
 	stru := c.createStruct(tk, fragment.first)
-	if tk := c.expect(TK_RPAREN); tk != 0 {
+	if tk := c.expect(TK_RBRACKET); tk != 0 {
 		c.extendRangeFromToken(stru, tk)
 	}
 

@@ -6,6 +6,6 @@ var c = ("a", 3)
 
 fn main() -> void {
   var a = 23
-  io::print(5 + 2)
+  io.print(5 + 2)
   callfn(4, 3, 2 + 1)
 }

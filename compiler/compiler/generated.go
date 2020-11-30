@@ -21,6 +21,8 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_FN: w.Write([]byte(bblue("fn")))
 
+  case NODE_METHOD: w.Write([]byte(bblue("method")))
+
   case NODE_TYPE: w.Write([]byte(bblue("type")))
 
   case NODE_NAMESPACE: w.Write([]byte(bblue("namespace")))
@@ -105,8 +107,6 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_BIN_DOT: w.Write([]byte("."))
 
-  case NODE_BIN_NMSP: w.Write([]byte("::"))
-
   case NODE_LIT_NULL: w.Write([]byte(mag("null")))
 
   case NODE_LIT_VOID: w.Write([]byte(mag("void")))
@@ -140,6 +140,10 @@ func (b *nodeBuilder) createTuple(tk TokenPos, contents NodePosition) NodePositi
 
 func (b *nodeBuilder) createFn(tk TokenPos, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_FN, name, signature, definition)
+}
+
+func (b *nodeBuilder) createMethod(tk TokenPos, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_METHOD, name, signature, definition)
 }
 
 func (b *nodeBuilder) createType(tk TokenPos, name NodePosition, template NodePosition, typeexp NodePosition) NodePosition {

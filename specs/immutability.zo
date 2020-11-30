@@ -46,28 +46,34 @@ fn createStuff() -> const Stuff {
 # Any modifier method may be called on new, provided that all its arguments expect const
 #
 
-type Slice<$T> = struct (
-  len Int
-  real_len Int
-  ptr *$T
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
 )
 implements {
-  push(val: $T) -> this {
+
+  fn new(cap = 16) -> Slice[$T] {
 
   }
 
-  pop() -> $T | null {
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
 
   }
 
   # Indicate that concat will not modify our array
   # Also return this since we could be aliased or consted
-  readonly concat(readonly slices... this) -> this {
+  method concat(readonly slices... this) -> this {
     # this could be const
     # or $T could be const
     # or both could be const
     return Slice::concat(this, slices...) # return (const) Slice<$T> as this
   }
+
 }
 
 namespace Slice {
@@ -160,10 +166,10 @@ modifyB(&a, &b) # Why doesn't it work ?
 
 
 
-type Slice<$T> {
-  len Int
-  real_size Int
-  ptr *$T
+type Slice[$T] {
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
 }
 implements {
   append(objs... $T) {
