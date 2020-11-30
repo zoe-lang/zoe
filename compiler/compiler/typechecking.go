@@ -31,46 +31,7 @@ package zoe
 
 type ContextType int
 
-const (
-	CONTEXT_NAMESPACE ContextType = iota + 1
-	CONTEXT_FUNCTION
-	CONTEXT_IMPLEMENT
-)
-
-type Scope struct {
-	Parent *Scope
-	Names  map[int]NodePosition
-	Kind   ContextType
-}
-
-func NewScope(kind ContextType) Scope {
-	return Scope{
-		Names: make(map[int]NodePosition),
-		Kind:  kind,
-	}
-}
-
-// FindPosition
-func (s *Scope) FindPosition(name int) (NodePosition, bool) {
-	if pos, ok := s.Names[name]; ok {
-		return pos, true
-	}
-	if s.Parent != nil {
-		return s.Parent.FindPosition(name)
-	}
-	return EmptyNode, false
-}
-
 // Context records the links between symbol uses and their corresponding declaration in the same file
 // or in other files
 type Context struct {
-}
-
-// Find an identifier inside a context
-func (c *Context) FindIdent(i int) {
-
-}
-
-func (c *Context) ReportError(_ string) {
-
 }

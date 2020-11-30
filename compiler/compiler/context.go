@@ -30,6 +30,7 @@ type File struct {
 	RootNodePos NodePosition
 	Errors      []ZoeError
 	data        []byte
+	RootScope   *Scope
 
 	current *Token
 	tkpos   uint32
@@ -51,6 +52,7 @@ func NewFile(filename string) (*File, error) {
 	}
 
 	ctx := &File{
+		RootScope:     NewScope(SCOPE_NAMESPACE),
 		Filename:      filename,
 		Errors:        make([]ZoeError, 0),
 		data:          append(data, '\x00'),
