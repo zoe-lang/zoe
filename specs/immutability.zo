@@ -67,24 +67,24 @@ implements {
 
   # Indicate that concat will not modify our array
   # Also return this since we could be aliased or consted
-  method concat(readonly slices... this) -> this {
+  method concat(slices: ...this) -> this {
     # this could be const
     # or $T could be const
     # or both could be const
-    return Slice::concat(this, slices...) # return (const) Slice<$T> as this
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
   }
 
 }
 
 namespace Slice {
   # A readonly function
-  readonly fn concat<$T>(readonly slices... []$T) -> []$T {
+  readonly fn concat[$T](readonly slices... []$T) -> []$T {
     var new_len = strs.sum(s => s.len) # or equivalent
-    staged res_ptr = ptr::alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr::alloc(new_len))
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
       let l = s.len
-      ptr::copy(s.ptr, wptr, l)
+      ptr.copy(s.ptr, wptr, l)
       wptr += l
     }
 
@@ -99,7 +99,7 @@ namespace Slice {
 type String is const Slice<UInt8>
 implements {
   fn concat(strs... []String) -> String {
-    return String::concat(this, strs...)
+    return String.concat(this, strs...)
   }
 }
 
@@ -107,11 +107,11 @@ namespace String {
   # Unsafe because
   unsafe fn concat(strs... []String) -> String {
     var new_len = strs.sum(s => s.len) # or equivalent
-    staged res_ptr = ptr::alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr::alloc(new_len))
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
       let l = s.len
-      ptr::copy(s.ptr, wptr, l)
+      ptr.copy(s.ptr, wptr, l)
       wptr += l
     }
 

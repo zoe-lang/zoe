@@ -73,7 +73,7 @@ namespace String {
 }
 
 
-type Map[$Key@Hashable, $Value] is struct (
+type Map[$Key: Map.Hashable, $Value] is struct (
   arr: ($Value | null)[]
 ) implements {
   # ...
