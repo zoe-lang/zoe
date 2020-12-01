@@ -61,7 +61,7 @@ func (b *nodeBuilder) consume(tk TokenKind) TokenPos {
 	return 0
 }
 
-func (b *nodeBuilder) expect(tk TokenKind) TokenPos {
+func (b *nodeBuilder) expectNoAdvance(tk TokenKind) TokenPos {
 	if b.current >= b.tokensLen {
 		b.reportErrorAtToken(b.current-1, `unexpected end of file`)
 		return 0
@@ -71,8 +71,15 @@ func (b *nodeBuilder) expect(tk TokenKind) TokenPos {
 		b.reportErrorAtToken(b.current, fmt.Sprintf(`expected '%s' but got '%s'`, tokstr[tk], b.getTokenText(cur)))
 		return 0
 	}
-	b.advance()
 	return cur
+}
+
+func (b *nodeBuilder) expect(tk TokenKind) TokenPos {
+	tok := b.expectNoAdvance(tk)
+	if tok != 0 {
+		b.advance()
+	}
+	return tok
 }
 
 func (b *nodeBuilder) currentSym() *prattTk {

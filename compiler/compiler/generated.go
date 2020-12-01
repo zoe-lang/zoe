@@ -55,6 +55,8 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_UNA_NOT: w.Write([]byte("!"))
 
+  case NODE_UNA_POINTER: w.Write([]byte("ptr"))
+
   case NODE_UNA_BITNOT: w.Write([]byte("~"))
 
   case NODE_BIN_ASSIGN: w.Write([]byte("="))
@@ -184,6 +186,10 @@ func (b *nodeBuilder) createArrayLiteral(tk TokenPos, scope ScopePosition, conte
 
 func (b *nodeBuilder) createIf(tk TokenPos, scope ScopePosition, cond NodePosition, thenarm NodePosition, elsearm NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_IF, scope, cond, thenarm, elsearm)
+}
+
+func (b *nodeBuilder) createUnaPointer(tk TokenPos, scope ScopePosition, pointed NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_UNA_POINTER, scope, pointed)
 }
 
 

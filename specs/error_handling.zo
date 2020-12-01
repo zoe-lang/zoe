@@ -32,6 +32,9 @@
     - Unhandled errors should be flagged as compilation error so that errors don't
       go unnoticed. This should probably be done as checking that a given variable
       doesn't reach the end of control flow with still "| error" in its type.
+
+  Things to avoid
+    - Forcing the programmer to check for all error types all the time, since these could change.
 #)
 
 # Does all sort of things
@@ -80,7 +83,7 @@ fn test2() -> Result[SomeResult] {
     | Error | FileError { return te }
     else { 42 }
 
-  if te is Error || te is FileError {
+  if te is Error or te is FileError {
     return te
   }
   # or

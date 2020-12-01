@@ -47,6 +47,7 @@ const (
 	NODE_UNA_PLUS      // "+"
 	NODE_UNA_MIN       // "-"
 	NODE_UNA_NOT       // "!"
+	NODE_UNA_POINTER   // "ptr" ::: pointed
 	NODE_UNA_BITNOT    // "~"
 	NODE_BIN_ASSIGN    // "="
 	NODE_BIN_PLUS      // "+"

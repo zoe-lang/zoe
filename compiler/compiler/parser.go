@@ -231,6 +231,13 @@ func init() {
 
 	// the index operator
 	// nud(TK_LBRACE, parseLbraceNud)
+	nud(TK_STAR, func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition {
+		typeexpr := b.Expression(scope, syms[TK_STAR].lbp-1)
+		if typeexpr == EmptyNode {
+			b.reportErrorAtToken(tk, "expected * to be followed by a type name")
+		}
+		return b.createUnaPointer(tk, scope, typeexpr)
+	})
 
 	lbp += 2
 
@@ -387,8 +394,10 @@ func parseQuote(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePos
 // Special handling for if block
 func parseIf(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
 	cond := c.Expression(scope, 0) // can be a block. this could be confusing.
+	c.expectNoAdvance(TK_LBRACE)
 	then := c.Expression(scope, 0) // most likely, a block.
 	els := c.createIfTokenOrEmpty(KW_ELSE, func(tk TokenPos) NodePosition {
+		c.expectNoAdvance(TK_LBRACE)
 		return c.Expression(scope, 0)
 	})
 

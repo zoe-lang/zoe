@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 
 	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/sourcegraph/go-lsp"
@@ -43,9 +42,10 @@ func HandleHover(req *LspRequest) error {
 
 	res := lsp.Hover{}
 
+	dbg := file.NodeDebug(pos)
 	res.Contents = []lsp.MarkedString{{
 		Language: "zoe",
-		Value:    fmt.Sprintf("found position %v", pos) + file.GetNodeText(pos),
+		Value:    dbg + " " + file.GetNodeText(pos),
 	}}
 
 	req.Reply(res)

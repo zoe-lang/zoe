@@ -5,13 +5,13 @@
   There are no operators, only function calls.
 #)
 
-fn test(arr Slice<Int32>) -> Void {
+fn test(arr: Slice[Int32]) -> Void {
   for var i = 0; i < l; i++ {
     arr[i] = i * 2
   }
 }
 #>>>>
-fn test(arr Slice<Int32>) -> Void {
+fn test(arr: Slice[Int32]) -> Void {
   # how does test know about arr ?
   # what about debug symbols
   var i Int32
