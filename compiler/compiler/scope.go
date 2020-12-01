@@ -49,7 +49,7 @@ func (b *nodeBuilder) ScopeAddSymbol(scope ScopePosition, pos NodePosition) {
 		// we do not set that variable since it already existed in one of our parent scope.
 		// note ; the choice was made to not allow shadowing to avoid footguns, since every
 		// Zoe module needs to explicitely import other symbols (except maybe for core, which will then pollute)
-		b.reportErrorAtPosition(pos, "symbol '", internedIds.Get(value), "' was already defined at line ", strconv.Itoa(int(b.nodes[orig].Range.Line)))
+		b.reportErrorAtPosition(pos, "symbol '", InternedIds.Get(value), "' was already defined at line ", strconv.Itoa(int(b.nodes[orig].Range.Line)))
 		return
 	}
 	s.Names[value] = pos

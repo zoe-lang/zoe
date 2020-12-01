@@ -17,16 +17,12 @@ func HandleDidOpen(req *LspRequest) error {
 		return err
 	}
 
-	f, err := req.Conn.Solution.AddFile(string(fsent.TextDocument.URI), fsent.TextDocument.Text)
+	f, err := req.Conn.Solution.AddFile(string(fsent.TextDocument.URI), fsent.TextDocument.Text, fsent.TextDocument.Version)
 	if err == nil {
 		if len(f.Errors) > 0 {
 			diags := make([]lsp.Diagnostic, len(f.Errors))
 			for i, e := range f.Errors {
-				diags[i].Message = e.Message
-				diags[i].Range = lsp.Range{
-					Start: lsp.Position{Line: int(e.Range.Line - 1), Character: int(e.Range.Column - 1)},
-					End:   lsp.Position{Line: int(e.Range.Line - 1), Character: int(e.Range.Column)},
-				}
+				diags[i] = e.ToLspDiagnostic()
 			}
 			req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
 				URI:         fsent.TextDocument.URI,
@@ -48,7 +44,23 @@ func HandleDidChange(req *LspRequest) error {
 	if err := json.Unmarshal(req.RawParams(), &changes); err != nil {
 		return err
 	}
-	req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text)
+	req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
+
+	f, err := req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
+	if err == nil {
+		if len(f.Errors) > 0 {
+			diags := make([]lsp.Diagnostic, len(f.Errors))
+			for i, e := range f.Errors {
+				diags[i] = e.ToLspDiagnostic()
+			}
+			req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
+				URI:         changes.TextDocument.URI,
+				Diagnostics: diags,
+			})
+		}
+		// pp.Print(f.Errors)
+	}
+
 	// pp.Print(changes)
 	return nil
 }

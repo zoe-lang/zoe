@@ -36,7 +36,7 @@ const (
 	NODE_VAR           // bblue("var")        ::: name typeexp assign
 	NODE_SIGNATURE     // "signature"         ::: template args rettype
 	NODE_RETURN        // "return" 						::: exp
-	NODE_STRUCT        // "struct"            ::: varlist
+	NODE_STRUCT        // bblue("struct")            ::: varlist
 	NODE_UNION         // "union"							::: members
 	NODE_STRING        // "str" ::: contents
 	NODE_ARRAY_LITERAL // "array" ::: contents
@@ -81,7 +81,7 @@ const (
 	NODE_LIT_CHAR   // green(f.GetRangeText(n.Range))
 	NODE_LIT_RAWSTR // green("'",f.GetRangeText(n.Range),"'")
 	NODE_LIT_NUMBER // mag(f.GetRangeText(n.Range))
-	NODE_ID         // cyan(internedIds.Get(n.Value))
+	NODE_ID         // cyan(InternedIds.Get(n.Value))
 
 	NODE__SIZE
 )
@@ -92,7 +92,7 @@ type AstNode struct {
 	Scope       ScopePosition
 	IsIncorrect bool // true if the node was tagged as being incorrect and thus should not be type checked
 	Value       int  // can represent either a boolean (1 or 0), a node position, or a string id
-	ArgLen      int
+	ArgLen      int8
 	Args        [4]NodePosition // probably unused
 	Next        NodePosition    // The next node position as defined by its parent node when inside a list (tuples, template params or blocks)
 }

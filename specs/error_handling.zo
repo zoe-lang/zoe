@@ -51,7 +51,7 @@ type Error is struct (
 )
 implements {
 
-  wrap(err *Error) -> *Error {
+  method wrap(err: *Error) -> *Error {
     err.wrapped = this # this is always a pointer
     return err
   }
@@ -69,7 +69,7 @@ fn test() -> Int32 | error {
   if some_condition {
     return 32
   }
-  return io::AccessError(message = 'Something happened', filename = 'Yes')
+  return io.AccessError(message = 'Something happened', filename = 'Yes')
 }
 
 # error is like any, except it's only error types
@@ -77,8 +77,8 @@ fn test2() -> Result[SomeResult] {
   var te = try test() catch te.wrap(FileError('mais naan'))
 
   var val = switch typeof te
-    | Error | FileError => return te
-    else 42
+    | Error | FileError { return te }
+    else { 42 }
 
   if te is Error || te is FileError {
     return te

@@ -5,6 +5,9 @@ func (f *File) Parse() {
 	f.RootNodePos = b.parseFile()
 	f.Nodes = b.nodes
 	f.Scopes = b.scopes
+	// for i := range f.Nodes {
+	// 	log.Print(f.NodeDebug(NodePosition(i)))
+	// }
 	// pp.Print(f.RootScope)
 }
 
@@ -488,27 +491,29 @@ func parseTemplate(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) Node
 }
 
 // parseTypeDecl parses a type declaration
-func parseTypeDecl(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
-	name := c.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
-		return c.createIdNode(tk, scope)
+func parseTypeDecl(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
+	name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
+		return b.createIdNode(tk, scope)
 	})
 
-	tpl := c.createIfTokenOrEmpty(TK_LBRACE, func(tk TokenPos) NodePosition {
-		return parseTemplate(c, scope, tk, 0)
+	tpl := b.createIfTokenOrEmpty(TK_LBRACE, func(tk TokenPos) NodePosition {
+		return parseTemplate(b, scope, tk, 0)
 	})
 
-	if c.consume(KW_IS) == 0 {
-		c.reportErrorAtToken(c.current, `expected 'is' after type declaration`)
+	if b.consume(KW_IS) == 0 {
+		b.reportErrorAtToken(b.current, `expected 'is' after type declaration`)
 	}
 
 	// there might be a pipe here. We don't have to parse a union afterwards because
 	// if there is only one type, it doesn't matter.
-	c.consume(TK_PIPE)
+	b.consume(TK_PIPE)
 
-	typdef := c.Expression(scope, 0)
+	typdef := b.Expression(scope, 0)
+	// b.file.Nodes = b.nodes
+	// log.Print("!!!", b.file.NodeDebug(typdef))
 	// raise an error if there is no typedef ?
 
-	return c.createType(tk, scope, name, tpl, typdef)
+	return b.createType(tk, scope, name, tpl, typdef)
 }
 
 func parseStruct(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {

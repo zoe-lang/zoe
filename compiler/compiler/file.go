@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sourcegraph/go-lsp"
 )
 
 type ZoeError struct {
@@ -21,6 +22,16 @@ func (err ZoeError) Print(w io.Writer) {
 	_, _ = w.Write([]byte(": " + err.Message + "\n"))
 }
 
+func (err ZoeError) ToLspDiagnostic() lsp.Diagnostic {
+	d := lsp.Diagnostic{}
+	d.Message = err.Message
+	d.Range.Start.Line = int(err.Range.Line - 1)
+	d.Range.Start.Character = int(err.Range.Column - 1)
+	d.Range.End.Line = int(err.Range.LineEnd - 1)
+	d.Range.End.Character = int(err.Range.ColumnEnd - 1)
+	return d
+}
+
 // File holds the current parsing context
 // also does the error handling stuff.
 type File struct {
@@ -29,6 +40,7 @@ type File struct {
 	Nodes       NodeArray
 	RootNodePos NodePosition
 	Scopes      []Scope
+	Version     int
 
 	Errors []ZoeError
 	data   []byte
@@ -114,4 +126,42 @@ func (f *File) createNodeBuilder() *nodeBuilder {
 	b.createNode(Range{}, NODE_EMPTY, 0)
 
 	return &b
+}
+
+// Find a node that matches a given range
+func (f *File) FindNodePosition(lsppos *lsp.Position) (NodePosition, error) {
+	pos := f.RootNodePos
+	nodes := f.Nodes
+
+	// log.Print(lsppos.Line+1, ":", lsppos.Character+1)
+search:
+	for nodes[pos].Range.HasPosition(lsppos) {
+		// First check in the node's children
+		for _, chld := range nodes[pos].Args {
+			if chld == EmptyNode {
+				continue
+			}
+			if nodes[chld].Range.HasPosition(lsppos) {
+				// log.Print(f.NodeDebug(chld))
+				pos = chld
+				continue search
+			}
+
+			// Then check in its list
+			other := nodes[chld].Next
+			for other != EmptyNode {
+				// log.Print(f.NodeDebug(other))
+				if nodes[other].Range.HasPosition(lsppos) {
+					pos = other
+					continue search
+				}
+				other = nodes[other].Next
+			}
+
+		}
+
+		break
+	}
+
+	return pos, nil
 }

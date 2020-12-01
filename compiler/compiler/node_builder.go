@@ -31,7 +31,7 @@ func (b *nodeBuilder) createNodeFromToken(tk TokenPos, nk AstNodeKind, scope Sco
 	node := &b.nodes[res]
 	l := len(children)
 	if l > 0 {
-		node.ArgLen = l
+		node.ArgLen = int8(l)
 		for i, chld := range children {
 			node.Args[i] = chld
 			b.extendsNodeRangeFromNode(res, chld)
@@ -132,7 +132,7 @@ func (b *nodeBuilder) extendRangeFromToken(ni NodePosition, tk TokenPos) {
 // }
 
 func (b *nodeBuilder) createIdNode(tk TokenPos, scope ScopePosition) NodePosition {
-	idstr := internedIds.Save(b.getTokenText(tk))
+	idstr := InternedIds.Save(b.getTokenText(tk))
 	idnode := b.createNodeFromToken(tk, NODE_ID, scope)
 	b.nodes[idnode].Value = idstr
 	return idnode

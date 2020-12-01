@@ -33,7 +33,7 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_RETURN: w.Write([]byte("return"))
 
-  case NODE_STRUCT: w.Write([]byte("struct"))
+  case NODE_STRUCT: w.Write([]byte(bblue("struct")))
 
   case NODE_UNION: w.Write([]byte("union"))
 
@@ -121,7 +121,7 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_LIT_NUMBER: w.Write([]byte(mag(f.GetRangeText(n.Range))))
 
-  case NODE_ID: w.Write([]byte(cyan(internedIds.Get(n.Value))))
+  case NODE_ID: w.Write([]byte(cyan(InternedIds.Get(n.Value))))
 
   }
 }

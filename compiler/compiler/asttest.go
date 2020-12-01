@@ -2,6 +2,7 @@ package zoe
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"regexp"
@@ -14,6 +15,14 @@ var reNoSuperflousSpace = regexp.MustCompilePOSIX(`[ \n\t\r]+`)
 var reBeforeSpace = regexp.MustCompilePOSIX(` (\}|\)|\])`)
 var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
+
+func (f *File) NodeDebug(pos NodePosition) string {
+	var buf bytes.Buffer
+	n := f.Nodes[pos]
+	f.PrintNodeRepr(&buf, pos)
+	s := buf.String()
+	return fmt.Sprintf("(%v:%s %v:%v - %v:%v [%v] -> %v)", pos, s, n.Range.Line, n.Range.Column, n.Range.LineEnd, n.Range.ColumnEnd, n.Args, n.Next)
+}
 
 func cleanup(str []byte) []byte {
 	s := reAstComments.ReplaceAllLiteral(str, []byte{})
@@ -40,7 +49,7 @@ func (f *File) PrintNode(w io.Writer, iter NodePosition) {
 		_, _ = w.Write([]byte{'('})
 	}
 	f.PrintNodeRepr(w, iter)
-	for i := 0; i < n.ArgLen; i++ {
+	for i := int8(0); i < n.ArgLen; i++ {
 		f.PrintNodeArg(w, n.Args[i])
 	}
 	if n.ArgLen > 0 {

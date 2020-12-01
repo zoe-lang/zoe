@@ -68,6 +68,8 @@ func (z *File) Lex() error {
 		n.Line = line
 		n.Column = col
 		updateLines()
+		n.LineEnd = line
+		n.ColumnEnd = col
 
 		start = offset
 

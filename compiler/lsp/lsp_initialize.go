@@ -25,6 +25,7 @@ func HandleInitialize(req *LspRequest) error {
 				TriggerCharacters: []string{".", "::"},
 				// ResolveProvider:   true, // no resolve, we send everything in one go.
 			},
+			HoverProvider: true,
 		},
 	})
 
