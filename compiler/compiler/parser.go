@@ -117,7 +117,8 @@ func init() {
 		return next
 	})
 
-	// nud(KW_FOR, parseFor)
+	nud(KW_FOR, parseFor)
+	nud(KW_WHILE, parseWhile)
 	nud(KW_IF, parseIf)
 
 	nud(KW_VAR, parseVar)
@@ -181,6 +182,8 @@ func init() {
 
 	// unary(KW_LOCAL)
 	// unary(KW_CONST)
+	binary(TK_EQEQ, NODE_BIN_EQ)
+	binary(TK_NOTEQ, NODE_BIN_NEQ)
 
 	lbp += 2
 
@@ -213,6 +216,7 @@ func init() {
 
 	binary(TK_STAR, NODE_BIN_MUL)
 	binary(TK_DIV, NODE_BIN_DIV)
+	binary(TK_MOD, NODE_BIN_MOD)
 
 	lbp += 2
 
@@ -224,6 +228,13 @@ func init() {
 	// parseParens()
 	// When used right next to an expression, then paren is a function call
 	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
+
+	led(TK_PLUSPLUS, func(b *nodeBuilder, scope ScopePosition, tk TokenPos, left NodePosition) NodePosition {
+		return b.createUnaryOp(tk, NODE_UNA_PLUSPLUS, scope, left)
+	})
+	led(TK_MINMIN, func(b *nodeBuilder, scope ScopePosition, tk TokenPos, left NodePosition) NodePosition {
+		return b.createUnaryOp(tk, NODE_UNA_MINMIN, scope, left)
+	})
 
 	lbp += 2
 
@@ -394,10 +405,10 @@ func parseQuote(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePos
 // Special handling for if block
 func parseIf(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
 	cond := c.Expression(scope, 0) // can be a block. this could be confusing.
-	c.expectNoAdvance(TK_LBRACE)
+	c.expectNoAdvance(TK_LBRACKET)
 	then := c.Expression(scope, 0) // most likely, a block.
 	els := c.createIfTokenOrEmpty(KW_ELSE, func(tk TokenPos) NodePosition {
-		c.expectNoAdvance(TK_LBRACE)
+		c.expectNoAdvance(TK_LBRACKET)
 		return c.Expression(scope, 0)
 	})
 
@@ -551,6 +562,24 @@ func parseStruct(c *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePo
 	}
 
 	return stru
+}
+
+func parseFor(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
+	forscope := b.ScopeNewSub(scope, SCOPE_BLOCK)
+	decl := b.Expression(forscope, 0) // this is where a var is created
+	b.expect(KW_IN)
+	inexp := b.Expression(scope, 0)
+	b.expectNoAdvance(TK_LBRACKET) // needs an opening '{'
+	block := b.Expression(forscope, 0)
+	return b.createFor(tk, scope, decl, inexp, block)
+}
+
+func parseWhile(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
+	whilescope := b.ScopeNewSub(scope, SCOPE_BLOCK)
+	cond := b.Expression(whilescope, 0)
+	b.expectNoAdvance(TK_LBRACKET)
+	block := b.Expression(whilescope, 0)
+	return b.createWhile(tk, scope, cond, block)
 }
 
 // parse a variable statement, but also a variable declaration inside

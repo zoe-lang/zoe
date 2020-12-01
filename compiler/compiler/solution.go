@@ -49,18 +49,31 @@ func Resolve(from string, asked string) (string, error) {
 
 	// There are three ways a package could be imported.
 
+	// 1.
 	// The first one is to look in the standard library ; such imports do not start by
 	// . or / and do not contain a '.' in their name.
 	// The compiler will thus go look in its known standard directory path as a base
 	// to resolve `asked`.
 
+	// 2.
 	// If the asked path is not positioned and contains a '.', then it is a third-party
 	// module and will be looked for in the module cache directory.
+	// There will be a simple module manager that will deal with versioning and cloning
+	// the package from their git (or other CVS ?) repositories.
+	// This approach requires a zoe.toml somewhere that tells the compiler which version
+	// of the module it should look for exactly, or if it actually was overriden with
+	// a local path for local development changes.
 
-	// Thus, zoe will look in its configured standard library path as the real base.
+	// 3.
+	// If the asked path starts by './', then it is a local import. The name is computed
+	// simply by joining asked to from.
+	// The use of ../ is disallowed.
 
-	// If a zoe.toml file is found, we look for overrides for package resolution
-	// How to make them convienent ? (more so than node_modules links for instance ?)
+	// 4.
+	// If the asked path starts by '/', then it is a "pseudo" absolute import, where
+	// the real base is the first directory containing a "zoe.toml" file.
+	// There is no absolute import to the filesystem, as allowing so would probably
+	// create a world of pain.
 
 	path := asked
 

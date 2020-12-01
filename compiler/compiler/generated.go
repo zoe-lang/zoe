@@ -43,6 +43,8 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_IF: w.Write([]byte("if"))
 
+  case NODE_FOR: w.Write([]byte("for"))
+
   case NODE_WHILE: w.Write([]byte("while"))
 
   case NODE_IMPORT: w.Write([]byte(bblue("import")))
@@ -51,7 +53,11 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_UNA_PLUS: w.Write([]byte("+"))
 
+  case NODE_UNA_PLUSPLUS: w.Write([]byte("++"))
+
   case NODE_UNA_MIN: w.Write([]byte("-"))
+
+  case NODE_UNA_MINMIN: w.Write([]byte("--"))
 
   case NODE_UNA_NOT: w.Write([]byte("!"))
 
@@ -186,6 +192,14 @@ func (b *nodeBuilder) createArrayLiteral(tk TokenPos, scope ScopePosition, conte
 
 func (b *nodeBuilder) createIf(tk TokenPos, scope ScopePosition, cond NodePosition, thenarm NodePosition, elsearm NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_IF, scope, cond, thenarm, elsearm)
+}
+
+func (b *nodeBuilder) createFor(tk TokenPos, scope ScopePosition, vardecl NodePosition, rng NodePosition, block NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_FOR, scope, vardecl, rng, block)
+}
+
+func (b *nodeBuilder) createWhile(tk TokenPos, scope ScopePosition, cond NodePosition, block NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_WHILE, scope, cond, block)
 }
 
 func (b *nodeBuilder) createUnaPointer(tk TokenPos, scope ScopePosition, pointed NodePosition) NodePosition {

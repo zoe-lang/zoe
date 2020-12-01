@@ -3,7 +3,7 @@
   Or does it ?
 #)
 
-import 'core' { @Iterator, Add, Substract, GetIndex, SetIndex }
+import 'core' ( Iterator, Add, Substract, GetIndex, SetIndex )
 
 namespace MyType {
   fn new() -> MyType {
@@ -12,7 +12,7 @@ namespace MyType {
 }
 
 type MyType is struct (
-  arr: [][]&SomeOtherType # Slices are baked into the language
+  arr: Slice[*Slice[*SomeOtherType]] # Slices are baked into the language
 ) implements GetIndex =  {
   fn getIndex(idx: Int) -> Int {
     this.arr[idx]
@@ -29,8 +29,8 @@ type Slice[$T] is struct (
 
 ) implements {
 
-  slice(start: Int, end: Int) -> Slice<$T> {
-    return Slice[$T]{len: end - start, ptr: this.ptr + start}
+  method slice(start: Int, end: Int) -> Slice<$T> {
+    return Slice[$T](len = end - start, ptr = this.ptr + start)
   }
 
 }
@@ -38,67 +38,68 @@ type Slice[$T] is struct (
 namespace Slice {
 
   fn new[$T](l: Int) -> Slice<$T> {
-    return Slice<$T>{
-      len: l,
-      ptr: mem::alloc<$T>(l) # Is alloc builtin ?
-    }
+    return Slice<$T>(
+      len = l,
+      ptr = mem.alloc[$T](l) # Is alloc builtin ?
+    )
   }
 
 }
 
 
-type Char is UInt8 {
-  isUtf8Codepoint() -> Boolean { stub }
+type Char is UInt8 implements {
+  method isUtf8Codepoint() -> Boolean { stub }
 }
 
 type Rune is UInt
 
-type String is Slice[Char] {
+type String is Slice[Char] implements {
 
 }
 
 namespace String {
 
   # Take in a pointer. Pointers are unsafe.
-  fn fromCString(cstring *Char) -> String {
+  fn fromCString(cstring: *Char) -> String {
     # Compute the size.
     let start = cstring
-    for *cstring != Char(0) {
+    while *cstring != Char(0) {
       # While the string is not null terminated
       cstring++
     }
-    return String{ptr: Int(cstring - start), len: count}
+    return String(ptr = cstring - start, len = count)
   }
 
 }
 
 
-struct Map[$Key@Hashable, $Value] {
+type Map[$Key@Hashable, $Value] is struct (
+  arr: ($Value | null)[]
+) implements {
   # ...
-  local arr: ($Value | null)[]
 
-  get(idx: $Key) -> $Value | null {
+  method get(idx: $Key) -> $Value | null {
     # Collision ?
-    let hs = hash::get_int_hash(idx) % this.arr.length
+    let hs = hash.get_int_hash(idx) % this.arr.length
     return this.arr[hs]
   }
 
   #(
     Standard hashable store
   #)
-  set(idx: $Key, value: $Value) -> $Value {
-    let hs = hash::get_int_hash(idx) % this.arr.length
+  method set(idx: $Key, value: $Value) -> $Value {
+    let hs = hash.get_int_hash(idx) % this.arr.length
     # check for collision !
     this.arr[hs] = value
     return value
   }
 
-  values() -> Map::ValueIterator<$Value> { return Map::ValueIterator::new[$Value](this) }
-  keys() -> Map::KeyIterator<$Key> { return Map::KeyIterator::new[$Key](this) }
-  pairs() -> Map::PairIterator<$Key, $Value> => { return Map::PairIterator<$Key, $Value>::new(this) }
+  method values() -> Map.ValueIterator[$Value] { return Map.ValueIterator.new[$Value](this) }
+  method keys() -> Map.KeyIterator[$Key] { return Map.KeyIterator.new[$Key](this) }
+  method pairs() -> Map.PairIterator[$Key, $Value] { return Map.PairIterator[$Key, $Value].new(this) }
 }
 
-namespace Map::ValueIterator {
+namespace Map.ValueIterator {
   # any is unusable
   type ValueIterator[$Value] is struct (
 
@@ -110,16 +111,16 @@ namespace Map::ValueIterator {
 }
 
 fn main() {
-  let m = Map::new[String, String](200)
+  let m = Map.new[String, String](200)
   m.set('hello', 'world')
   m.set('pouet', 'hey')
 
-  if let String(test) = m.get('hello') {
-    # String | Map::NoValue
+  if String(test) = m.get('hello') {
+    # String | Map.NoValue
     # ... do stuff !
   }
 
-  for let key, value in m.pairs() {
-    log::print("${key}: ${value}")
+  for (key, value) in m.pairs() {
+    log.print("${key}: ${value}")
   }
 }

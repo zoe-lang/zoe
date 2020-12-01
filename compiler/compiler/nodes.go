@@ -41,11 +41,14 @@ const (
 	NODE_STRING        // "str" ::: contents
 	NODE_ARRAY_LITERAL // "array" ::: contents
 	NODE_IF            // "if"                      ::: cond thenarm elsearm
-	NODE_WHILE         // "while"
+	NODE_FOR           // "for"   ::: vardecl rng block
+	NODE_WHILE         // "while" ::: cond block
 	NODE_IMPORT        // bblue("import")
 	NODE_UNA_ELLIPSIS  // "..."
 	NODE_UNA_PLUS      // "+"
+	NODE_UNA_PLUSPLUS  // "++"
 	NODE_UNA_MIN       // "-"
+	NODE_UNA_MINMIN    // "--"
 	NODE_UNA_NOT       // "!"
 	NODE_UNA_POINTER   // "ptr" ::: pointed
 	NODE_UNA_BITNOT    // "~"

@@ -148,7 +148,11 @@ func (b *nodeBuilder) getTokenText(tk TokenPos) string {
 
 func (b *nodeBuilder) createBinOp(tk TokenPos, kind AstNodeKind, scope ScopePosition, left NodePosition, right NodePosition) NodePosition {
 	res := b.createNodeFromToken(tk, kind, scope, left, right)
-	b.nodes[res].Value = 2 // number of args
+	return res
+}
+
+func (b *nodeBuilder) createUnaryOp(tk TokenPos, kind AstNodeKind, scope ScopePosition, left NodePosition) NodePosition {
+	res := b.createNodeFromToken(tk, kind, scope, left)
 	return res
 }
 

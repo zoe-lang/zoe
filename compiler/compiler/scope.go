@@ -9,6 +9,7 @@ const (
 	SCOPE_NAMESPACE ScopeType = iota + 1
 	SCOPE_FUNCTION
 	SCOPE_IMPLEMENT
+	SCOPE_BLOCK
 )
 
 type Scope struct {
