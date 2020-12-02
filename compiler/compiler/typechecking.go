@@ -29,8 +29,6 @@ package zoe
 // Find implementations is however a little more involved, because we have to go look into all the open files if there
 // is the possibility of the given symbol to be used.
 
-type ContextType int
-
 // Context records the links between symbol uses and their corresponding declaration in the same file
 // or in other files
 type Context struct {

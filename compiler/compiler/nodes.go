@@ -15,6 +15,7 @@ type NodeArray []AstNode
 
 const (
 	FLAG_LOCAL Flag = 1 << iota
+	FLAG_CONST
 )
 
 // Identifiers are interned for faster lookup in a concurrent-safe interning store
@@ -51,6 +52,7 @@ const (
 	NODE_UNA_MINMIN    // "--"
 	NODE_UNA_NOT       // "!"
 	NODE_UNA_POINTER   // "ptr" ::: pointed
+	NODE_UNA_REF       // "ref" ::: variable
 	NODE_UNA_BITNOT    // "~"
 	NODE_BIN_ASSIGN    // "="
 	NODE_BIN_PLUS      // "+"

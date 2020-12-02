@@ -9,9 +9,382 @@
 # them.
 # They're used in multi-threading, as they don't need locking when accessing them and they
 # should greatly simplify garbage collection.
-let a &const Typ = &somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
 # alternatively
-let a = const somethingThatGivesTyp() # this will infer a's type and mark it as const.
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+const a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
 
 # A variable may be declared as a staging variable that will eventually become const
 # A staged variable may be used in method calls that include it, other staged variables and const variables.
@@ -78,8 +451,8 @@ implements {
 
 namespace Slice {
   # A readonly function
-  readonly fn concat[$T](readonly slices... []$T) -> []$T {
-    var new_len = strs.sum(s => s.len) # or equivalent
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
@@ -96,17 +469,17 @@ namespace Slice {
 
 ##############################
 
-type String is const Slice<UInt8>
+type String is const Slice[UInt8]
 implements {
-  fn concat(strs... []String) -> String {
-    return String.concat(this, strs...)
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
   }
 }
 
 namespace String {
   # Unsafe because
-  unsafe fn concat(strs... []String) -> String {
-    var new_len = strs.sum(s => s.len) # or equivalent
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
@@ -138,7 +511,7 @@ new c = createStuff() # c is still mutable but the scope of things that can be a
 # new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
 # of its memory is given to anything that can modify it later on elsewhere.
 
-fn doMoreStuff(c &new Stuff) {
+fn doMoreStuff(c: Stuff) {
   # A "new" reference may only be given to functions that accept const or new references
 }
 
@@ -147,12 +520,12 @@ new a Slice<Int> # The ints in the Slice are new also as long as a wasn't change
 
 # What about pure methods, that may only modify oneself
 # What about infecting methods with new types / const types, just like it infects generics
-fn modifyA(a &Slice<Int>) {
+fn modifyA(a: *Slice[Int]) {
   a.push(34) # 34 is new here.
 }
 
 var b Slice<Int> # b is not new
-fn doStuffWithA(a &Slice<Int>, b &Slice<Int>) {
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
   b.push(a[0])
 }
 
@@ -166,11 +539,11 @@ modifyB(&a, &b) # Why doesn't it work ?
 
 
 
-type Slice[$T] {
+type Slice[$T] is struct (
   len:        Int
   real_size:  Int
   ptr:        *$T
-}
+)
 implements {
   append(objs... $T) {
     # reallocate
@@ -181,6 +554,3185 @@ implements {
 ## What becomes of the new ? When is it dropped ?
 # Here, s is definitely mutable for us, but we want it to become const later
 # so that we may simply send it across our threads without fearing for access.
-let s new []&SomeType
-s.append(&SomeType(...), &SomeType(...))
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
+return s
+
+
+##########################################################################################
+##########################################################################################
+
+#?      IMMUTABILITY
+# Const is a type modifier that recursively infects the type's properties and makes them
+# all immutable. Any type may be marked as immutable.
+# Immutable types may not modify their members, nor call functions or methods that may modify
+# them.
+# They're used in multi-threading, as they don't need locking when accessing them and they
+# should greatly simplify garbage collection.
+let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+# alternatively
+let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+
+# A variable may be declared as a staging variable that will eventually become const
+# A staged variable may be used in method calls that include it, other staged variables and const variables.
+#   this includes
+# A staged variable may be assigned a plain value that does not have pointers, or staged variable.
+
+# The gist of it is : as long as it is staged, it may not escape the stack context it's in.
+# A staged variable cannot reference a potentially mutable variable that may escape it.
+staged a = ...
+const var a = 43
+
+
+
+# TODO transition from mutable to immutable, as a type may be mutable for a while during its creation
+# TODO what's the syntax !!
+# before being given as the definitive version of itself.
+#    - There may be limitations as to what those functions can do, as in not being able to use
+#      multithreaded functions.
+
+fn createStuff() -> const Stuff {
+  new b = Stuff()
+  let c = {
+    new d = Stuff()
+    # d can be modified in this scope, although it can only be given a const
+    d.toto = 'pouet'
+    d
+  }
+  # At the end of its scope, a new variable graduates to "const"
+  return c
+}
+
+# Any modifier method may be called on new, provided that all its arguments expect const
+#
+
+type Slice[$T] is struct (
+  len: Int
+  cap: Int
+  ptr: *$T
+)
+implements {
+
+  fn new(cap = 16) -> Slice[$T] {
+
+  }
+
+  method push(val: $T) -> this {
+
+  }
+
+  method pop() -> $T | null {
+
+  }
+
+  # Indicate that concat will not modify our array
+  # Also return this since we could be aliased or consted
+  method concat(slices: ...this) -> this {
+    # this could be const
+    # or $T could be const
+    # or both could be const
+    return Slice.concat(this, ...slices) # return (const) Slice<$T> as this
+  }
+
+}
+
+namespace Slice {
+  # A readonly function
+  readonly fn concat[$T](slices: ...Slice[$T]) -> []$T {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+
+##############################
+
+type String is const Slice[UInt8]
+implements {
+  fn concat(strs: ...Slice[String]) -> String {
+    return String.concat(this, ...strs)
+  }
+}
+
+namespace String {
+  # Unsafe because
+  unsafe fn concat(strs: ...String) -> String {
+    var new_len = strs.sum(fn (s) { s.len }) # or equivalent
+    staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
+    var wptr = res.ptr
+    for s in strs {
+      let l = s.len
+      ptr.copy(s.ptr, wptr, l)
+      wptr += l
+    }
+
+    # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
+    return String(len = new_len, real_size = new_len, ptr = res_ptr)
+  }
+}
+
+# Or we can restrict new to just be a builder for const
+# As such, we can give them const values
+# A type creator has the possibility of being assigned to a new variable
+
+# Three ways we could want a variable
+#   - a reference to it that we won't touch, but with no guarantee its contents could not change later on (when storing in another type for instance)
+#       an immutable OR a mutable can be given to it
+#   - a reference to it that we're free to manipulate as we see fit
+#       only a mutable can go there
+#   - a reference to it that we *know* won't change, ever.
+#       only an immutable can go there
+
+var a = createStuff() # a does not specify, so it removes the tmp part
+var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
+new c = createStuff() # c is still mutable but the scope of things that can be accessed
+# new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
+# of its memory is given to anything that can modify it later on elsewhere.
+
+fn doMoreStuff(c: Stuff) {
+  # A "new" reference may only be given to functions that accept const or new references
+}
+
+# new also infects generic types
+new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+
+# What about pure methods, that may only modify oneself
+# What about infecting methods with new types / const types, just like it infects generics
+fn modifyA(a: *Slice[Int]) {
+  a.push(34) # 34 is new here.
+}
+
+var b Slice<Int> # b is not new
+fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+  b.push(a[0])
+}
+
+modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(&a, &b) # Why doesn't it work ?
+
+##########################################################################################
+##########################################################################################
+
+# Almost all new() functions should return transitional types instead of their fixed types.
+
+
+
+type Slice[$T] is struct (
+  len:        Int
+  real_size:  Int
+  ptr:        *$T
+)
+implements {
+  append(objs... $T) {
+    # reallocate
+    *(ptr + this.len) = obj
+  }
+}
+
+## What becomes of the new ? When is it dropped ?
+# Here, s is definitely mutable for us, but we want it to become const later
+# so that we may simply send it across our threads without fearing for access.
+let s new []*SomeType
+s.append(&SomeType(), SomeType())
 return s

@@ -63,6 +63,8 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
 
   case NODE_UNA_POINTER: w.Write([]byte("ptr"))
 
+  case NODE_UNA_REF: w.Write([]byte("ref"))
+
   case NODE_UNA_BITNOT: w.Write([]byte("~"))
 
   case NODE_BIN_ASSIGN: w.Write([]byte("="))
@@ -204,6 +206,10 @@ func (b *nodeBuilder) createWhile(tk TokenPos, scope ScopePosition, cond NodePos
 
 func (b *nodeBuilder) createUnaPointer(tk TokenPos, scope ScopePosition, pointed NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_UNA_POINTER, scope, pointed)
+}
+
+func (b *nodeBuilder) createUnaRef(tk TokenPos, scope ScopePosition, variable NodePosition) NodePosition {
+  return b.createNodeFromToken(tk, NODE_UNA_REF, scope, variable)
 }
 
 

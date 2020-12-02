@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -169,39 +170,53 @@ func (l *LspConnection) ProcessIncomingRequests() {
 
 	// When it gets the json, it just scans the asked method and dispatches it to the associated handler.
 
+	var chunkSize = 2048
 	// make the buffer big enough to handle the request.
-	var buf = make([]byte, 128*1024)
+	var buf = bytes.NewBuffer(make([]byte, 0))
+	var chunk = make([]byte, chunkSize)
+	// var buf = make([]byte, 128*1024)
 	var total_read = 0
-	n, err := l.Read(buf)
+	n, err := l.Read(chunk)
 	for n > 0 && err == nil {
 		total_read += n
+		_, _ = buf.Write(chunk[:n])
 
-		indices := re_len.FindSubmatchIndex(buf)
+		indices := re_len.FindSubmatchIndex(buf.Bytes())
 		if indices == nil {
 			// this shouldn't happen and means that we have faulty input.
 			log.Fatal("Ooops, didn't find content-length")
 		}
-		length, _ := strconv.Atoi(string(buf[indices[2]:indices[3]]))
-		start := indices[1]
+		length, _ := strconv.Atoi(string(chunk[indices[2]:indices[3]]))
+		start := indices[1] + 4
 
 		for total_read < start+length {
 			// fill up the remainder
-			n, err = l.Read(buf[start : start+length])
+			if start+length-total_read > chunkSize {
+				n, err = l.Read(chunk)
+			} else {
+				n, err = l.Read(chunk[:start+length-total_read])
+			}
 			if n == 0 && err != nil {
 				log.Fatal("WTF")
 			}
+			_, _ = buf.Write(chunk[:n])
 			total_read += n
 		}
+		// log.Print(total_read, start+length)
+		// log.Print(len(buf.Bytes()), string(buf.Bytes()))
 
 		// log.Print("length", length, " -- ", indices[1])
 
-		for buf[start] != '{' {
+		wholeBuf := buf.Bytes()
+		// we've read it all, now we're getting parsing !
+		for wholeBuf[start] != '{' {
 			start++
 		}
 
-		packet := buf[start : start+length]
+		packet := wholeBuf[start : start+length]
 		msg := make([]byte, len(packet))
 		copy(msg, packet)
+		// log.Print(string(msg))
 		l.HandleMessage(msg)
 		total_read = 0
 		// parser := fastjson
@@ -212,7 +227,9 @@ func (l *LspConnection) ProcessIncomingRequests() {
 			break
 		}
 
-		n, err = l.Read(buf)
+		// keep the buffer
+		buf.Reset()
+		n, err = l.Read(chunk)
 		// log.Print(n, err)
 	}
 

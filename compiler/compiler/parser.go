@@ -123,6 +123,12 @@ func init() {
 
 	nud(KW_VAR, parseVar)
 
+	nud(KW_CONST, func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition {
+		va := parseVar(b, scope, tk, lbp)
+		b.nodes[va].SetFlag(FLAG_CONST)
+		return va
+	})
+
 	nud(KW_IMPORT, parseImport)
 
 	lbp += 2
@@ -243,11 +249,19 @@ func init() {
 	// the index operator
 	// nud(TK_LBRACE, parseLbraceNud)
 	nud(TK_STAR, func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition {
-		typeexpr := b.Expression(scope, syms[TK_STAR].lbp-1)
+		typeexpr := b.Expression(scope, syms[TK_MINMIN].lbp+1)
 		if typeexpr == EmptyNode {
 			b.reportErrorAtToken(tk, "expected * to be followed by a type name")
 		}
 		return b.createUnaPointer(tk, scope, typeexpr)
+	})
+
+	nud(TK_AMP, func(b *nodeBuilder, scope ScopePosition, tk TokenPos, lbp int) NodePosition {
+		expr := b.Expression(scope, syms[TK_MINMIN].lbp+1)
+		if expr == EmptyNode {
+			b.reportErrorAtToken(tk, "expected & to be followed by an expression")
+		}
+		return b.createUnaRef(tk, scope, expr)
 	})
 
 	lbp += 2
