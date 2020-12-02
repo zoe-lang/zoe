@@ -5,10 +5,6 @@ func (f *File) Parse() {
 	f.RootNodePos = b.parseFile()
 	f.Nodes = b.nodes
 	f.Scopes = b.scopes
-	// for i := range f.Nodes {
-	// 	log.Print(f.NodeDebug(NodePosition(i)))
-	// }
-	// pp.Print(f.RootScope)
 }
 
 // At the top level, just parse everything we can
@@ -527,7 +523,9 @@ func parseTemplate(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) Node
 // parseTypeDecl parses a type declaration
 func parseTypeDecl(b *nodeBuilder, scope ScopePosition, tk TokenPos, _ int) NodePosition {
 	name := b.createAndExpectOrEmpty(TK_ID, func(tk TokenPos) NodePosition {
-		return b.createIdNode(tk, scope)
+		res := b.createIdNode(tk, scope)
+		b.ScopeAddSymbol(scope, res)
+		return res
 	})
 
 	tpl := b.createIfTokenOrEmpty(TK_LBRACE, func(tk TokenPos) NodePosition {

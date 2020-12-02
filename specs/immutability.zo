@@ -142,7 +142,7 @@ fn doMoreStuff(c: Stuff) {
 }
 
 # new also infects generic types
-new a Slice<Int> # The ints in the Slice are new also as long as a wasn't changed.
+var a Slice[Int] # The ints in the Slice are new also as long as a wasn't changed.
 
 # What about pure methods, that may only modify oneself
 # What about infecting methods with new types / const types, just like it infects generics
