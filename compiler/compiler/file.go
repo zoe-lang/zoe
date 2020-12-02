@@ -122,13 +122,6 @@ func (f *File) createNodeBuilder() *nodeBuilder {
 	return &b
 }
 
-func (f *File) emptyNode() Node {
-	return Node{
-		pos:  0,
-		file: f,
-	}
-}
-
 func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...Node) Node {
 	// maybe we should handle here the capacity of the node arrays ?
 	l := NodePosition(len(f.Nodes))
@@ -187,8 +180,4 @@ search:
 	}
 
 	return node, nil
-}
-
-func (f *File) fragment() *fragment {
-	return &fragment{}
 }

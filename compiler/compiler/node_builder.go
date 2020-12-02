@@ -30,20 +30,6 @@ func (b *nodeBuilder) reportErrorAtToken(tk TokenPos, msg ...string) {
 // provide checks and balances.
 
 // Doesn't create an empty node
-func (tk Tk) If(kind TokenKind, fn func(tk Tk) (Tk, Node)) (Tk, Node) {
-	if tk.Is(kind) {
-		return fn(tk)
-	}
-	return tk, tk.file.emptyNode()
-}
-
-func (tk Tk) IfExpect(kind TokenKind, fn func(tk Tk) (Tk, Node)) (Tk, Node) {
-	if tk.Is(kind) {
-		return fn(tk)
-	}
-	tk.reportError("expected" + tokstr[kind] + " but got '" + tk.GetText() + "'")
-	return tk, tk.file.emptyNode()
-}
 
 // func (b *nodeBuilder) extendNodeRange(ni NodePosition, rng Range) {
 // 	b.file.Nodes[ni].Range.Extend(rng)
@@ -83,6 +69,10 @@ func (tk Tk) IfExpect(kind TokenKind, fn func(tk Tk) (Tk, Node)) (Tk, Node) {
 type fragment struct {
 	first Node
 	last  Node
+}
+
+func newFragment() fragment {
+	return fragment{}
 }
 
 func (f *fragment) append(node Node) {

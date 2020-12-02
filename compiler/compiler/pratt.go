@@ -1,9 +1,9 @@
 package zoe
 
 type prattTk struct {
-	lbp int                                                     // left binding power
-	nud func(f *File, scope Scope, tk Tk, lbp int) (Tk, Node)   // when landing on it as a value or prefix
-	led func(f *File, scope Scope, tk Tk, left Node) (Tk, Node) // when landing on it as an operator
+	lbp int                                            // left binding power
+	nud func(scope Scope, tk Tk, lbp int) (Tk, Node)   // when landing on it as a value or prefix
+	led func(scope Scope, tk Tk, left Node) (Tk, Node) // when landing on it as an operator
 }
 
 // Expression is the standard Pratt parser Expression function
@@ -11,12 +11,11 @@ func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
 	// This is an error case, but has to be handled
 	if tk.IsEof() {
 		// error ?
-		return tk, tk.file.emptyNode()
+		return tk, EmptyNode
 	}
 
-	file := tk.file
 	sym_cur := tk.sym()
-	tk, left := sym_cur.nud(file, scope, tk, rbp)
+	tk, left := sym_cur.nud(scope, tk, rbp)
 
 	// nud might have advanced without us knowing...
 	if tk.IsEof() {
@@ -27,7 +26,7 @@ func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
 
 	for rbp < next_sym.lbp {
 		// log.Print(c.Current.KindStr(), c.Current.Value(c.data))
-		tk, left = next_sym.led(file, scope, tk, left)
+		tk, left = next_sym.led(scope, tk, left)
 
 		if tk.IsEof() {
 			return tk, left
@@ -41,7 +40,7 @@ func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
 
 func literal(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
-	s.nud = func(f *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	s.nud = func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		return tk.Next(), tk.createNode(scope, nk)
 	}
 }
@@ -54,8 +53,8 @@ func binary(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
 	s.lbp = precedence
 
-	s.led = func(lbp int) func(f *File, scope Scope, tk Tk, left Node) (Tk, Node) {
-		return func(f *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	s.led = func(lbp int) func(scope Scope, tk Tk, left Node) (Tk, Node) {
+		return func(scope Scope, tk Tk, left Node) (Tk, Node) {
 			next, right := Expression(scope, tk.Next(), lbp-1)
 			return next, tk.createNode(scope, nk, left, right) // b.createNodeFromToken(tk, nk, scope, left, right)
 		}
@@ -65,20 +64,20 @@ func binary(tk TokenKind, nk AstNodeKind) {
 func unary(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
 	rbp := lbp - 1
-	s.nud = func(f *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+	s.nud = func(scope Scope, tk Tk, _ int) (Tk, Node) {
 		next, right := Expression(scope, tk.Next(), rbp)
 		return next, tk.createNode(scope, nk, right) // b.createNodeFromToken(tk, nk, scope, right)
 		// return NewNode(nk, tk.Position, c.Expression(rbp))
 	}
 }
 
-func led(tk TokenKind, fn func(f *File, scope Scope, tk Tk, left Node) (Tk, Node)) {
+func led(tk TokenKind, fn func(scope Scope, tk Tk, left Node) (Tk, Node)) {
 	s := &syms[tk]
 	s.lbp = lbp
 	s.led = fn
 }
 
-func nud(tk TokenKind, fn func(f *File, scope Scope, tk Tk, lbp int) (Tk, Node)) {
+func nud(tk TokenKind, fn func(scope Scope, tk Tk, lbp int) (Tk, Node)) {
 	s := &syms[tk]
 	s.nud = fn
 }

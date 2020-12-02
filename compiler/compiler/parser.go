@@ -14,7 +14,7 @@ func (f *File) parseFile() (Tk, Node) {
 		file: f,
 	}
 
-	app := f.fragment()
+	app := newFragment()
 	for !tk.IsEof() {
 		var node Node
 		tk, node = Expression(scope, tk, 0)
@@ -42,7 +42,7 @@ func init() {
 		syms[i].led = ledError
 	}
 
-	nud(TK_LPAREN, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_LPAREN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		// We are going to check if we have several components to the paren, or just
 		// one, in which case we just send it back.
 		// an empty () parenthesis block is an error as it doesn't mean anything.
@@ -57,7 +57,7 @@ func init() {
 		// If we didn't encounter ), we want a comma
 		next, _ = next.expect(TK_COMMA)
 
-		app := b.fragment()
+		app := newFragment()
 		app.append(exp)
 
 		for !next.IsClosing() {
@@ -74,13 +74,13 @@ func init() {
 		return next, tup
 	})
 
-	nud(KW_NAMESPACE, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_NAMESPACE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		// res.Block = res.CreateBlock()
 		next, name := Expression(scope, tk.Next(), 0)
 		next, _ = tk.expect(TK_LBRACKET)
 
 		nmsp_scope := scope.subScope()
-		next, block := parseBlock(b, nmsp_scope, next, 0)
+		next, block := parseBlock(nmsp_scope, next, 0)
 
 		nmsp := tk.createNamespace(scope, name, block)
 		nmsp_scope.setOwner(nmsp)
@@ -90,11 +90,11 @@ func init() {
 	// { , a block
 	nud(TK_LBRACKET, parseBlock)
 
-	nud(TK_LBRACE, func(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+	nud(TK_LBRACE, func(scope Scope, tk Tk, _ int) (Tk, Node) {
 		// function call !
 		next := tk.Next()
 
-		fragment := b.fragment()
+		fragment := newFragment()
 		for !next.IsClosing() {
 			var exp Node
 			next, exp = Expression(scope, next, 0)
@@ -115,10 +115,10 @@ func init() {
 	// The doc comment forwards the results but sets itself first on the node that resulted
 	// Doc comments whose next meaningful token are other doc comments or the end of the file
 	// are added at the module level
-	nud(TK_DOCCOMMENT, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_DOCCOMMENT, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		// tkpos := b.current - 1           // the parsed token position
 		next, node := Expression(scope, tk.Next(), lbp) // forward the current lbp to the expression
-		b.DocCommentMap[node.pos] = tk.pos
+		tk.file.DocCommentMap[node.pos] = tk.pos
 		return next, node
 	})
 
@@ -128,8 +128,8 @@ func init() {
 
 	nud(KW_VAR, parseVar)
 
-	nud(KW_CONST, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next, va := parseVar(b, scope, tk.Next(), lbp)
+	nud(KW_CONST, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		next, va := parseVar(scope, tk.Next(), lbp)
 		va.SetFlag(FLAG_CONST)
 		return next, va
 	})
@@ -140,14 +140,14 @@ func init() {
 
 	// return ...
 	// will return an empty node if
-	nud(KW_RETURN, func(c *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_RETURN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		var res Node
 		next := tk
 		// do not try to get next expression is return is immediately followed
 		// by } or ]
 		if tk.Peek(TK_RPAREN, TK_RBRACKET) {
 			// return can only return nothing if it is at the end of a block or expression
-			res = c.emptyNode()
+			res = EmptyNode
 		} else {
 			next, res = Expression(scope, tk.Next(), lbp)
 		}
@@ -166,7 +166,7 @@ func init() {
 	// maybe it should be handled in the different places where comma is expected,
 	// which is to say in lists like (, , ) or [, ,]
 	// comma_lbp := lbp
-	// led(TK_COMMA, func(c *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	// led(TK_COMMA, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 	// 	if c.currentTokenIs(TK_RBRACE, TK_RBRACKET, TK_RPAREN) {
 	// 		return left
 	// 	}
@@ -209,7 +209,7 @@ func init() {
 	binary(TK_PIPE, NODE_BIN_BITOR)
 	// conflict with bitwise or !
 	// how the hell am I supposed to tell the difference between the two ?
-	// led(TK_PIPE, func(c *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	// led(TK_PIPE, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 	// 	right := c.Expression(scope, lbp)
 	// 	if v, ok := left.(*Union); ok {
 	// 		return v.AddTypeExprs(right)
@@ -241,10 +241,10 @@ func init() {
 	// When used right next to an expression, then paren is a function call
 	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
 
-	led(TK_PLUSPLUS, func(b *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_PLUSPLUS, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		return tk.Next(), tk.createUnaryOp(scope, NODE_UNA_PLUSPLUS, left)
 	})
-	led(TK_MINMIN, func(b *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_MINMIN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		return tk.Next(), tk.createUnaryOp(scope, NODE_UNA_MINMIN, left)
 	})
 
@@ -254,7 +254,7 @@ func init() {
 
 	// the index operator
 	// nud(TK_LBRACE, parseLbraceNud)
-	nud(TK_STAR, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_STAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next := tk.Next()
 		next, typeexpr := Expression(scope, next, syms[TK_MINMIN].lbp+1)
 		if typeexpr.IsEmpty() {
@@ -263,7 +263,7 @@ func init() {
 		return next, tk.createUnaPointer(scope, typeexpr)
 	})
 
-	nud(TK_AMP, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_AMP, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next := tk.Next()
 		next, expr := Expression(scope, next, syms[TK_MINMIN].lbp+1)
 		if expr.IsEmpty() {
@@ -277,9 +277,9 @@ func init() {
 	// led(TK_FATARROW, parseFnFatArrow)
 	// binary(NODE_FNDEF, TK_FATARROW)
 
-	led(TK_LBRACE, func(b *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_LBRACE, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		// function call !
-		fragment := b.fragment()
+		fragment := newFragment()
 		next := tk.Next()
 
 		for !next.IsClosing() {
@@ -299,10 +299,10 @@ func init() {
 
 	lbp += 2
 
-	led(TK_LPAREN, func(b *File, scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_LPAREN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		// function call !
 		next := tk.Next()
-		fragment := b.fragment()
+		fragment := newFragment()
 
 		for !next.IsClosing() {
 			var exp Node
@@ -338,7 +338,7 @@ func init() {
 	literal(TK_NUMBER, NODE_LIT_NUMBER)
 	literal(TK_RAWSTR, NODE_LIT_RAWSTR)
 
-	nud(TK_ID, func(b *File, scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_ID, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		return tk.Next(), tk.createIdNode(scope)
 	})
 
@@ -349,12 +349,12 @@ func init() {
 
 var syms = make([]prattTk, TK__MAX) // Far more than necessary
 
-func nudError(_ *File, scope Scope, tk Tk, rbp int) (Tk, Node) {
+func nudError(scope Scope, tk Tk, rbp int) (Tk, Node) {
 	tk.reportError(`unexpected '`, tk.GetText(), `'`)
 	return Expression(scope, tk.Next(), rbp)
 }
 
-func ledError(_ *File, _ Scope, tk Tk, left Node) (Tk, Node) {
+func ledError(_ Scope, tk Tk, left Node) (Tk, Node) {
 	tk.reportError(`unexpected '`, tk.GetText(), `'`)
 	return tk.Next(), left
 }
@@ -362,27 +362,27 @@ func ledError(_ *File, _ Scope, tk Tk, left Node) (Tk, Node) {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-func parseImport(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// import is always (imp module subexp name)
 	// module is either a string or a path expression
 	var mod Node
-	var next = tk.Next()
+	var iter = tk.Next()
 	var ok bool
 
-	if next.Is(TK_RAWSTR) {
-		mod = next.createNode(scope, NODE_LIT_RAWSTR)
-		next = next.Next()
+	if iter.Is(TK_RAWSTR) {
+		mod = iter.createNode(scope, NODE_LIT_RAWSTR)
+		iter = iter.Next()
 	} else {
-		next, mod = Expression(scope, next, syms[TK_DOT].lbp-1)
+		iter, mod = Expression(scope, iter, syms[TK_DOT].lbp-1)
 	}
 
-	if next, ok := next.consume(KW_AS); ok {
+	if next, ok := iter.consume(KW_AS); ok {
 		var name Node
 		if next.Is(TK_ID) {
 			name = next.createIdNode(scope)
 			next = next.Next()
 		}
-		imp := tk.createImport(scope, mod, name, b.emptyNode())
+		imp := tk.createImport(scope, mod, name, EmptyNode)
 
 		if !name.IsEmpty() {
 			// Add the import to the current scope.
@@ -392,120 +392,150 @@ func parseImport(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 		return next, imp
 	}
 
-	if next, ok = next.consume(TK_LPAREN); !ok {
-		next.reportError("malformed import expression, expected '(' or 'as'")
-		return next, b.emptyNode()
+	if iter, ok = iter.consume(TK_LPAREN); !ok {
+		iter.reportError("malformed import expression, expected '(' or 'as'")
+		return iter, EmptyNode
 	}
 
-	fragment := b.fragment()
-	for !next.IsClosing() {
+	fragment := newFragment()
+	for !iter.IsClosing() {
 		mod2 := mod.Clone()
-		path := b.Expression(scope, syms[TK_DOT].lbp-1) // we want the tk_dots
 
-		if b.consume(KW_AS) != 0 {
-			as := b.createAndExpectOrEmpty(TK_ID, func(tk Tk) (Tk, Node) {
-				return b.createIdNode(tk, scope)
-			})
-			imp := b.createNodeFromToken(cur, NODE_IMPORT, scope, mod2, as, path)
+		var path Node
+		iter, path = Expression(scope, iter, syms[TK_DOT].lbp-1) // we want the tk_dots
 
-			if as != EmptyNode {
+		if iter, ok = iter.consume(KW_AS); ok {
+
+			var as Node
+			prev := iter
+			if iter.Is(TK_ID) {
+				as = iter.createIdNode(scope)
+				iter = iter.Next()
+			}
+
+			imp := prev.createImport(scope, mod2, as, path)
+			if !as.IsEmpty() {
 				scope.addSymbolFromIdNode(as, imp)
 			}
+
 			fragment.append(imp)
 		} else {
-			id2 := b.createIdNode(cur, scope)
-
-			imp := b.createNodeFromToken(cur, NODE_IMPORT, scope, mod2, id2, path)
+			id2 := iter.createIdNode(scope)
+			imp := iter.createImport(scope, mod2, id2, path)
 			scope.addSymbolFromIdNode(id2, imp)
+			iter = iter.Next()
 			fragment.append(imp)
 		}
-		b.consume(TK_COMMA)
+		iter, _ = iter.consume(TK_COMMA)
 	}
-	b.expect(TK_RPAREN)
+	iter, _ = iter.expect(TK_RPAREN)
 
-	return fragment.first
+	return iter, fragment.first
 }
 
 ///////////////////////////////////////////////////////
 // "
-func parseQuote(c *File, scope Scope, tk Tk, _ int) (Tk, Node) {
-	fragment := c.fragment()
-	for !c.isEof() && !c.currentTokenIs(TK_QUOTE) {
-		fragment.append(c.Expression(scope, 0))
+func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
+	iter := tk.Next()
+	fragment := newFragment()
+	for !iter.IsEof() && !iter.Is(TK_QUOTE) {
+		var exp Node
+		iter, exp = Expression(scope, iter, 0)
+		fragment.append(exp)
 	}
-	str := c.createString(tk, scope, fragment.first)
-	if tk2 := c.expect(TK_QUOTE); tk2 != 0 {
-		c.extendRangeFromToken(str, tk2)
-	}
+
+	str := tk.createString(scope, fragment.first)
+	iter, _ = iter.expect(TK_QUOTE, func(tk Tk) {
+		str.ExtendRange(tk.Range())
+	})
+
 	// this should transform the result to a string
-	return str
+	return iter, str
 }
 
 /////////////////////////////////////////////////////
 // Special handling for if block
-func parseIf(c *File, scope Scope, tk Tk, _ int) (Tk, Node) {
-	cond := c.Expression(scope, 0) // can be a block. this could be confusing.
-	c.expectNoAdvance(TK_LBRACKET)
-	then := c.Expression(scope, 0) // most likely, a block.
-	els := c.createIfTokenOrEmpty(KW_ELSE, func(tk Tk) (Tk, Node) {
-		c.expectNoAdvance(TK_LBRACKET)
-		return c.Expression(scope, 0)
-	})
+func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var ok bool
+	iter := tk.Next()
 
-	return c.createIf(tk, scope, cond, then, els)
+	iter, cond := Expression(scope, iter, 0) // can be a block. this could be confusing.
+
+	iter.expect(TK_LBRACKET)
+	iter, then := Expression(scope, iter, 0) // most likely, a block.
+
+	var els Node
+	if iter, ok = iter.consume(KW_ELSE); ok {
+		iter.expect(TK_LBRACKET)
+		iter, els = Expression(scope, iter, 0)
+	}
+
+	return iter, tk.createIf(scope, cond, then, els)
 }
 
 /////////////////////////////////////////////////////
 // Special handling for fn
-func parseFn(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	fnscope := scope.subScope()
+	iter := tk.Next()
 
-	name := b.createIfTokenOrEmpty(TK_ID, func(tk Tk) (Tk, Node) {
-		return b.createIdNode(tk, scope)
+	// Function name, may not exist
+	var name Node
+	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+		name = tk.createIdNode(scope)
 	})
 
-	tpl := b.createIfTokenOrEmpty(TK_LBRACE, func(tk Tk) (Tk, Node) {
-		return parseTemplate(b, scope, tk, 0)
-	})
+	// Template arguments, may not exist
+	var tpl Node
+	if iter.Is(TK_LBRACE) {
+		iter, tpl = parseTemplate(scope, iter, 0)
+	}
 
-	// args := c.createNodeFromCurrentToken(NODE_TUPLE)
-	args := b.fragment()
-	b.expect(TK_LPAREN)
-	for !b.currentTokenIs(TK_RPAREN, TK_ARROW, TK_FATARROW) {
-		arg := parseVar(b, fnscope, b.current, 0)
-		if arg != 0 {
+	// Function arguments, mandatory
+	args := newFragment()
+	iter, _ = iter.expect(TK_LPAREN)
+	for !iter.IsClosing() {
+		var arg Node
+		iter, arg = parseVar(fnscope, iter, 0)
+		if !arg.IsEmpty() {
 			args.append(arg)
 		} else {
-			b.advance()
+			iter = iter.Next()
 		}
-		if !b.currentTokenIs(TK_RPAREN) {
-			b.expect(TK_COMMA)
+
+		// test for comma presence if not the end of the arguments
+		if !iter.Is(TK_RPAREN) {
+			iter, _ = iter.expect(TK_COMMA)
 		}
-		// test for comma presence
 	}
-	b.expect(TK_RPAREN)
+	iter, _ = iter.expect(TK_RPAREN)
 
-	rettype := b.createIfTokenOrEmpty(TK_ARROW, func(tk Tk) (Tk, Node) {
-		return b.Expression(fnscope, 0)
-	})
-
-	signature := b.createSignature(tk, scope, tpl, args.first, rettype)
-
-	var blk NodePosition
-	if b.currentTokenIs(TK_LBRACKET) {
-		b.advance()
-		blk = parseBlock(b, fnscope, b.current, 0)
-		return b.createFn(tk, scope, name, signature, blk)
+	// Return type, may not exist
+	var rettype Node
+	if iter.Is(TK_ARROW) {
+		iter = iter.Next()
+		iter, rettype = Expression(fnscope, iter, 0)
 	}
 
-	return signature
+	// The signature node
+	signature := tk.createSignature(scope, tpl, args.first, rettype)
+
+	// Function definition
+	var blk Node
+	if iter.Is(TK_LBRACKET) {
+		iter, blk = parseBlock(fnscope, iter, 0)
+		// should register the function somewhere in scope, no ?
+		return iter, tk.createFn(scope, name, signature, blk)
+	}
+
+	return iter, signature
 }
 
 // parseBlock parses a block of code
-func parseBlock(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// blk := b.createNodeFromToken(tk, NODE_BLOCK)
-	app_blk := b.fragment()
+	app_blk := newFragment()
 
 	for b.asLongAsNotClosingToken() {
 		for b.consume(TK_SEMICOLON) != 0 {
@@ -530,9 +560,9 @@ func parseBlock(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 
 // parseTemplate parses a template declaration, which is enclosed between [ ]
 // it is expected that '[' has been consumed, and that tk is '['
-func parseTemplate(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
-	fragment := b.fragment()
+	fragment := newFragment()
 
 	for b.asLongAsNotClosingToken() { // missing WHERE
 		v := b.createExpectToken(TK_ID, func(tk Tk) (Tk, Node) {
@@ -551,7 +581,7 @@ func parseTemplate(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 }
 
 // parseTypeDecl parses a type declaration
-func parseTypeDecl(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 	name := b.createAndExpectOrEmpty(TK_ID, func(tk Tk) (Tk, Node) {
 		return b.createIdNode(tk, scope)
 	})
@@ -580,7 +610,7 @@ func parseTypeDecl(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 	return typ
 }
 
-func parseStruct(c *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
 	c.expect(TK_LPAREN)
 
@@ -608,7 +638,7 @@ func parseStruct(c *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 	return stru
 }
 
-func parseFor(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseFor(scope Scope, tk Tk, _ int) (Tk, Node) {
 	forscope := scope.subScope()
 	decl := b.Expression(forscope, 0) // this is where a var is created
 	b.expect(KW_IN)
@@ -618,7 +648,7 @@ func parseFor(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 	return b.createFor(tk, scope, decl, inexp, block)
 }
 
-func parseWhile(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
 	whilescope := scope.subScope()
 	cond := b.Expression(whilescope, 0)
 	b.expectNoAdvance(TK_LBRACKET)
@@ -628,7 +658,7 @@ func parseWhile(b *File, scope Scope, tk Tk, _ int) (Tk, Node) {
 
 // parse a variable statement, but also a variable declaration inside
 // an argument list of a function signature
-func parseVar(c *File, scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// first, try to scan the ident
 	// this may fail, for dubious reasons
 	var ident NodePosition

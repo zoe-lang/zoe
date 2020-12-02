@@ -19,7 +19,7 @@ func (n NodePosition) Node(file *File) Node {
 type AstNodeKind int
 type Flag int
 
-const EmptyNode NodePosition = 0
+var EmptyNode = Node{}
 
 const (
 	FLAG_LOCAL Flag = 1 << iota
@@ -167,7 +167,7 @@ func (n Node) Clone() Node {
 	orig := n.ref()
 	respos := NodePosition(len(n.file.Nodes))
 	n.file.Nodes = append(n.file.Nodes, *orig)
-	n.file.Nodes[respos].Next = EmptyNode
+	n.file.Nodes[respos].Next = 0
 	res := Node{
 		pos:  respos,
 		file: n.file,
