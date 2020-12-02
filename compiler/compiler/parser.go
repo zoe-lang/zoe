@@ -80,9 +80,9 @@ func init() {
 		var iter = tk.Next()
 		// res.Block = res.CreateBlock()
 		var name Node
-		iter, name = Expression(scope, tk.Next(), 0)
+		iter, name = Expression(scope, iter, 0)
 
-		tk.expect(TK_LBRACKET)
+		iter.expect(TK_LBRACKET)
 		nmsp_scope := scope.subScope()
 
 		var block Node
@@ -374,8 +374,8 @@ func ledError(_ Scope, tk Tk, left Node) (Tk, Node) {
 func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// import is always (imp module subexp name)
 	// module is either a string or a path expression
-	var mod Node
 	var iter = tk.Next()
+	var mod Node
 	var ok bool
 
 	if iter.Is(TK_RAWSTR) {
@@ -385,20 +385,21 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 		iter, mod = Expression(scope, iter, syms[TK_DOT].lbp-1)
 	}
 
-	if next, ok := iter.consume(KW_AS); ok {
+	if iter, ok = iter.consume(KW_AS); ok {
 		var name Node
-		if next.Is(TK_ID) {
-			name = next.createIdNode(scope)
-			next = next.Next()
+		if iter.Is(TK_ID) {
+			name = iter.createIdNode(scope)
+			iter = iter.Next()
 		}
-		imp := tk.createImport(scope, mod, name, EmptyNode)
+
+		var imp = tk.createImport(scope, mod, name, EmptyNode)
 
 		if !name.IsEmpty() {
 			// Add the import to the current scope.
 			scope.addSymbolFromIdNode(name, imp)
 		}
 
-		return next, imp
+		return iter, imp
 	}
 
 	if iter, ok = iter.consume(TK_LPAREN); !ok {
@@ -414,28 +415,28 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 		iter, path = Expression(scope, iter, syms[TK_DOT].lbp-1) // we want the tk_dots
 
 		if iter, ok = iter.consume(KW_AS); ok {
-
 			var as Node
-			prev := iter
+			var prev = iter
+
 			if iter.Is(TK_ID) {
 				as = iter.createIdNode(scope)
 				iter = iter.Next()
 			}
 
-			imp := prev.createImport(scope, mod2, as, path)
+			var imp = prev.createImport(scope, mod2, as, path)
 			if !as.IsEmpty() {
 				scope.addSymbolFromIdNode(as, imp)
 			}
 
 			fragment.append(imp)
 		} else {
-			id2 := iter.createIdNode(scope)
-			imp := iter.createImport(scope, mod2, id2, path)
+			var id2 = path.Clone()
+			var imp = iter.createImport(scope, mod2, id2, path)
+
 			scope.addSymbolFromIdNode(id2, imp)
-			iter = iter.Next()
 			fragment.append(imp)
 		}
-		iter, _ = iter.consume(TK_COMMA)
+		iter = iter.expectCommaIfNot(TK_RPAREN)
 	}
 	iter, _ = iter.expect(TK_RPAREN)
 

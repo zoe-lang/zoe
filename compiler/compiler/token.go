@@ -139,7 +139,7 @@ func (tk Tk) consume(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 
 func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 	if !tk.Is(kind) {
-		tk.reportError("expected " + tokstr[kind] + " but got '" + "'")
+		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
 		return tk, false
 	}
 	next := tk.Next()

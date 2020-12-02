@@ -7,8 +7,8 @@ type Cbk is fn(a: String, b: Int) -> void
 #? (var a ~ (fn ~ (signature ~ (var a Int 3) String) {a}))
 var a = fn (a: Int = 3) -> String { a }
 
-#? (var a ~ (fn ~ (signature ~ [(var a ~ ~) (var b ~ ~)] ~) {(+ a c)}))
-var a = fn (a, b) { a + c }
+#? (var b ~ (fn ~ (signature ~ [(var a ~ ~) (var b ~ ~)] ~) {(+ a c)}))
+var b = fn (a, b) { a + c }
 
 #(?
   (fn ba
