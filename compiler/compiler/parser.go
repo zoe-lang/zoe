@@ -535,159 +535,194 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 // parseBlock parses a block of code
 func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// blk := b.createNodeFromToken(tk, NODE_BLOCK)
-	app_blk := newFragment()
+	iter := tk.Next()
 
-	for b.asLongAsNotClosingToken() {
-		for b.consume(TK_SEMICOLON) != 0 {
-			// advance as much as we can if we have semi colons in the input
+	fragment := newFragment()
+	for !iter.IsClosing() {
+		for iter.Is(TK_SEMICOLON) {
+			iter = iter.Next()
 		}
 
-		if b.isEof() {
+		if iter.IsEof() {
 			break
 		}
 
-		app_blk.append(b.Expression(scope, 0))
+		var exp Node
+		iter, exp = Expression(scope, iter, 0)
+		fragment.append(exp)
 	}
 
-	block := b.createBlock(tk, scope, app_blk.first)
+	block := tk.createBlock(scope, fragment.first)
+	iter, _ = iter.expect(TK_RBRACKET, func(tk Tk) {
+		block.ExtendRange(tk.Range())
+	})
 
-	if tk := b.expect(TK_RBRACKET); tk != 0 {
-		b.extendRangeFromToken(block, tk) // FIXME, this is ugly
-	}
-
-	return block
+	return iter, block
 }
 
 // parseTemplate parses a template declaration, which is enclosed between [ ]
 // it is expected that '[' has been consumed, and that tk is '['
 func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
-	fragment := newFragment()
+	var iter = tk.Next()
+	var fragment = newFragment()
 
-	for b.asLongAsNotClosingToken() { // missing WHERE
-		v := b.createExpectToken(TK_ID, func(tk Tk) (Tk, Node) {
-			return b.createIdNode(tk, scope)
+	for !iter.IsClosing() { // missing WHERE
+		// For now, we just want id's
+		// but templates will have to support having more complex expressions.
+		iter, _ = iter.expect(TK_ID, func(tk Tk) {
+			var id = tk.createIdNode(scope)
+			fragment.append(id)
 		})
-		if v == 0 {
-			b.reportErrorAtToken(b.current, "expected a template variable declaration")
-			b.advance()
-		} else {
-			fragment.append(v)
-		}
-		b.consume(TK_COMMA)
+
+		iter = iter.expectCommaIfNot(TK_RBRACE)
 	}
-	b.expect(TK_RBRACE)
-	return fragment.first
+	iter, _ = iter.expect(TK_RBRACE)
+	return iter, fragment.first
 }
 
 // parseTypeDecl parses a type declaration
 func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
-	name := b.createAndExpectOrEmpty(TK_ID, func(tk Tk) (Tk, Node) {
-		return b.createIdNode(tk, scope)
+	var iter = tk.Next()
+
+	var name Node
+	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+		name = tk.createIdNode(scope)
 	})
 
-	tpl := b.createIfTokenOrEmpty(TK_LBRACE, func(tk Tk) (Tk, Node) {
-		return parseTemplate(b, scope, tk, 0)
-	})
-
-	if b.consume(KW_IS) == 0 {
-		b.reportErrorAtToken(b.current, `expected 'is' after type declaration`)
+	var tpl Node
+	if iter.Is(TK_LBRACE) {
+		iter, tpl = parseTemplate(scope, iter, 0)
 	}
+
+	iter, _ = iter.expect(KW_IS)
 
 	// there might be a pipe here. We don't have to parse a union afterwards because
 	// if there is only one type, it doesn't matter.
-	b.consume(TK_PIPE)
+	iter, _ = iter.consume(TK_PIPE)
 
-	typdef := b.Expression(scope, 0)
-	// b.file.Nodes = b.nodes
-	// log.Print("!!!", b.file.NodeDebug(typdef))
-	// raise an error if there is no typedef ?
+	var typdef Node
+	iter, typdef = Expression(scope, iter, 0)
 
-	typ := b.createType(tk, scope, name, tpl, typdef)
+	var typ = tk.createType(scope, name, tpl, typdef)
+
+	// register the type to the scope
 	if name != EmptyNode {
 		scope.addSymbolFromIdNode(name, typ)
 	}
-	return typ
+
+	return iter, typ
 }
 
 func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
 	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
-	c.expect(TK_LPAREN)
+	iter, _ = iter.expect(TK_LPAREN)
 
-	fragment := c.fragment()
-	for !c.isEof() && !c.currentTokenIs(TK_RPAREN, TK_RBRACE, TK_RBRACKET) {
+	fragment := newFragment()
+
+	for !iter.IsClosing() {
 		// parse a var declaration
-		v := parseVar(c, scope, c.current, 0)
-		if v == 0 {
-			c.advance()
+		var variable Node
+		iter, variable = parseVar(scope, iter, 0)
+
+		if variable.IsEmpty() {
+			iter.reportError("expected a field declaration")
+			iter = iter.Next()
 		} else {
 			// FIXME ensure a field has a type declaration, as struct
 			// fields should have them whether they have defaults or not
-			fragment.append(v)
+			fragment.append(variable)
 		}
-		if !c.currentTokenIs(TK_RPAREN) {
-			c.consume(TK_COMMA)
-		}
+
+		iter = iter.expectCommaIfNot(TK_RPAREN)
 	}
 
-	stru := c.createStruct(tk, scope, fragment.first)
-	if tk := c.expect(TK_RPAREN); tk != 0 {
-		c.extendRangeFromToken(stru, tk)
-	}
+	var stru = tk.createStruct(scope, fragment.first)
+	iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
+		stru.ExtendRange(tk.Range())
+	})
 
-	return stru
+	return iter, stru
 }
 
 func parseFor(scope Scope, tk Tk, _ int) (Tk, Node) {
-	forscope := scope.subScope()
-	decl := b.Expression(forscope, 0) // this is where a var is created
-	b.expect(KW_IN)
-	inexp := b.Expression(scope, 0)
-	b.expectNoAdvance(TK_LBRACKET) // needs an opening '{'
-	block := b.Expression(forscope, 0)
-	return b.createFor(tk, scope, decl, inexp, block)
+	var iter = tk.Next()
+	var forscope = scope.subScope()
+
+	// the "var ..." part of the for loop
+	var decl Node
+	iter, decl = Expression(forscope, iter, 0)
+
+	iter, _ = iter.expect(KW_IN)
+
+	var inexp Node
+	iter, inexp = Expression(scope, iter, 0)
+
+	iter.expect(TK_LBRACKET)
+
+	var block Node
+	iter, block = Expression(forscope, iter, 0)
+
+	var fornode = tk.createFor(scope, decl, inexp, block)
+	// I should add the subscope to the for node !
+	return iter, fornode
 }
 
 func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
-	whilescope := scope.subScope()
-	cond := b.Expression(whilescope, 0)
-	b.expectNoAdvance(TK_LBRACKET)
-	block := b.Expression(whilescope, 0)
-	return b.createWhile(tk, scope, cond, block)
+	var whilescope = scope.subScope()
+	var iter = tk.Next()
+
+	var cond Node
+	iter, cond = Expression(whilescope, iter, 0)
+
+	iter.expect(TK_LBRACKET)
+
+	var block Node
+	iter, block = Expression(whilescope, iter, 0)
+
+	var whilenode = tk.createWhile(scope, cond, block)
+	// FIXME add the subscope to the while node
+	return iter, whilenode
 }
 
 // parse a variable statement, but also a variable declaration inside
 // an argument list of a function signature
 func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
+	var ok bool
+
 	// first, try to scan the ident
 	// this may fail, for dubious reasons
-	var ident NodePosition
-	if tkident := c.expect(TK_ID); tkident != 0 {
-		ident = c.createIdNode(tkident, scope)
-	} else {
-		ident = EmptyNode
-	}
-
-	// there might be a type expression right after the name declaration
-	typenode := c.createIfTokenOrEmpty(TK_COLON, func(tk Tk) (Tk, Node) {
-		// We scan above '=' level to avoid eating it if there is a default value
-		// right after the type declaration
-		return c.Expression(scope, syms[TK_EQ].lbp+1) // anything above =
+	var ident Node
+	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+		ident = tk.createIdNode(scope)
 	})
 
-	// default value !
+	// An optional type definition
+	var typenode Node
+	if iter, ok = iter.consume(TK_COLON); ok {
+		// there is a type expression
+		iter, typenode = Expression(scope, iter, syms[TK_EQ].lbp+1)
+	}
+
+	// An optional default value
 	var expnode Node
-	if c.consume(TK_EQ) != 0 {
-		expnode = c.Expression(scope, 0)
-	} else {
-		expnode = c.file.emptyNode()
+	if iter, ok = iter.consume(TK_EQ); ok {
+		iter, expnode = Expression(scope, iter, 0)
 	}
 
-	if c.current == tk {
-		// no var here
-		return 0
+	if iter.pos == tk.pos {
+		// no variable was found since all of the above expression may fail
+		// so we still advance the parser in the hopes of not failing
+
+		return iter.Next(), EmptyNode
 	}
 
-	return c.createVar(tk, scope, ident, typenode, expnode)
+	var varnode = tk.createVar(scope, ident, typenode, expnode)
+	if !ident.IsEmpty() {
+		scope.addSymbolFromIdNode(ident, varnode)
+	}
+	return iter, varnode
 	// Try to parse VAR ourselves
 }

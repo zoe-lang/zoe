@@ -172,6 +172,17 @@ func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 	return next, true
 }
 
+func (tk Tk) expectCommaIfNot(kind ...TokenKind) Tk {
+	var kd = tk.ref().Kind
+	for _, k := range kind {
+		if kd == k {
+			return tk // we don't move
+		}
+	}
+	tk, _ = tk.expect(TK_COMMA)
+	return tk
+}
+
 func (tk Tk) GetText() string {
 	r := tk.ref().Range
 	return string(tk.file.data[r.Start:r.End])

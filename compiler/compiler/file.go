@@ -133,7 +133,9 @@ func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...
 		node.ArgLen = int8(l)
 		for i, chld := range children {
 			node.Args[i] = chld.pos
-			node.Range.Extend(chld.Range())
+			if !chld.IsEmpty() {
+				node.Range.Extend(chld.Range())
+			}
 		}
 	}
 
