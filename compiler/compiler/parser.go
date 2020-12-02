@@ -1,7 +1,5 @@
 package zoe
 
-import "log"
-
 func (f *File) Parse() {
 	_, f.RootNode = f.parseFile()
 	// control that we got to the last token ???
@@ -130,7 +128,9 @@ func init() {
 	nud(KW_WHILE, parseWhile)
 	nud(KW_IF, parseIf)
 
-	nud(KW_VAR, parseVar)
+	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		return parseVar(scope, tk.Next(), lbp)
+	})
 
 	nud(KW_CONST, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, va := parseVar(scope, tk.Next(), lbp)
@@ -317,7 +317,6 @@ func init() {
 
 		var call = tk.createBinOp(scope, NODE_BIN_CALL, left, fragment.first)
 
-		log.Print(iter.Debug())
 		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
 			call.ExtendRange(tk.Range())
 		})
@@ -483,12 +482,12 @@ func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
 // Special handling for fn
 func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 
-	fnscope := scope.subScope()
-	iter := tk.Next()
+	var fnscope = scope.subScope()
+	var iter = tk.Next()
 
 	// Function name, may not exist
 	var name Node
-	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+	iter, _ = iter.consume(TK_ID, func(tk Tk) {
 		name = tk.createIdNode(scope)
 	})
 
@@ -499,7 +498,7 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	// Function arguments, mandatory
-	args := newFragment()
+	var args = newFragment()
 	iter, _ = iter.expect(TK_LPAREN)
 	for !iter.IsClosing() {
 		var arg Node
@@ -589,6 +588,7 @@ func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 // parseTypeDecl parses a type declaration
 func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
+
 	var iter = tk.Next()
 
 	var name Node
@@ -695,7 +695,7 @@ func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
 // parse a variable statement, but also a variable declaration inside
 // an argument list of a function signature
 func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
+	var iter = tk
 	var ok bool
 
 	// first, try to scan the ident
