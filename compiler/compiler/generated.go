@@ -136,79 +136,79 @@ func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
   }
 }
 
-func (b *nodeBuilder) createFile(tk TokenPos, scope ScopePosition, contents NodePosition) NodePosition {
+func (b *nodeBuilder) createFile(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_FILE, scope, contents)
 }
 
-func (b *nodeBuilder) createBlock(tk TokenPos, scope ScopePosition, contents NodePosition) NodePosition {
+func (b *nodeBuilder) createBlock(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_BLOCK, scope, contents)
 }
 
-func (b *nodeBuilder) createTuple(tk TokenPos, scope ScopePosition, contents NodePosition) NodePosition {
+func (b *nodeBuilder) createTuple(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_TUPLE, scope, contents)
 }
 
-func (b *nodeBuilder) createFn(tk TokenPos, scope ScopePosition, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
+func (b *nodeBuilder) createFn(tk TokenPos, scope Scope, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_FN, scope, name, signature, definition)
 }
 
-func (b *nodeBuilder) createMethod(tk TokenPos, scope ScopePosition, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
+func (b *nodeBuilder) createMethod(tk TokenPos, scope Scope, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_METHOD, scope, name, signature, definition)
 }
 
-func (b *nodeBuilder) createType(tk TokenPos, scope ScopePosition, name NodePosition, template NodePosition, typeexp NodePosition) NodePosition {
+func (b *nodeBuilder) createType(tk TokenPos, scope Scope, name NodePosition, template NodePosition, typeexp NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_TYPE, scope, name, template, typeexp)
 }
 
-func (b *nodeBuilder) createNamespace(tk TokenPos, scope ScopePosition, name NodePosition, block NodePosition) NodePosition {
+func (b *nodeBuilder) createNamespace(tk TokenPos, scope Scope, name NodePosition, block NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_NAMESPACE, scope, name, block)
 }
 
-func (b *nodeBuilder) createVar(tk TokenPos, scope ScopePosition, name NodePosition, typeexp NodePosition, assign NodePosition) NodePosition {
+func (b *nodeBuilder) createVar(tk TokenPos, scope Scope, name NodePosition, typeexp NodePosition, assign NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_VAR, scope, name, typeexp, assign)
 }
 
-func (b *nodeBuilder) createSignature(tk TokenPos, scope ScopePosition, template NodePosition, args NodePosition, rettype NodePosition) NodePosition {
+func (b *nodeBuilder) createSignature(tk TokenPos, scope Scope, template NodePosition, args NodePosition, rettype NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_SIGNATURE, scope, template, args, rettype)
 }
 
-func (b *nodeBuilder) createReturn(tk TokenPos, scope ScopePosition, exp NodePosition) NodePosition {
+func (b *nodeBuilder) createReturn(tk TokenPos, scope Scope, exp NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_RETURN, scope, exp)
 }
 
-func (b *nodeBuilder) createStruct(tk TokenPos, scope ScopePosition, varlist NodePosition) NodePosition {
+func (b *nodeBuilder) createStruct(tk TokenPos, scope Scope, varlist NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_STRUCT, scope, varlist)
 }
 
-func (b *nodeBuilder) createUnion(tk TokenPos, scope ScopePosition, members NodePosition) NodePosition {
+func (b *nodeBuilder) createUnion(tk TokenPos, scope Scope, members NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_UNION, scope, members)
 }
 
-func (b *nodeBuilder) createString(tk TokenPos, scope ScopePosition, contents NodePosition) NodePosition {
+func (b *nodeBuilder) createString(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_STRING, scope, contents)
 }
 
-func (b *nodeBuilder) createArrayLiteral(tk TokenPos, scope ScopePosition, contents NodePosition) NodePosition {
+func (b *nodeBuilder) createArrayLiteral(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_ARRAY_LITERAL, scope, contents)
 }
 
-func (b *nodeBuilder) createIf(tk TokenPos, scope ScopePosition, cond NodePosition, thenarm NodePosition, elsearm NodePosition) NodePosition {
+func (b *nodeBuilder) createIf(tk TokenPos, scope Scope, cond NodePosition, thenarm NodePosition, elsearm NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_IF, scope, cond, thenarm, elsearm)
 }
 
-func (b *nodeBuilder) createFor(tk TokenPos, scope ScopePosition, vardecl NodePosition, rng NodePosition, block NodePosition) NodePosition {
+func (b *nodeBuilder) createFor(tk TokenPos, scope Scope, vardecl NodePosition, rng NodePosition, block NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_FOR, scope, vardecl, rng, block)
 }
 
-func (b *nodeBuilder) createWhile(tk TokenPos, scope ScopePosition, cond NodePosition, block NodePosition) NodePosition {
+func (b *nodeBuilder) createWhile(tk TokenPos, scope Scope, cond NodePosition, block NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_WHILE, scope, cond, block)
 }
 
-func (b *nodeBuilder) createUnaPointer(tk TokenPos, scope ScopePosition, pointed NodePosition) NodePosition {
+func (b *nodeBuilder) createUnaPointer(tk TokenPos, scope Scope, pointed NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_UNA_POINTER, scope, pointed)
 }
 
-func (b *nodeBuilder) createUnaRef(tk TokenPos, scope ScopePosition, variable NodePosition) NodePosition {
+func (b *nodeBuilder) createUnaRef(tk TokenPos, scope Scope, variable NodePosition) NodePosition {
   return b.createNodeFromToken(tk, NODE_UNA_REF, scope, variable)
 }
 

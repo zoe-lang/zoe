@@ -39,7 +39,7 @@ type File struct {
 	Tokens      []Token
 	Nodes       NodeArray
 	RootNodePos NodePosition
-	Scopes      []Scope
+	scopes      []concreteScope
 	Version     int
 
 	Errors []ZoeError
@@ -59,8 +59,10 @@ func NewFileFromContents(filename string, contents []byte) (*File, error) {
 		Errors:        make([]ZoeError, 0),
 		data:          append(data, '\x00'),
 		DocCommentMap: make(map[NodePosition]TokenPos),
+		scopes:        make([]concreteScope, 0),
 		// RootDocComments: make([]*Token, 0),
 	}
+	ctx.newScope()
 
 	lxerr := ctx.Lex()
 	if lxerr != nil {
@@ -116,14 +118,10 @@ func (f *File) createNodeBuilder() *nodeBuilder {
 		file:          f,
 		tokens:        f.Tokens,
 		tokensLen:     TokenPos(len(f.Tokens)),
-		scopes:        make([]Scope, 0),
 		doccommentMap: f.DocCommentMap,
 	}
 
-	// root scope
-	b.ScopeNew(SCOPE_NAMESPACE)
-
-	b.createNode(Range{}, NODE_EMPTY, 0)
+	b.createNode(Range{}, NODE_EMPTY, f.RootScope())
 
 	return &b
 }
