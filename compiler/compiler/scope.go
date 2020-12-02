@@ -88,17 +88,15 @@ func (sh Scope) FindRecursive(name InternedString) (Node, bool) {
 	return EmptyNode, false
 }
 
-func (sh Scope) addSymbolFromIdNode(idnode Node, pos Node) {
+func (sh Scope) addSymbolFromIdNode(idnode Node, target Node) {
 	// idn := sh.file.Nodes[idnode]
 	if !idnode.Is(NODE_ID) {
 		sh.file.reportError(idnode.Range(), "is not an identifier")
 		return
 	}
-	sh.addSymbol(idnode.InternedString(), pos.pos)
-}
 
-// Add a symbol to a scope
-func (sh Scope) addSymbol(name InternedString, pos NodePosition) {
+	var name = idnode.InternedString()
+
 	s := &sh.file.scopes[sh.pos]
 	// node := b.nodes[pos]
 	// if node.Kind != NODE_ID {
@@ -112,9 +110,9 @@ func (sh Scope) addSymbol(name InternedString, pos NodePosition) {
 		// we do not set that variable since it already existed in one of our parent scope.
 		// note ; the choice was made to not allow shadowing to avoid footguns, since every
 		// Zoe module needs to explicitely import other symbols (except maybe for core, which will then pollute)
-		sh.file.reportError(sh.file.Nodes[pos].Range, "identifier '", GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Line)))
+		sh.file.reportError(idnode.Range(), "identifier '", GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Line)))
 		return
 	}
 
-	s.Names[name] = pos
+	s.Names[name] = target.pos
 }

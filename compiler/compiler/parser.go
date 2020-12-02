@@ -138,7 +138,9 @@ func init() {
 
 	nud(KW_CONST, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, va := parseVar(scope, tk.Next(), lbp)
-		va.SetFlag(FLAG_CONST)
+		if !va.IsEmpty() {
+			va.SetFlag(FLAG_CONST)
+		}
 		return next, va
 	})
 
