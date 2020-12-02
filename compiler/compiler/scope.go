@@ -40,8 +40,8 @@ type Scope struct {
 	file *File
 }
 
-func (sh Scope) setOwner(node NodePosition) {
-	sh.file.scopes[sh.pos].Owner = node
+func (sh Scope) setOwner(node Node) {
+	sh.file.scopes[sh.pos].Owner = node.pos
 }
 
 func (sh Scope) getOwner() NodePosition {
@@ -79,14 +79,13 @@ func (sh Scope) Find(name InternedString) (NodePosition, bool) {
 	return EmptyNode, false
 }
 
-func (sh Scope) addSymbolFromIdNode(idnode NodePosition, pos NodePosition) {
-	idn := sh.file.Nodes[idnode]
-	if idn.Kind != NODE_ID {
-		sh.file.reportError(idn.Range, "is not an identifier")
+func (sh Scope) addSymbolFromIdNode(idnode Node, pos Node) {
+	// idn := sh.file.Nodes[idnode]
+	if !idnode.Is(NODE_ID) {
+		sh.file.reportError(idnode.Range(), "is not an identifier")
 		return
 	}
-	name := InternedString(idn.Value)
-	sh.addSymbol(name, pos)
+	sh.addSymbol(idnode.InternedString(), pos.pos)
 }
 
 // Add a symbol to a scope

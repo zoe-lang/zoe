@@ -42,10 +42,10 @@ func HandleHover(req *LspRequest) error {
 
 	res := lsp.Hover{}
 
-	dbg := file.NodeDebug(pos)
+	dbg := pos.Debug()
 	res.Contents = []lsp.MarkedString{{
 		Language: "zoe",
-		Value:    dbg + " " + file.GetNodeText(pos),
+		Value:    dbg + " " + pos.GetText(),
 	}}
 
 	req.Reply(res)

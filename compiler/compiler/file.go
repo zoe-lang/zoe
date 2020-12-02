@@ -35,18 +35,17 @@ func (err ZoeError) ToLspDiagnostic() lsp.Diagnostic {
 // File holds the current parsing context
 // also does the error handling stuff.
 type File struct {
-	Filename    string
-	Tokens      []Token
-	Nodes       NodeArray
-	RootNodePos NodePosition
-	scopes      []concreteScope
-	Version     int
+	Filename string
+
+	Tokens []Token
+	scopes []concreteScope
+	Nodes  []AstNode
+
+	RootNode Node
+	Version  int
 
 	Errors []ZoeError
 	data   []byte
-
-	current *Token
-	tkpos   uint32
 
 	DocCommentMap map[NodePosition]TokenPos // node position => token position
 }
@@ -62,6 +61,7 @@ func NewFileFromContents(filename string, contents []byte) (*File, error) {
 		scopes:        make([]concreteScope, 0),
 		// RootDocComments: make([]*Token, 0),
 	}
+	// create the root scope.
 	ctx.newScope()
 
 	lxerr := ctx.Lex()
@@ -100,10 +100,6 @@ func (f *File) GetNodeText(n NodePosition) string {
 	return f.GetRangeText(f.Nodes[n].Range)
 }
 
-func (f *File) isEof() bool {
-	return f.current == nil
-}
-
 func (f *File) reportError(pos Positioned, message ...string) {
 	f.Errors = append(f.Errors, ZoeError{
 		File:    f,
@@ -121,39 +117,68 @@ func (f *File) createNodeBuilder() *nodeBuilder {
 		doccommentMap: f.DocCommentMap,
 	}
 
-	b.createNode(Range{}, NODE_EMPTY, f.RootScope())
+	f.createNode(Range{}, NODE_EMPTY, f.RootScope())
 
 	return &b
 }
 
+func (f *File) emptyNode() Node {
+	return Node{
+		pos:  0,
+		file: f,
+	}
+}
+
+func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...Node) Node {
+	// maybe we should handle here the capacity of the node arrays ?
+	l := NodePosition(len(f.Nodes))
+	f.Nodes = append(f.Nodes, AstNode{Kind: kind, Range: rng, Scope: scope.pos})
+
+	cl := len(children)
+	if cl > 0 {
+		node := &f.Nodes[l]
+		node.ArgLen = int8(l)
+		for i, chld := range children {
+			node.Args[i] = chld.pos
+			node.Range.Extend(chld.Range())
+		}
+	}
+
+	return Node{
+		file: f,
+		pos:  l,
+	}
+}
+
 // Find a node that matches a given range
-func (f *File) FindNodePosition(lsppos *lsp.Position) (NodePosition, error) {
-	pos := f.RootNodePos
-	nodes := f.Nodes
+func (f *File) FindNodePosition(lsppos *lsp.Position) (Node, error) {
+	node := f.RootNode
+	// nodes := f.Nodes
 
 	// log.Print(lsppos.Line+1, ":", lsppos.Character+1)
 search:
-	for nodes[pos].Range.HasPosition(lsppos) {
+	for node.HasPosition(lsppos) {
 		// First check in the node's children
-		for _, chld := range nodes[pos].Args {
-			if chld == EmptyNode {
+		for _, chl := range node.ref().Args {
+			chld := chl.Node(f)
+			if chld.IsEmpty() {
 				continue
 			}
-			if nodes[chld].Range.HasPosition(lsppos) {
+			if chld.HasPosition(lsppos) {
 				// log.Print(f.NodeDebug(chld))
-				pos = chld
+				node = chld
 				continue search
 			}
 
 			// Then check in its list
-			other := nodes[chld].Next
-			for other != EmptyNode {
+			other := chld.Next()
+			for !other.IsEmpty() {
 				// log.Print(f.NodeDebug(other))
-				if nodes[other].Range.HasPosition(lsppos) {
-					pos = other
+				if other.HasPosition(lsppos) {
+					node = other
 					continue search
 				}
-				other = nodes[other].Next
+				other = other.Next()
 			}
 
 		}
@@ -161,5 +186,9 @@ search:
 		break
 	}
 
-	return pos, nil
+	return node, nil
+}
+
+func (f *File) fragment() *fragment {
+	return &fragment{}
 }

@@ -29,7 +29,7 @@ func main() {
 
 		file.Parse()
 		// log.Print(file.Nodes)
-		file.PrintNode(os.Stderr, file.RootNodePos)
+		file.PrintNode(os.Stderr, file.RootNode)
 		_, _ = os.Stderr.WriteString("\n")
 		file.TestFileAst()
 		// log.Printf("%v", file.Nodes)

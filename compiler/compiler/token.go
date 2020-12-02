@@ -114,3 +114,130 @@ func (t *Token) KindStr() string {
 	return tokstr[t.Kind]
 
 }
+
+type Tk struct {
+	pos  TokenPos
+	file *File
+}
+
+func (tk Tk) ref() *Token {
+	return &tk.file.Tokens[tk.pos]
+}
+
+func (tk Tk) Range() Range {
+	return tk.ref().Range
+}
+
+func (tk Tk) IsEof() bool {
+	return int(tk.pos) >= len(tk.file.Tokens)
+}
+
+func (tk Tk) Is(tkind TokenKind) bool {
+	return tk.file.Tokens[tk.pos].Kind == tkind
+}
+
+func (tk Tk) Peek(kind ...TokenKind) bool {
+	n := tk.Next()
+	if n.IsEof() {
+		return false
+	}
+	for _, k := range kind {
+		if n.Is(k) {
+			return true
+		}
+	}
+	return false
+}
+
+func (tk Tk) consume(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
+	if !tk.Is(kind) {
+		return tk, false
+	}
+	next := tk.Next()
+	for _, f := range fn {
+		f(tk)
+	}
+	return next, true
+}
+
+func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
+	if !tk.Is(kind) {
+		tk.reportError("expected " + tokstr[kind] + " but got '" + "'")
+		return tk, false
+	}
+	next := tk.Next()
+	for _, f := range fn {
+		f(tk)
+	}
+	return next, true
+}
+
+func (tk Tk) GetText() string {
+	r := tk.ref().Range
+	return string(tk.file.data[r.Start:r.End])
+}
+
+func (tk Tk) Next() Tk {
+	return Tk{
+		pos:  tk.pos + 1,
+		file: tk.file,
+	}
+}
+
+/////////////////////////////////////////////
+////
+
+var closingTokens = [TK__MAX]bool{}
+
+func init() {
+	for i := range closingTokens {
+		closingTokens[i] = true
+	}
+	closingTokens[TK_RBRACE] = false
+	closingTokens[TK_RPAREN] = false
+	closingTokens[TK_RBRACKET] = false
+}
+
+// IsClosing is true if the current token is a closing token
+// such as ), ] or }
+func (tk Tk) IsClosing() bool {
+	if tk.IsEof() {
+		return true // EOF closes, but it's usually an error
+	}
+	kind := tk.ref().Kind
+	return closingTokens[kind]
+}
+
+func (tk Tk) sym() *prattTk {
+	return &syms[tk.ref().Kind]
+}
+
+//////////////////////////////////////////////
+//
+
+func (tk Tk) reportError(msg ...string) {
+	tk.file.reportError(tk.ref().Range, msg...)
+}
+
+//////////////////////////////////////////////
+//
+
+func (tk Tk) createNode(scope Scope, nk AstNodeKind, args ...Node) Node {
+	return tk.file.createNode(tk.Range(), nk, scope, args...) // ????
+}
+
+func (tk Tk) createIdNode(scope Scope) Node {
+	idstr := SaveInternedString(tk.GetText())
+	idnode := tk.createNode(scope, NODE_ID)
+	idnode.SetInternedString(idstr)
+	// b.file.Nodes[idnode].Value = idstr
+	return idnode
+}
+
+func (tk Tk) createBinOp(scope Scope, kind AstNodeKind, left Node, right Node) Node {
+	return tk.createNode(scope, kind, left, right)
+}
+
+func (tk Tk) createUnaryOp(scope Scope, kind AstNodeKind, left Node) Node {
+	return tk.createNode(scope, kind, left)
+}

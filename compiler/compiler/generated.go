@@ -2,214 +2,215 @@
 
 package zoe
 
-import (
-  "io"
-)
 
 
-func (f *File) PrintNodeRepr(w io.Writer, pos NodePosition) {
-  n := f.Nodes[pos]
-  switch n.Kind {
+func (n Node) Repr() string {
+  switch n.Kind() {
 
-  case NODE_EMPTY: w.Write([]byte(grey("~")))
+  case NODE_EMPTY: return grey("~")
 
-  case NODE_FILE: w.Write([]byte("file"))
+  case NODE_FILE: return "file"
 
-  case NODE_BLOCK: w.Write([]byte("block"))
+  case NODE_BLOCK: return "block"
 
-  case NODE_TUPLE: w.Write([]byte("tuple"))
+  case NODE_TUPLE: return "tuple"
 
-  case NODE_FN: w.Write([]byte(bblue("fn")))
+  case NODE_FN: return bblue("fn")
 
-  case NODE_METHOD: w.Write([]byte(bblue("method")))
+  case NODE_METHOD: return bblue("method")
 
-  case NODE_TYPE: w.Write([]byte(bblue("type")))
+  case NODE_TYPE: return bblue("type")
 
-  case NODE_NAMESPACE: w.Write([]byte(bblue("namespace")))
+  case NODE_NAMESPACE: return bblue("namespace")
 
-  case NODE_VAR: w.Write([]byte(bblue("var")))
+  case NODE_VAR: return bblue("var")
 
-  case NODE_SIGNATURE: w.Write([]byte("signature"))
+  case NODE_SIGNATURE: return "signature"
 
-  case NODE_RETURN: w.Write([]byte("return"))
+  case NODE_RETURN: return "return"
 
-  case NODE_STRUCT: w.Write([]byte(bblue("struct")))
+  case NODE_STRUCT: return bblue("struct")
 
-  case NODE_UNION: w.Write([]byte("union"))
+  case NODE_UNION: return "union"
 
-  case NODE_STRING: w.Write([]byte("str"))
+  case NODE_STRING: return "str"
 
-  case NODE_ARRAY_LITERAL: w.Write([]byte("array"))
+  case NODE_ARRAY_LITERAL: return "array"
 
-  case NODE_IF: w.Write([]byte("if"))
+  case NODE_IF: return "if"
 
-  case NODE_FOR: w.Write([]byte("for"))
+  case NODE_FOR: return "for"
 
-  case NODE_WHILE: w.Write([]byte("while"))
+  case NODE_WHILE: return "while"
 
-  case NODE_IMPORT: w.Write([]byte(bblue("import")))
+  case NODE_IMPORT: return bblue("import")
 
-  case NODE_UNA_ELLIPSIS: w.Write([]byte("..."))
+  case NODE_UNA_ELLIPSIS: return "..."
 
-  case NODE_UNA_PLUS: w.Write([]byte("+"))
+  case NODE_UNA_PLUS: return "+"
 
-  case NODE_UNA_PLUSPLUS: w.Write([]byte("++"))
+  case NODE_UNA_PLUSPLUS: return "++"
 
-  case NODE_UNA_MIN: w.Write([]byte("-"))
+  case NODE_UNA_MIN: return "-"
 
-  case NODE_UNA_MINMIN: w.Write([]byte("--"))
+  case NODE_UNA_MINMIN: return "--"
 
-  case NODE_UNA_NOT: w.Write([]byte("!"))
+  case NODE_UNA_NOT: return "!"
 
-  case NODE_UNA_POINTER: w.Write([]byte("ptr"))
+  case NODE_UNA_POINTER: return "ptr"
 
-  case NODE_UNA_REF: w.Write([]byte("ref"))
+  case NODE_UNA_REF: return "ref"
 
-  case NODE_UNA_BITNOT: w.Write([]byte("~"))
+  case NODE_UNA_BITNOT: return "~"
 
-  case NODE_BIN_ASSIGN: w.Write([]byte("="))
+  case NODE_BIN_ASSIGN: return "="
 
-  case NODE_BIN_PLUS: w.Write([]byte("+"))
+  case NODE_BIN_PLUS: return "+"
 
-  case NODE_BIN_MIN: w.Write([]byte("-"))
+  case NODE_BIN_MIN: return "-"
 
-  case NODE_BIN_DIV: w.Write([]byte("/"))
+  case NODE_BIN_DIV: return "/"
 
-  case NODE_BIN_MUL: w.Write([]byte("*"))
+  case NODE_BIN_MUL: return "*"
 
-  case NODE_BIN_MOD: w.Write([]byte("%"))
+  case NODE_BIN_MOD: return "%"
 
-  case NODE_BIN_EQ: w.Write([]byte("=="))
+  case NODE_BIN_EQ: return "=="
 
-  case NODE_BIN_NEQ: w.Write([]byte("!="))
+  case NODE_BIN_NEQ: return "!="
 
-  case NODE_BIN_GTEQ: w.Write([]byte(">="))
+  case NODE_BIN_GTEQ: return ">="
 
-  case NODE_BIN_GT: w.Write([]byte(">"))
+  case NODE_BIN_GT: return ">"
 
-  case NODE_BIN_LTEQ: w.Write([]byte("<="))
+  case NODE_BIN_LTEQ: return "<="
 
-  case NODE_BIN_LT: w.Write([]byte("<"))
+  case NODE_BIN_LT: return "<"
 
-  case NODE_BIN_LSHIFT: w.Write([]byte("<<"))
+  case NODE_BIN_LSHIFT: return "<<"
 
-  case NODE_BIN_RSHIFT: w.Write([]byte(">>"))
+  case NODE_BIN_RSHIFT: return ">>"
 
-  case NODE_BIN_BITANDEQ: w.Write([]byte("&="))
+  case NODE_BIN_BITANDEQ: return "&="
 
-  case NODE_BIN_BITAND: w.Write([]byte("&"))
+  case NODE_BIN_BITAND: return "&"
 
-  case NODE_BIN_BITOR: w.Write([]byte("|"))
+  case NODE_BIN_BITOR: return "|"
 
-  case NODE_BIN_BITXOR: w.Write([]byte("^"))
+  case NODE_BIN_BITXOR: return "^"
 
-  case NODE_BIN_OR: w.Write([]byte("||"))
+  case NODE_BIN_OR: return "||"
 
-  case NODE_BIN_AND: w.Write([]byte("&&"))
+  case NODE_BIN_AND: return "&&"
 
-  case NODE_BIN_IS: w.Write([]byte("is"))
+  case NODE_BIN_IS: return "is"
 
-  case NODE_BIN_CAST: w.Write([]byte("cast"))
+  case NODE_BIN_CAST: return "cast"
 
-  case NODE_BIN_CALL: w.Write([]byte("call"))
+  case NODE_BIN_CALL: return "call"
 
-  case NODE_BIN_INDEX: w.Write([]byte("index"))
+  case NODE_BIN_INDEX: return "index"
 
-  case NODE_BIN_DOT: w.Write([]byte("."))
+  case NODE_BIN_DOT: return "."
 
-  case NODE_LIT_NULL: w.Write([]byte(mag("null")))
+  case NODE_LIT_NULL: return mag("null")
 
-  case NODE_LIT_VOID: w.Write([]byte(mag("void")))
+  case NODE_LIT_VOID: return mag("void")
 
-  case NODE_LIT_FALSE: w.Write([]byte(mag("false")))
+  case NODE_LIT_FALSE: return mag("false")
 
-  case NODE_LIT_TRUE: w.Write([]byte(mag("true")))
+  case NODE_LIT_TRUE: return mag("true")
 
-  case NODE_LIT_CHAR: w.Write([]byte(green(f.GetRangeText(n.Range))))
+  case NODE_LIT_CHAR: return green(n.GetText())
 
-  case NODE_LIT_RAWSTR: w.Write([]byte(green("'",f.GetRangeText(n.Range),"'")))
+  case NODE_LIT_RAWSTR: return green("'",n.GetText(),"'")
 
-  case NODE_LIT_NUMBER: w.Write([]byte(mag(f.GetRangeText(n.Range))))
+  case NODE_LIT_NUMBER: return mag(n.GetText())
 
-  case NODE_ID: w.Write([]byte(cyan(InternedIds.Get(n.Value))))
+  case NODE_ID: return cyan(n.InternedString())
 
   }
+  return "<!!!>"
 }
 
-func (b *nodeBuilder) createFile(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_FILE, scope, contents)
+func (tk Tk) createFile(scope Scope, contents Node) Node {
+  return tk.createNode(scope, NODE_FILE, contents)
 }
 
-func (b *nodeBuilder) createBlock(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_BLOCK, scope, contents)
+func (tk Tk) createBlock(scope Scope, contents Node) Node {
+  return tk.createNode(scope, NODE_BLOCK, contents)
 }
 
-func (b *nodeBuilder) createTuple(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_TUPLE, scope, contents)
+func (tk Tk) createTuple(scope Scope, contents Node) Node {
+  return tk.createNode(scope, NODE_TUPLE, contents)
 }
 
-func (b *nodeBuilder) createFn(tk TokenPos, scope Scope, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_FN, scope, name, signature, definition)
+func (tk Tk) createFn(scope Scope, name Node, signature Node, definition Node) Node {
+  return tk.createNode(scope, NODE_FN, name, signature, definition)
 }
 
-func (b *nodeBuilder) createMethod(tk TokenPos, scope Scope, name NodePosition, signature NodePosition, definition NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_METHOD, scope, name, signature, definition)
+func (tk Tk) createMethod(scope Scope, name Node, signature Node, definition Node) Node {
+  return tk.createNode(scope, NODE_METHOD, name, signature, definition)
 }
 
-func (b *nodeBuilder) createType(tk TokenPos, scope Scope, name NodePosition, template NodePosition, typeexp NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_TYPE, scope, name, template, typeexp)
+func (tk Tk) createType(scope Scope, name Node, template Node, typeexp Node) Node {
+  return tk.createNode(scope, NODE_TYPE, name, template, typeexp)
 }
 
-func (b *nodeBuilder) createNamespace(tk TokenPos, scope Scope, name NodePosition, block NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_NAMESPACE, scope, name, block)
+func (tk Tk) createNamespace(scope Scope, name Node, block Node) Node {
+  return tk.createNode(scope, NODE_NAMESPACE, name, block)
 }
 
-func (b *nodeBuilder) createVar(tk TokenPos, scope Scope, name NodePosition, typeexp NodePosition, assign NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_VAR, scope, name, typeexp, assign)
+func (tk Tk) createVar(scope Scope, name Node, typeexp Node, assign Node) Node {
+  return tk.createNode(scope, NODE_VAR, name, typeexp, assign)
 }
 
-func (b *nodeBuilder) createSignature(tk TokenPos, scope Scope, template NodePosition, args NodePosition, rettype NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_SIGNATURE, scope, template, args, rettype)
+func (tk Tk) createSignature(scope Scope, template Node, args Node, rettype Node) Node {
+  return tk.createNode(scope, NODE_SIGNATURE, template, args, rettype)
 }
 
-func (b *nodeBuilder) createReturn(tk TokenPos, scope Scope, exp NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_RETURN, scope, exp)
+func (tk Tk) createReturn(scope Scope, exp Node) Node {
+  return tk.createNode(scope, NODE_RETURN, exp)
 }
 
-func (b *nodeBuilder) createStruct(tk TokenPos, scope Scope, varlist NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_STRUCT, scope, varlist)
+func (tk Tk) createStruct(scope Scope, varlist Node) Node {
+  return tk.createNode(scope, NODE_STRUCT, varlist)
 }
 
-func (b *nodeBuilder) createUnion(tk TokenPos, scope Scope, members NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_UNION, scope, members)
+func (tk Tk) createUnion(scope Scope, members Node) Node {
+  return tk.createNode(scope, NODE_UNION, members)
 }
 
-func (b *nodeBuilder) createString(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_STRING, scope, contents)
+func (tk Tk) createString(scope Scope, contents Node) Node {
+  return tk.createNode(scope, NODE_STRING, contents)
 }
 
-func (b *nodeBuilder) createArrayLiteral(tk TokenPos, scope Scope, contents NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_ARRAY_LITERAL, scope, contents)
+func (tk Tk) createArrayLiteral(scope Scope, contents Node) Node {
+  return tk.createNode(scope, NODE_ARRAY_LITERAL, contents)
 }
 
-func (b *nodeBuilder) createIf(tk TokenPos, scope Scope, cond NodePosition, thenarm NodePosition, elsearm NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_IF, scope, cond, thenarm, elsearm)
+func (tk Tk) createIf(scope Scope, cond Node, thenarm Node, elsearm Node) Node {
+  return tk.createNode(scope, NODE_IF, cond, thenarm, elsearm)
 }
 
-func (b *nodeBuilder) createFor(tk TokenPos, scope Scope, vardecl NodePosition, rng NodePosition, block NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_FOR, scope, vardecl, rng, block)
+func (tk Tk) createFor(scope Scope, vardecl Node, rng Node, block Node) Node {
+  return tk.createNode(scope, NODE_FOR, vardecl, rng, block)
 }
 
-func (b *nodeBuilder) createWhile(tk TokenPos, scope Scope, cond NodePosition, block NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_WHILE, scope, cond, block)
+func (tk Tk) createWhile(scope Scope, cond Node, block Node) Node {
+  return tk.createNode(scope, NODE_WHILE, cond, block)
 }
 
-func (b *nodeBuilder) createUnaPointer(tk TokenPos, scope Scope, pointed NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_UNA_POINTER, scope, pointed)
+func (tk Tk) createImport(scope Scope, module Node, id Node, exp Node) Node {
+  return tk.createNode(scope, NODE_IMPORT, module, id, exp)
 }
 
-func (b *nodeBuilder) createUnaRef(tk TokenPos, scope Scope, variable NodePosition) NodePosition {
-  return b.createNodeFromToken(tk, NODE_UNA_REF, scope, variable)
+func (tk Tk) createUnaPointer(scope Scope, pointed Node) Node {
+  return tk.createNode(scope, NODE_UNA_POINTER, pointed)
+}
+
+func (tk Tk) createUnaRef(scope Scope, variable Node) Node {
+  return tk.createNode(scope, NODE_UNA_REF, variable)
 }
 
 

@@ -16,12 +16,9 @@ var reBeforeSpace = regexp.MustCompilePOSIX(` (\}|\)|\])`)
 var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
-func (f *File) NodeDebug(pos NodePosition) string {
-	var buf bytes.Buffer
-	n := f.Nodes[pos]
-	f.PrintNodeRepr(&buf, pos)
-	s := buf.String()
-	return fmt.Sprintf("(%v:%s %v:%v - %v:%v [%v] -> %v)", pos, s, n.Range.Line, n.Range.Column, n.Range.LineEnd, n.Range.ColumnEnd, n.Args, n.Next)
+func (n Node) Debug() string {
+	rng := n.ref().Range
+	return fmt.Sprintf("(%v:%s %v:%v - %v:%v [%v] -> %v)", n.pos, n.Repr(), rng.Line, rng.Column, rng.LineEnd, rng.ColumnEnd, n.ref().Args, n.Next)
 }
 
 func cleanup(str []byte) []byte {
@@ -38,54 +35,55 @@ func cleanup(str []byte) []byte {
 	return s
 }
 
-func (f *File) PrintNode(w io.Writer, iter NodePosition) {
-	n := &f.Nodes[iter]
-	if n.Kind == NODE_BLOCK {
-		f.PrintNodeList(w, n.Args[0], [2]byte{'{', '}'})
+func (f *File) PrintNode(w io.Writer, iter Node) {
+	// n := &f.Nodes[iter]
+	if iter.Is(NODE_BLOCK) {
+		f.PrintNodeList(w, iter.GetArg(0), [2]byte{'{', '}'})
 		return
 	}
 
-	if n.ArgLen > 0 {
+	al := iter.ArgLen()
+	if al > 0 {
 		_, _ = w.Write([]byte{'('})
 	}
-	f.PrintNodeRepr(w, iter)
-	for i := int8(0); i < n.ArgLen; i++ {
-		f.PrintNodeArg(w, n.Args[i])
+	_, _ = w.Write([]byte(iter.Repr()))
+	for i := 0; i < al; i++ {
+		f.PrintNodeArg(w, iter.GetArg(i))
 	}
-	if n.ArgLen > 0 {
+	if al > 0 {
 		_, _ = w.Write([]byte{')'})
 	}
 }
 
-func (f *File) PrintNodeArg(w io.Writer, iter NodePosition) {
-	if iter == EmptyNode {
+func (f *File) PrintNodeArg(w io.Writer, iter Node) {
+	if iter.IsEmpty() {
 		_, _ = w.Write([]byte{' ', '~'})
 		return
 	}
 	_, _ = w.Write([]byte{' '})
-	if f.Nodes[iter].Next != EmptyNode {
+	if !iter.Next().IsEmpty() {
 		f.PrintNodeList(w, iter, [2]byte{'[', ']'})
 	} else {
 		f.PrintNode(w, iter)
 	}
 }
 
-func (f *File) PrintNodeList(w io.Writer, iter NodePosition, pair [2]byte) {
+func (f *File) PrintNodeList(w io.Writer, iter Node, pair [2]byte) {
 	_, _ = w.Write([]byte{pair[0]})
 	first := true
-	for iter != 0 {
+	for !iter.IsEmpty() {
 		if !first {
 			_, _ = w.Write([]byte(" "))
 		} else {
 			first = false
 		}
 		f.PrintNode(w, iter)
-		iter = f.Nodes[iter].Next
+		iter = iter.Next()
 	}
 	_, _ = w.Write([]byte{pair[1]})
 }
 
-func (f *File) PrintNodeString(n NodePosition) string {
+func (f *File) PrintNodeString(n Node) string {
 	var buf bytes.Buffer
 	f.PrintNode(&buf, n)
 	return buf.String()
@@ -108,7 +106,7 @@ func (f *File) TestFileAst() {
 		p := color.NoColor
 		color.NoColor = true
 
-		test := cleanup([]byte(f.PrintNodeString(n)))
+		test := cleanup([]byte(f.PrintNodeString(n.Node(f))))
 
 		color.NoColor = p
 
