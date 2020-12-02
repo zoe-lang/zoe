@@ -1,6 +1,10 @@
 package zoe
 
-import "github.com/sourcegraph/go-lsp"
+import (
+	"fmt"
+
+	"github.com/sourcegraph/go-lsp"
+)
 
 type TokenKind int
 type TokenPos int
@@ -85,36 +89,6 @@ type Token struct {
 	Range
 }
 
-func (t Token) getSym() *prattTk {
-	return &syms[t.Kind]
-}
-
-func (t *Token) panicIfNot(k TokenKind) {
-	if t.Kind != k {
-		panic(`requested ` + t.KindStr() + ` but got ` + tokstr[k])
-	}
-}
-
-func (t *Token) Is(tk TokenKind) bool {
-	if t != nil && t.Kind == tk {
-		return true
-	}
-	return false
-}
-
-func (t *Token) IsSkippable() bool {
-	kind := t.Kind
-	return kind == TK_WHITESPACE || kind == TK_COMMENT
-}
-
-func (t *Token) KindStr() string {
-	if t.Kind == -1 {
-		return "FAKE"
-	}
-	return tokstr[t.Kind]
-
-}
-
 type Tk struct {
 	pos  TokenPos
 	file *File
@@ -133,6 +107,9 @@ func (tk Tk) IsEof() bool {
 }
 
 func (tk Tk) Is(tkind TokenKind) bool {
+	if tk.IsEof() {
+		return false
+	}
 	return tk.file.Tokens[tk.pos].Kind == tkind
 }
 
@@ -201,12 +178,9 @@ func (tk Tk) Next() Tk {
 var closingTokens = [TK__MAX]bool{}
 
 func init() {
-	for i := range closingTokens {
-		closingTokens[i] = true
-	}
-	closingTokens[TK_RBRACE] = false
-	closingTokens[TK_RPAREN] = false
-	closingTokens[TK_RBRACKET] = false
+	closingTokens[TK_RBRACE] = true
+	closingTokens[TK_RPAREN] = true
+	closingTokens[TK_RBRACKET] = true
 }
 
 // IsClosing is true if the current token is a closing token
@@ -227,7 +201,13 @@ func (tk Tk) sym() *prattTk {
 //
 
 func (tk Tk) reportError(msg ...string) {
-	tk.file.reportError(tk.ref().Range, msg...)
+	var r Range
+	if tk.IsEof() {
+		r = tk.file.Tokens[len(tk.file.Tokens)-1].Range
+	} else {
+		r = tk.ref().Range
+	}
+	tk.file.reportError(r, msg...)
 }
 
 //////////////////////////////////////////////
@@ -251,4 +231,11 @@ func (tk Tk) createBinOp(scope Scope, kind AstNodeKind, left Node, right Node) N
 
 func (tk Tk) createUnaryOp(scope Scope, kind AstNodeKind, left Node) Node {
 	return tk.createNode(scope, kind, left)
+}
+
+func (tk Tk) Debug() string {
+	if tk.IsEof() {
+		return "T[EOF]"
+	}
+	return fmt.Sprintf(`T[%s '%s' @%v:%v]`, tokstr[tk.ref().Kind], tk.GetText(), tk.Range().Line, tk.Range().Column)
 }

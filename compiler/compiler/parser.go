@@ -1,5 +1,7 @@
 package zoe
 
+import "log"
+
 func (f *File) Parse() {
 	_, f.RootNode = f.parseFile()
 	// control that we got to the last token ???
@@ -18,7 +20,9 @@ func (f *File) parseFile() (Tk, Node) {
 	for !tk.IsEof() {
 		var node Node
 		tk, node = Expression(scope, tk, 0)
-		app.append(node)
+		if !node.IsEmpty() {
+			app.append(node)
+		}
 	}
 
 	if !app.first.IsEmpty() {
@@ -278,45 +282,47 @@ func init() {
 	// binary(NODE_FNDEF, TK_FATARROW)
 
 	led(TK_LBRACE, func(scope Scope, tk Tk, left Node) (Tk, Node) {
-		// function call !
-		fragment := newFragment()
-		next := tk.Next()
+		var iter = tk.Next()
+		var fragment = newFragment()
 
-		for !next.IsClosing() {
+		for !iter.IsClosing() {
 			var exp Node
-			next, exp = Expression(scope, next, 0)
+			iter, exp = Expression(scope, iter, 0)
 			fragment.append(exp)
-			next, _ = next.consume(TK_COMMA)
+			iter = iter.expectCommaIfNot(TK_RBRACE)
 		}
 
-		index := tk.createBinOp(scope, NODE_BIN_INDEX, left, fragment.first)
-		next, _ = next.expect(TK_RBRACE, func(tk Tk) {
+		var index = tk.createBinOp(scope, NODE_BIN_INDEX, left, fragment.first)
+		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
 			index.ExtendRange(tk.Range())
 		})
 
-		return next, index
+		return iter, index
 	})
 
 	lbp += 2
 
 	led(TK_LPAREN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		// function call !
-		next := tk.Next()
-		fragment := newFragment()
+		var iter = tk.Next()
+		var fragment = newFragment()
 
-		for !next.IsClosing() {
+		for !iter.IsClosing() {
 			var exp Node
-			next, exp = Expression(scope, next, 0)
+			iter, exp = Expression(scope, iter, 0)
+
 			fragment.append(exp)
-			next, _ = next.consume(TK_COMMA)
+			iter = iter.expectCommaIfNot(TK_RPAREN)
 		}
 
-		call := tk.createBinOp(scope, NODE_BIN_CALL, left, fragment.first)
-		next, _ = next.expect(TK_RPAREN, func(tk Tk) {
+		var call = tk.createBinOp(scope, NODE_BIN_CALL, left, fragment.first)
+
+		log.Print(iter.Debug())
+		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
 			call.ExtendRange(tk.Range())
 		})
 
-		return next, call
+		return iter, call
 	})
 
 	lbp += 2
@@ -723,6 +729,7 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	if !ident.IsEmpty() {
 		scope.addSymbolFromIdNode(ident, varnode)
 	}
+
 	return iter, varnode
 	// Try to parse VAR ourselves
 }

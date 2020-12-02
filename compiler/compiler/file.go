@@ -130,7 +130,7 @@ func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...
 	cl := len(children)
 	if cl > 0 {
 		node := &f.Nodes[l]
-		node.ArgLen = int8(l)
+		node.ArgLen = int8(cl)
 		for i, chld := range children {
 			node.Args[i] = chld.pos
 			if !chld.IsEmpty() {
