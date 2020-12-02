@@ -1,6 +1,6 @@
 
-#? (var b ~ (fn ~ (signature ~ ~ ~) {2}))
-var b = fn () { 2 }
+#? (var a ~ (fn ~ (signature ~ ~ ~) {2}))
+var a = fn () { 2 }
 
 #? (var b ~ (fn ~ (signature ~ (var a String ~) String) {(return a)}))
 var b = fn (a: String) -> String { return a }

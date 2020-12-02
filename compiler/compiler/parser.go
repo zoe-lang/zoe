@@ -77,16 +77,20 @@ func init() {
 	})
 
 	nud(KW_NAMESPACE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		var iter = tk.Next()
 		// res.Block = res.CreateBlock()
-		next, name := Expression(scope, tk.Next(), 0)
-		next, _ = tk.expect(TK_LBRACKET)
+		var name Node
+		iter, name = Expression(scope, tk.Next(), 0)
 
+		tk.expect(TK_LBRACKET)
 		nmsp_scope := scope.subScope()
-		next, block := parseBlock(nmsp_scope, next, 0)
 
-		nmsp := tk.createNamespace(scope, name, block)
+		var block Node
+		iter, block = parseBlock(nmsp_scope, iter, 0)
+
+		var nmsp = tk.createNamespace(scope, name, block)
 		nmsp_scope.setOwner(nmsp)
-		return next, nmsp
+		return iter, nmsp
 	})
 
 	// { , a block

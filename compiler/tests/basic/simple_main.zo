@@ -1,8 +1,8 @@
 var a: String
 var b: String
-var b = 2
+var c = 2
 
-var c = ("a", 3)
+var d = ("a", 3)
 
 fn main() -> void {
   var a = 23

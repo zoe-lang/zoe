@@ -72,6 +72,15 @@ func (sh Scope) Find(name InternedString) (Node, bool) {
 		return Node{pos: node, file: sh.file}, true
 	}
 
+	return EmptyNode, false
+}
+
+func (sh Scope) FindRecursive(name InternedString) (Node, bool) {
+	if node, ok := sh.Find(name); ok {
+		return node, true
+	}
+
+	sc := sh.file.scopes[sh.pos]
 	if sc.Parent != -1 {
 		return sc.Parent.Handler(sh.file).Find(name)
 	}
@@ -103,7 +112,7 @@ func (sh Scope) addSymbol(name InternedString, pos NodePosition) {
 		// we do not set that variable since it already existed in one of our parent scope.
 		// note ; the choice was made to not allow shadowing to avoid footguns, since every
 		// Zoe module needs to explicitely import other symbols (except maybe for core, which will then pollute)
-		sh.file.reportError(sh.file.Nodes[pos].Range, GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Line)))
+		sh.file.reportError(sh.file.Nodes[pos].Range, "identifier '", GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Line)))
 		return
 	}
 
