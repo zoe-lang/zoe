@@ -102,10 +102,10 @@ func init() {
 
 	nud(TK_LBRACE, func(scope Scope, tk Tk, _ int) (Tk, Node) {
 		// function call !
-		next := tk.Next()
+		var iter = tk.Next()
 
 		fragment := newFragment()
-		next = next.whileNotClosing(func(iter Tk) Tk {
+		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
 			iter, exp = Expression(scope, iter, 0)
 			fragment.append(exp)
@@ -117,11 +117,11 @@ func init() {
 
 		array := tk.createArrayLiteral(scope, fragment.first)
 
-		next, _ = next.expect(TK_RBRACE, func(tk Tk) {
+		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
 			array.ExtendRange(tk.Range())
 		})
 
-		return next, array
+		return iter, array
 	})
 
 	// The doc comment forwards the results but sets itself first on the node that resulted
@@ -158,17 +158,17 @@ func init() {
 	// will return an empty node if
 	nud(KW_RETURN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		var res Node
-		next := tk
+		iter := tk
 		// do not try to get next expression is return is immediately followed
 		// by } or ]
 		if tk.Peek(TK_RPAREN, TK_RBRACKET) {
 			// return can only return nothing if it is at the end of a block or expression
 			res = EmptyNode
 		} else {
-			next, res = Expression(scope, tk.Next(), lbp)
+			iter, res = Expression(scope, tk.Next(), lbp)
 		}
 
-		return next, tk.createReturn(scope, res)
+		return iter, tk.createReturn(scope, res)
 	})
 
 	lbp += 2
@@ -271,21 +271,21 @@ func init() {
 	// the index operator
 	// nud(TK_LBRACE, parseLbraceNud)
 	nud(TK_STAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next := tk.Next()
-		next, typeexpr := Expression(scope, next, syms[TK_MINMIN].lbp+1)
+		iter := tk.Next()
+		iter, typeexpr := Expression(scope, iter, syms[TK_MINMIN].lbp+1)
 		if typeexpr.IsEmpty() {
 			tk.reportError("expected * to be followed by a type name")
 		}
-		return next, tk.createUnaPointer(scope, typeexpr)
+		return iter, tk.createUnaPointer(scope, typeexpr)
 	})
 
 	nud(TK_AMP, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next := tk.Next()
-		next, expr := Expression(scope, next, syms[TK_MINMIN].lbp+1)
+		iter := tk.Next()
+		iter, expr := Expression(scope, iter, syms[TK_MINMIN].lbp+1)
 		if expr.IsEmpty() {
 			tk.reportError("expected & to be followed by an expression")
 		}
-		return next, tk.createUnaRef(scope, expr)
+		return iter, tk.createUnaRef(scope, expr)
 	})
 
 	lbp += 2
