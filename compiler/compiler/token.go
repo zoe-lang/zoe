@@ -149,7 +149,7 @@ func (tk Tk) expectClosing(opening Tk, fn ...func(tk Tk)) Tk {
 	case TK_LBRACE:
 		ckind = TK_RBRACE
 	default:
-		panic(tokstr[okind] + " has no corresponding closing token")
+		panic(tokstr[okind] + " has no corresponding closing token, this is a compiler bug")
 	}
 	if !tk.Is(ckind) {
 		opening.reportError("missing closing token")
@@ -221,6 +221,44 @@ func (tk Tk) IsClosing() bool {
 	}
 	kind := tk.ref().Kind
 	return closingTokens[kind]
+}
+
+func (tk Tk) while(cond func(iter Tk) bool, fn func(iter Tk) Tk) Tk {
+	var iter = tk
+	for cond(iter) {
+		var res = fn(iter)
+		if res.pos == iter.pos {
+			// We can't allow the parser to stay on the same token,
+			// so we advance it. Most like, this is due to an error that
+			// happened in `fn` so it already should have been reported.
+			iter = iter.Next()
+		} else {
+			iter = res
+		}
+	}
+	return iter
+}
+
+// Execute a function as long as the current token is not a closing token.
+func (tk Tk) whileNotClosing(fn func(iter Tk) Tk) Tk {
+	return tk.while(
+		func(iter Tk) bool { return !iter.IsClosing() },
+		fn,
+	)
+}
+
+func (tk Tk) whileNotEof(fn func(iter Tk) Tk) Tk {
+	return tk.while(
+		func(iter Tk) bool { return !iter.IsEof() },
+		fn,
+	)
+}
+
+func (tk Tk) whileNot(kind TokenKind, fn func(iter Tk) Tk) Tk {
+	return tk.while(
+		func(iter Tk) bool { return !iter.IsEof() && !iter.Is(kind) },
+		fn,
+	)
 }
 
 func (tk Tk) sym() *prattTk {

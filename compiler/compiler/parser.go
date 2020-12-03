@@ -15,13 +15,14 @@ func (f *File) parseFile() (Tk, Node) {
 	}
 
 	app := newFragment()
-	for !tk.IsEof() {
+	tk.whileNotEof(func(iter Tk) Tk {
 		var node Node
-		tk, node = Expression(scope, tk, 0)
+		iter, node = Expression(scope, iter, 0)
 		if !node.IsEmpty() {
 			app.append(node)
 		}
-	}
+		return iter
+	})
 
 	if !app.first.IsEmpty() {
 		file.SetArgs(app.first)
@@ -49,31 +50,32 @@ func init() {
 		// one, in which case we just send it back.
 		// an empty () parenthesis block is an error as it doesn't mean anything.
 
-		next, exp := Expression(scope, tk.Next(), 0)
+		iter, exp := Expression(scope, tk.Next(), 0)
 		// check if we end with a parenthesis
-		if next, ok := next.consume(TK_RPAREN); ok {
+		if next, ok := iter.consume(TK_RPAREN); ok {
 			exp.ExtendRange(tk.Range())
 			return next, exp
 		}
 
 		// If we didn't encounter ), we want a comma
-		next, _ = next.expect(TK_COMMA)
+		iter, _ = iter.expect(TK_COMMA)
 
 		app := newFragment()
 		app.append(exp)
 
-		for !next.IsClosing() {
-			next, exp = Expression(scope, next, 0)
-			if !next.Is(TK_RPAREN) {
-				next, _ = next.expect(TK_COMMA) // there can be a comma
+		iter = iter.whileNotClosing(func(iter Tk) Tk {
+			iter, exp = Expression(scope, iter, 0)
+			if !iter.Is(TK_RPAREN) {
+				iter, _ = iter.expect(TK_COMMA) // there can be a comma
 			}
 			app.append(exp)
-		}
+			return iter
+		})
 
 		tup := tk.createTuple(scope, app.first)
-		next, _ = next.expect(TK_RPAREN, func(tk Tk) { tup.ExtendRange(tk.Range()) })
+		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) { tup.ExtendRange(tk.Range()) })
 
-		return next, tup
+		return iter, tup
 	})
 
 	nud(KW_NAMESPACE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
@@ -82,11 +84,13 @@ func init() {
 		var name Node
 		iter, name = Expression(scope, iter, 0)
 
-		iter.expect(TK_LBRACKET)
-		nmsp_scope := scope.subScope()
-
 		var block Node
-		iter, block = parseBlock(nmsp_scope, iter, 0)
+		var nmsp_scope = scope.subScope()
+
+		if _, ok := iter.expect(TK_LBRACKET); ok {
+
+			iter, block = parseBlock(nmsp_scope, iter, 0)
+		}
 
 		var nmsp = tk.createNamespace(scope, name, block)
 		nmsp_scope.setOwner(nmsp)
@@ -101,14 +105,16 @@ func init() {
 		next := tk.Next()
 
 		fragment := newFragment()
-		for !next.IsClosing() {
+		next = next.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
-			next, exp = Expression(scope, next, 0)
+			iter, exp = Expression(scope, iter, 0)
 			fragment.append(exp)
-			if !next.Is(TK_RBRACE) {
-				next, _ = next.consume(TK_COMMA)
+			if !iter.Is(TK_RBRACE) {
+				iter, _ = iter.consume(TK_COMMA)
 			}
-		}
+			return iter
+		})
+
 		array := tk.createArrayLiteral(scope, fragment.first)
 
 		next, _ = next.expect(TK_RBRACE, func(tk Tk) {
@@ -291,12 +297,13 @@ func init() {
 		var iter = tk.Next()
 		var fragment = newFragment()
 
-		for !iter.IsClosing() {
+		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
 			iter, exp = Expression(scope, iter, 0)
 			fragment.append(exp)
 			iter = iter.expectCommaIfNot(TK_RBRACE)
-		}
+			return iter
+		})
 
 		var index = tk.createBinOp(scope, NODE_BIN_INDEX, left, fragment.first)
 		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
@@ -313,13 +320,14 @@ func init() {
 		var iter = tk.Next()
 		var fragment = newFragment()
 
-		for !iter.IsClosing() {
+		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
 			iter, exp = Expression(scope, iter, 0)
 
 			fragment.append(exp)
 			iter = iter.expectCommaIfNot(TK_RPAREN)
-		}
+			return iter
+		})
 
 		var call = tk.createBinOp(scope, NODE_BIN_CALL, left, fragment.first)
 
@@ -413,7 +421,8 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	fragment := newFragment()
-	for !iter.IsClosing() {
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
+
 		mod2 := mod.Clone()
 
 		var path Node
@@ -442,7 +451,9 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 			fragment.append(imp)
 		}
 		iter = iter.expectCommaIfNot(TK_RPAREN)
-	}
+		return iter
+	})
+
 	iter, _ = iter.expect(TK_RPAREN)
 
 	return iter, fragment.first
@@ -453,11 +464,12 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter := tk.Next()
 	fragment := newFragment()
-	for !iter.IsEof() && !iter.Is(TK_QUOTE) {
+	iter = iter.whileNot(TK_QUOTE, func(iter Tk) Tk {
 		var exp Node
 		iter, exp = Expression(scope, iter, 0)
 		fragment.append(exp)
-	}
+		return iter
+	})
 
 	str := tk.createString(scope, fragment.first)
 	iter, _ = iter.expect(TK_QUOTE, func(tk Tk) {
@@ -510,7 +522,8 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// Function arguments, mandatory
 	var args = newFragment()
 	iter, _ = iter.expect(TK_LPAREN)
-	for !iter.IsClosing() {
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
+
 		var arg Node
 		iter, arg = parseVar(fnscope, iter, 0)
 		if !arg.IsEmpty() {
@@ -523,7 +536,9 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 		if !iter.Is(TK_RPAREN) {
 			iter, _ = iter.expect(TK_COMMA)
 		}
-	}
+		return iter
+	})
+
 	iter, _ = iter.expect(TK_RPAREN)
 
 	// Return type, may not exist
@@ -553,19 +568,21 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter := tk.Next()
 
 	fragment := newFragment()
-	for !iter.IsClosing() {
+
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		for iter.Is(TK_SEMICOLON) {
 			iter = iter.Next()
 		}
 
 		if iter.IsEof() {
-			break
+			return iter
 		}
 
 		var exp Node
 		iter, exp = Expression(scope, iter, 0)
 		fragment.append(exp)
-	}
+		return iter
+	})
 
 	block := tk.createBlock(scope, fragment.first)
 	iter = iter.expectClosing(tk, func(tk Tk) {
@@ -582,16 +599,15 @@ func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 	var fragment = newFragment()
 
-	for !iter.IsClosing() { // missing WHERE
-		// For now, we just want id's
-		// but templates will have to support having more complex expressions.
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		iter, _ = iter.expect(TK_ID, func(tk Tk) {
 			var id = tk.createIdNode(scope)
 			fragment.append(id)
 		})
 
 		iter = iter.expectCommaIfNot(TK_RBRACE)
-	}
+		return iter
+	})
 	iter, _ = iter.expect(TK_RBRACE)
 	return iter, fragment.first
 }

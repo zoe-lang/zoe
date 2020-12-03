@@ -101,11 +101,13 @@ func (f *File) GetNodeText(n NodePosition) string {
 }
 
 func (f *File) reportError(pos Positioned, message ...string) {
+
 	f.Errors = append(f.Errors, ZoeError{
 		File:    f,
 		Range:   *pos.GetPosition(),
 		Message: strings.Join(message, ""),
 	})
+	// f.Errors[len(f.Errors)-1].Print(os.Stderr)
 }
 
 func (f *File) createNodeBuilder() *nodeBuilder {
