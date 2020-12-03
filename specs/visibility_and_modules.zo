@@ -20,7 +20,7 @@ import 'net/http' as http
 
 # everything is exported by default from a module
 const VAR = 3
-let my_value = Ipv4::new(...)
+let my_value = Ipv4.new(...)
 
 # Prefix with local to hide symbols from being exported
 local const NAME = 'hello'
@@ -39,15 +39,13 @@ export 'net/http' ( HTTPServer )
   Any symbol can have a namespace. The visibility of the namespace is then the same as the one of the symbol.
 #)
 
-namespace MyNamespace (
+namespace MyNamespace {
   # symbol1 and symbol2 are local
-  import SomeType::namespace ( symbol1, symbol2 )
+  import SomeType.nmsp ( symbol1, symbol2 )
+
   const my_var = 2
-)
+}
 
 
 
-type MyType = struct ( )
-namespace MyType (
-
-)
+type MyType2 is struct ( )
