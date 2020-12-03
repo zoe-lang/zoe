@@ -26,7 +26,6 @@ func (l LexerError) Error() string {
 	return l.Message
 }
 
-// Lex
 func (z *File) Lex() error {
 	/*!types:re2c*/
 	data, length := z.data, uint32(len(z.data))
@@ -99,7 +98,8 @@ func (z *File) Lex() error {
 	    // re2c:flags:nested-ifs = 1;           // configuration
 
 			// keywords
-			<top> $ { return nil }
+
+			<top> $ { addToken(TK_EOF); return nil }
 			<top> * { return err() }
 
 			<top> [\n\t ]+ { addToken(TK_WHITESPACE); goto yyc_top }

@@ -103,7 +103,8 @@ func (tk Tk) Range() Range {
 }
 
 func (tk Tk) IsEof() bool {
-	return int(tk.pos) >= len(tk.file.Tokens)
+	return tk.ref().Kind == TK_EOF
+	// return int(tk.pos) >= len(tk.file.Tokens)
 }
 
 func (tk Tk) Is(tkind TokenKind) bool {
@@ -188,8 +189,10 @@ func (tk Tk) GetText() string {
 	if tk.IsEof() {
 		return "<EOF>"
 	}
-	r := tk.ref().Range
-	return string(tk.file.data[r.Start:r.End])
+	var tokens = tk.file.Tokens
+	var t = tokens[tk.pos]
+
+	return string(tk.file.data[t.Start:t.End])
 }
 
 func (tk Tk) Next() Tk {
