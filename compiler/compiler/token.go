@@ -161,6 +161,9 @@ func (tk Tk) expectCommaIfNot(kind ...TokenKind) Tk {
 }
 
 func (tk Tk) GetText() string {
+	if tk.IsEof() {
+		return "<EOF>"
+	}
 	r := tk.ref().Range
 	return string(tk.file.data[r.Start:r.End])
 }

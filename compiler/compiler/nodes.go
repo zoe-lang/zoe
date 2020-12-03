@@ -95,7 +95,7 @@ const (
 	NODE_LIT_CHAR   // green(n.GetText())
 	NODE_LIT_RAWSTR // green("'",n.GetText(),"'")
 	NODE_LIT_NUMBER // mag(n.GetText())
-	NODE_ID         // cyan(n.InternedString())
+	NODE_ID         // cyan(GetInternedString(n.InternedString()))
 
 	NODE__SIZE
 )

@@ -1,3 +1,4 @@
+/mqah /78888888888888888888888888888
 
 ##########################################################################################
 ##########################################################################################
@@ -9,9 +10,9 @@
 # them.
 # They're used in multi-threading, as they don't need locking when accessing them and they
 # should greatly simplify garbage collection.
-let a Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
+var a: Typ = somethingThatGivesTyp() # There will be a need for calling a function where the return address is being supplied by the caller.
 # alternatively
-let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
+var b = somethingThatGivesTyp() # this will infer a's type and mark it as const.
 
 # A variable may be declared as a staging variable that will eventually become const
 # A staged variable may be used in method calls that include it, other staged variables and const variables.
@@ -20,7 +21,7 @@ let a = somethingThatGivesTyp() # this will infer a's type and mark it as const.
 
 # The gist of it is : as long as it is staged, it may not escape the stack context it's in.
 # A staged variable cannot reference a potentially mutable variable that may escape it.
-const a = 43
+cons  oyh7u t c  = 43
 
 
 
@@ -82,9 +83,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -109,9 +113,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -269,9 +276,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -296,9 +306,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -456,9 +469,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -483,9 +499,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -643,9 +662,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -670,9 +692,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -830,9 +855,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -857,9 +885,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1017,9 +1048,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1044,9 +1078,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1204,9 +1241,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1231,9 +1271,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1391,9 +1434,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1418,9 +1464,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1578,9 +1627,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1605,9 +1657,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1765,9 +1820,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1792,9 +1850,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1952,9 +2013,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -1979,9 +2043,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2139,9 +2206,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2166,9 +2236,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2326,9 +2399,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2353,9 +2429,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2513,9 +2592,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2540,9 +2622,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2700,9 +2785,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2727,9 +2815,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2887,9 +2978,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -2914,9 +3008,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3074,9 +3171,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3101,9 +3201,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3261,9 +3364,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3288,9 +3394,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3448,9 +3557,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3475,9 +3587,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3635,9 +3750,12 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3662,9 +3780,12 @@ namespace String {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let l = s.len
-      ptr.copy(s.ptr, wptr, l)
-      wptr += l
+      let
+       = s.len
+      ptr.copy(s.ptr, wptr,
+      )
+      wptr +=
+
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const
@@ -3736,3 +3857,19 @@ implements {
 let s new []*SomeType
 s.append(&SomeType(), SomeType())
 return s
+;;/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

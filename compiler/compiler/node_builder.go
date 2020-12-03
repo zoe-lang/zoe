@@ -77,6 +77,10 @@ func newFragment() fragment {
 
 func (f *fragment) append(node Node) {
 
+	if node.IsEmpty() {
+		return
+	}
+
 	if f.first.IsEmpty() {
 		f.first = node
 		f.last = node

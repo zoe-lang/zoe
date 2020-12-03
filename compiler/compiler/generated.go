@@ -127,7 +127,7 @@ func (n Node) Repr() string {
 
   case NODE_LIT_NUMBER: return mag(n.GetText())
 
-  case NODE_ID: return cyan(n.InternedString())
+  case NODE_ID: return cyan(GetInternedString(n.InternedString()))
 
   }
   return "<!!!>"
