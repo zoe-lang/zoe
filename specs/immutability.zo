@@ -96,7 +96,7 @@ namespace Slice {
 
 ##############################
 
-type String is const Slice[UInt8]
+type String is Slice[UInt8]
 implements {
   fn concat(strs: ...Slice[String]) -> String {
     return String.concat(this, ...strs)
