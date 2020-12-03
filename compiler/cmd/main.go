@@ -28,14 +28,9 @@ func main() {
 		}
 
 		file.Parse()
-		// log.Print(file.Nodes)
 		file.PrintNode(os.Stderr, file.RootNode)
 		_, _ = os.Stderr.WriteString("\n")
 		file.TestFileAst()
-		// log.Printf("%v", file.Nodes)
-		// _, _ = os.Stdout.WriteString(res.DumpString() + "\n\n")
-		// file.TestFileAst()
-
 		for _, err := range file.Errors {
 			err.Print(os.Stderr)
 		}

@@ -110,20 +110,6 @@ func (f *File) reportError(pos Positioned, message ...string) {
 	// f.Errors[len(f.Errors)-1].Print(os.Stderr)
 }
 
-func (f *File) createNodeBuilder() *nodeBuilder {
-
-	b := nodeBuilder{
-		file:          f,
-		tokens:        f.Tokens,
-		tokensLen:     TokenPos(len(f.Tokens)),
-		doccommentMap: f.DocCommentMap,
-	}
-
-	f.createNode(Range{}, NODE_EMPTY, f.RootScope())
-
-	return &b
-}
-
 func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...Node) Node {
 	// maybe we should handle here the capacity of the node arrays ?
 	l := NodePosition(len(f.Nodes))

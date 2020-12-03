@@ -14,7 +14,7 @@ func (f *File) parseFile() (Tk, Node) {
 		file: f,
 	}
 
-	app := newFragment()
+	app := newList()
 	tk.whileNotEof(func(iter Tk) Tk {
 		var node Node
 		iter, node = Expression(scope, iter, 0)
@@ -60,7 +60,7 @@ func init() {
 		// If we didn't encounter ), we want a comma
 		iter, _ = iter.expect(TK_COMMA)
 
-		app := newFragment()
+		app := newList()
 		app.append(exp)
 
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
@@ -104,7 +104,7 @@ func init() {
 		// function call !
 		var iter = tk.Next()
 
-		fragment := newFragment()
+		fragment := newList()
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
 			iter, exp = Expression(scope, iter, 0)
@@ -295,7 +295,7 @@ func init() {
 
 	led(TK_LBRACE, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		var iter = tk.Next()
-		var fragment = newFragment()
+		var fragment = newList()
 
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
@@ -318,7 +318,7 @@ func init() {
 	led(TK_LPAREN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
 		// function call !
 		var iter = tk.Next()
-		var fragment = newFragment()
+		var fragment = newList()
 
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
@@ -420,7 +420,7 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 		return iter, EmptyNode
 	}
 
-	fragment := newFragment()
+	fragment := newList()
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
 
 		mod2 := mod.Clone()
@@ -463,7 +463,7 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 // "
 func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter := tk.Next()
-	fragment := newFragment()
+	fragment := newList()
 	iter = iter.whileNot(TK_QUOTE, func(iter Tk) Tk {
 		var exp Node
 		iter, exp = Expression(scope, iter, 0)
@@ -520,7 +520,7 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	// Function arguments, mandatory
-	var args = newFragment()
+	var args = newList()
 	iter, _ = iter.expect(TK_LPAREN)
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
 
@@ -567,7 +567,7 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// blk := b.createNodeFromToken(tk, NODE_BLOCK)
 	iter := tk.Next()
 
-	fragment := newFragment()
+	fragment := newList()
 
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		for iter.Is(TK_SEMICOLON) {
@@ -597,7 +597,7 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
 	var iter = tk.Next()
-	var fragment = newFragment()
+	var fragment = newList()
 
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		iter, _ = iter.expect(TK_ID, func(tk Tk) {
@@ -651,9 +651,9 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
 	iter, _ = iter.expect(TK_LPAREN)
 
-	fragment := newFragment()
+	var list = newList()
 
-	for !iter.IsClosing() {
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		// parse a var declaration
 		var variable Node
 		iter, variable = parseVar(scope, iter, 0)
@@ -664,13 +664,14 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 		} else {
 			// FIXME ensure a field has a type declaration, as struct
 			// fields should have them whether they have defaults or not
-			fragment.append(variable)
+			list.append(variable)
 		}
 
 		iter = iter.expectCommaIfNot(TK_RPAREN)
-	}
+		return iter
+	})
 
-	var stru = tk.createStruct(scope, fragment.first)
+	var stru = tk.createStruct(scope, list.first)
 	iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
 		stru.ExtendRange(tk.Range())
 	})
