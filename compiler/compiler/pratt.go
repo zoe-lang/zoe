@@ -81,39 +81,3 @@ func nud(tk TokenKind, fn func(scope Scope, tk Tk, lbp int) (Tk, Node)) {
 	s := &syms[tk]
 	s.nud = fn
 }
-
-// // parseUntil calls expression several times until landing on a token
-// func parseUntil(c *File, nk NodeKind, lst *Token, until TokenKind, rbp int) (Tk, Node) {
-// 	res := make([]Node, 0)
-// 	iter := c.Current
-// 	for iter != nil {
-// 		if iter.Kind == until {
-// 			c.advance()
-// 			break
-// 		}
-// 		res = append(res, c.Expression(rbp))
-// 		iter = c.Current
-// 	}
-// 	// check that iter is nil for potential error ?
-// 	return NewNode(nk, lst.Position, res...)
-// }
-
-// parse a terminated corresponding
-
-// parse a list
-// func parseList(c *File, lst *Token, separator TokenKind, terminator TokenKind, produce func(c *File) (Tk, Node)) (Tk, Node) {
-// 	res := make([]Node, 0)
-// 	iter := c.Current
-// 	for iter != nil {
-// 		if iter.Kind == terminator {
-// 			c.advance()
-// 			break
-// 		}
-// 		res = append(res, produce(c))
-// 		if c.Peek(separator) {
-// 			c.advance()
-// 		}
-// 		iter = c.Current
-// 	}
-// 	return NewListNode(lst, res...)
-// }

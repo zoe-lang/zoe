@@ -362,6 +362,9 @@ var syms = make([]prattTk, TK__MAX) // Far more than necessary
 
 func nudError(scope Scope, tk Tk, rbp int) (Tk, Node) {
 	tk.reportError(`unexpected '`, tk.GetText(), `'`)
+	if tk.IsClosing() {
+		return tk, EmptyNode
+	}
 	return Expression(scope, tk.Next(), rbp)
 }
 
@@ -565,7 +568,7 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	block := tk.createBlock(scope, fragment.first)
-	iter, _ = iter.expect(TK_RBRACKET, func(tk Tk) {
+	iter = iter.expectClosing(tk, func(tk Tk) {
 		block.ExtendRange(tk.Range())
 	})
 

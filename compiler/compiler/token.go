@@ -137,6 +137,30 @@ func (tk Tk) consume(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 	return next, true
 }
 
+func (tk Tk) expectClosing(opening Tk, fn ...func(tk Tk)) Tk {
+	var okind = opening.ref().Kind
+	var ckind TokenKind
+	switch okind {
+	case TK_LPAREN:
+		ckind = TK_RPAREN
+	case TK_LBRACKET:
+		ckind = TK_RBRACKET
+	case TK_LBRACE:
+		ckind = TK_RBRACE
+	default:
+		panic(tokstr[okind] + " has no corresponding closing token")
+	}
+	if !tk.Is(ckind) {
+		opening.reportError("missing closing token")
+		tk.reportError("missing closing token for '" + opening.GetText() + "'")
+		return tk
+	}
+	for _, f := range fn {
+		f(tk)
+	}
+	return tk.Next()
+}
+
 func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 	if !tk.Is(kind) {
 		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
