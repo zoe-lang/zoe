@@ -175,25 +175,7 @@ func init() {
 
 	nud(KW_TYPE, parseTypeDecl)
 	nud(KW_STRUCT, parseStruct)
-
-	lbp += 2
-
-	// , creates a tuple
-	// maybe it should be handled in the different places where comma is expected,
-	// which is to say in lists like (, , ) or [, ,]
-	// comma_lbp := lbp
-	// led(TK_COMMA, func(scope Scope, tk Tk, left Node) (Tk, Node) {
-	// 	if c.currentTokenIs(TK_RBRACE, TK_RBRACKET, TK_RPAREN) {
-	// 		return left
-	// 	}
-	// 	right := c.Expression(scope, comma_lbp) // this should give us a right associative tree
-	// 	switch v := left.(type) {
-	// 	case *Tuple:
-	// 		return v.AddChildren(right)
-	// 	default:
-	// 		return tk.CreateTuple().AddChildren(left, right)
-	// 	}
-	// })
+	nud(KW_ENUM, parseEnum)
 
 	lbp += 2
 	lbp_equal = lbp
@@ -648,33 +630,69 @@ func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
-	// stru := c.createNodeFromToken(tk, NODE_STRUCT)
-	iter, _ = iter.expect(TK_LPAREN)
 
-	var list = newList()
+	var strscope = scope.subScope()
 
-	iter = iter.whileNotClosing(func(iter Tk) Tk {
-		// parse a var declaration
+	var name Node
+	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+		name = tk.createIdNode(scope)
+	})
+
+	var template Node
+	if iter.Is(TK_LBRACE) {
+		iter, template = parseTemplate(scope, iter, 0)
+	}
+
+	var fields Node
+	iter, fields = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
 		var variable Node
-		iter, variable = parseVar(scope, iter, 0)
+		iter, variable = parseVar(strscope, iter, 0)
 
 		if variable.IsEmpty() {
 			iter.reportError("expected a field declaration")
-			iter = iter.Next()
-		} else {
-			// FIXME ensure a field has a type declaration, as struct
-			// fields should have them whether they have defaults or not
-			list.append(variable)
 		}
 
-		iter = iter.expectCommaIfNot(TK_RPAREN)
-		return iter
+		return iter, variable
 	})
 
-	var stru = tk.createStruct(scope, list.first)
-	iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
-		stru.ExtendRange(tk.Range())
+	var stru = tk.createStruct(scope, template, fields)
+	stru.ExtendRange(iter.Range())
+
+	if !name.IsEmpty() {
+		scope.addSymbolFromIdNode(name, stru)
+	}
+
+	return iter, stru
+}
+
+func parseEnum(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
+
+	var strscope = scope.subScope()
+
+	var name Node
+	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+		name = tk.createIdNode(scope)
 	})
+
+	var fields Node
+	iter, fields = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+		var variable Node
+		iter, variable = parseVar(strscope, iter, 0)
+
+		if variable.IsEmpty() {
+			iter.reportError("expected a field declaration")
+		}
+
+		return iter, variable
+	})
+
+	var stru = tk.createEnum(scope, fields)
+	stru.ExtendRange(iter.Range())
+
+	if !name.IsEmpty() {
+		scope.addSymbolFromIdNode(name, stru)
+	}
 
 	return iter, stru
 }

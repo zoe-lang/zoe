@@ -81,3 +81,44 @@ func nud(tk TokenKind, fn func(scope Scope, tk Tk, lbp int) (Tk, Node)) {
 	s := &syms[tk]
 	s.nud = fn
 }
+
+func tryParseList(scope Scope, iter Tk, openKind, closeKind, separatorKind TokenKind, mandatorySep bool, fn func(scope Scope, iter Tk) (Tk, Node)) (Tk, Node) {
+	// It's always rbp 0
+	var list = newList()
+	var ok bool
+
+	if iter, ok = iter.expect(openKind); !ok {
+		return iter, EmptyNode
+	}
+
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
+		var ok bool
+		var node Node
+		var orig = iter
+
+		iter, node = fn(scope, iter)
+		if !node.IsEmpty() {
+			list.append(node)
+		}
+
+		// If there is a separator, we check for it there
+
+		if iter, ok = iter.consume(separatorKind); !ok && mandatorySep && !iter.IsClosing() {
+			iter.reportError(`expected '` + tokstr[separatorKind] + `' but got ` + iter.GetText())
+			// ...
+			// report an error if it was expected
+		}
+
+		if iter.pos == orig.pos {
+			// forcibly advance the parser if we didn't get
+			iter = iter.Next()
+		}
+
+		return iter
+	})
+
+	iter, _ = iter.expect(closeKind)
+	// check for the closing token
+
+	return iter, list.first
+}

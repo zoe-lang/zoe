@@ -124,6 +124,7 @@ func (l *LspConnection) HandleMessage(message []byte) {
 	// log.Print("-->", string(message))
 	parsed, err := fastjson.ParseBytes(message)
 	if err != nil {
+		log.Print("!!!", string(message))
 		log.Fatal("invalid json received")
 	}
 	// log.Print(string(message))
@@ -180,13 +181,13 @@ func (l *LspConnection) ProcessIncomingRequests() {
 	for n > 0 && err == nil {
 		total_read += n
 		_, _ = buf.Write(chunk[:n])
+		bytes := buf.Bytes()
 
-		indices := re_len.FindSubmatchIndex(buf.Bytes())
+		indices := re_len.FindSubmatchIndex(bytes)
 		if indices == nil {
-			// this shouldn't happen and means that we have faulty input.
 			log.Fatal("Ooops, didn't find content-length")
 		}
-		length, _ := strconv.Atoi(string(chunk[indices[2]:indices[3]]))
+		length, _ := strconv.Atoi(string(bytes[indices[2]:indices[3]]))
 		start := indices[1] + 4
 
 		for total_read < start+length {
@@ -214,11 +215,11 @@ func (l *LspConnection) ProcessIncomingRequests() {
 		}
 
 		packet := wholeBuf[start : start+length]
+		rest := wholeBuf[start+length:]
 		msg := make([]byte, len(packet))
 		copy(msg, packet)
 		// log.Print(string(msg))
 		l.HandleMessage(msg)
-		total_read = 0
 		// parser := fastjson
 
 		// This implementation is pretty naïve right now. It just looks for the header and watches how long the request oughts to be
@@ -229,8 +230,11 @@ func (l *LspConnection) ProcessIncomingRequests() {
 
 		// keep the buffer
 		buf.Reset()
+		// log.Print("-->", string(rest))
+		_, _ = buf.Write(rest) // write the left overs at the beginning
+		total_read = len(rest)
 		n, err = l.Read(chunk)
-		// log.Print(n, err)
+		// log.Print(n, err, string(chunk[:n]))
 	}
 
 	// This connection looks done, so we're closing it.

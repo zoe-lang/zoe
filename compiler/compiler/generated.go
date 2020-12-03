@@ -29,6 +29,8 @@ func (n Node) Repr() string {
 
   case NODE_RETURN: return "return"
 
+  case NODE_ENUM: return bblue("enum")
+
   case NODE_STRUCT: return bblue("struct")
 
   case NODE_UNION: return "union"
@@ -173,8 +175,12 @@ func (tk Tk) createReturn(scope Scope, exp Node) Node {
   return tk.createNode(scope, NODE_RETURN, exp)
 }
 
-func (tk Tk) createStruct(scope Scope, varlist Node) Node {
-  return tk.createNode(scope, NODE_STRUCT, varlist)
+func (tk Tk) createEnum(scope Scope, varlist Node) Node {
+  return tk.createNode(scope, NODE_ENUM, varlist)
+}
+
+func (tk Tk) createStruct(scope Scope, template Node, varlist Node) Node {
+  return tk.createNode(scope, NODE_STRUCT, template, varlist)
 }
 
 func (tk Tk) createUnion(scope Scope, members Node) Node {

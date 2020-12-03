@@ -4,7 +4,8 @@
 
 # Special type
 null # Null is a value and a type. It can be affected to variables
-void # void can't have a value and can't be put into a variable
+# void can't have a value and can't be put into a variable
+void
 
 never # A special type that can't be a value but that is factored out when used in unions.
   # it means the block itself will never be valued typically because the function
@@ -27,9 +28,9 @@ type MyAlias is AnotherType
 ### Basic types
 
 #? Structs
-type MyType is struct (
-  hello: String
-  world: Int
+struct MyType (
+  hello: String,
+  world: Int,
 )
 
 
@@ -44,10 +45,12 @@ type SomeUnion is
 
 #? Generics
 # Generic types names must begin with $, which marks the fact that they're not runtime values.
-type MyType[$T, $U] is struct (
-  field: $T
-  field2: $U
-)
+struct MyType2[$T, $U] (
+  field: $T,
+  field2: $U,
+) {
+  # methods go in their implementation block
+}
 # Generic types may have bounds which limits what type can be used and give informations
 # to the compiler about the types used
 where $T is TSomeTrait + TSomeStruct
@@ -144,8 +147,8 @@ var b MyStruct # May be alright.
 # It has compiler support in that the [] construct maps to the Slice type, and [ ] permits both
 # access and setting an index.
 # For reference, here is its definition
-type Slice[$T] = struct (
-  len: Int
+struct Slice[$T] (
+  len: Int,
   ptr: *$T
 )
 # It has a default value, which is the empty slice.
@@ -210,23 +213,26 @@ my_ref.field = 3 # Perfectly possible, without a need to explicitely dereference
 #?
 
 # Let's consider these types
-type Foo is struct (
+struct Foo (
   field: String
 )
-type Bar is struct (
-  field2: String
+struct Bar (
+  field2: String,
+  field3: Int,
 )
 type FooBar is Foo + Bar
 
 # Types are coerced when variables are being assigned to a receiver of another type
-var a Int64
-var b Int32 = a # a is coerced
-var c FooBar
-var d &Bar = &c # d contains the Bar part of c
-var e &Foo = &c # e contains the Foo part of c
+var a1: Int64
+var b1: Int32 = a # a is coerced
+var c1: FooBar
+var d: &Bar = &c # d contains the Bar part of c
+var e: &Foo = &c # e contains the Foo part of c
 
-fn useBar(b &Bar) -> null { }
-useBar(&c)
+fn useBar(b: &Bar) -> null {
+
+}
+useBar(&d)
 
 # The cast operator is @
 # It keeps the "referenceness" of the original variable
@@ -236,48 +242,31 @@ var w = c@Bar # w is &Bar
 
 # A type that has several traits or several structs can specify which it wants to use
 # before a method or field access
-type MyType is Struct1 + Struct2
+type MyType3 is Struct1 + Struct2
 implements TDoesStuff, TDoesMoreStuff
-var c = MyType()
+var ce = MyType()
 c@Struct1.field
 callFuncExpectingStruct1(c@Struct1)
 
 
 ###################### PLAYGROUND ###############################
 
-# A type does not need a backing store and can just be itself
-namespace Card {
+struct Card (
+  color: Color,
+  card: Face | Int8,
+) {
+  enum Color (
+    spade,
+    heart,
+    treble,
+    diamond,
+  )
 
-  namespace Color {
-    type Spades
-    type Hearts
-    type Treble
-    type Diamonds
-  }
+  enum Face (
+    jack,
+    queen,
+    king,
+    ace,
+  )
 
-  type Color is
-    | Color::Spades
-    | Color::Hearts
-    | Color::Treble
-    | Color::Diamonds
-
-  type Ace is Color
-  type King is Color
-  type Queen is Color
-  type Jack is Color
-  type Unit is (Int[1:10], Color)
 }
-
-type Card is
-  | Card::Ace
-  | Card::King
-  | Card::Queen
-  | Card::Jack
-  | Card::Unit
-
-# Nope.
-var c = Card::Unit(3, Card::Color::Spades)
-#(?
-  c2 kicks ass.
-#)
-var c2 = Card::Ace("hello !")

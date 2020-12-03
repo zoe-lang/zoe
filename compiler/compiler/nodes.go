@@ -45,7 +45,8 @@ const (
 	NODE_VAR           // bblue("var")        ::: name typeexp assign
 	NODE_SIGNATURE     // "signature"         ::: template args rettype
 	NODE_RETURN        // "return" 						::: exp
-	NODE_STRUCT        // bblue("struct")            ::: varlist
+	NODE_ENUM          // bblue("enum")       ::: varlist
+	NODE_STRUCT        // bblue("struct")     ::: template varlist
 	NODE_UNION         // "union"							::: members
 	NODE_STRING        // "str" ::: contents
 	NODE_ARRAY_LITERAL // "array" ::: contents
