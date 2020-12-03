@@ -231,13 +231,7 @@ func (tk Tk) sym() *prattTk {
 //
 
 func (tk Tk) reportError(msg ...string) {
-	var r Range
-	if tk.IsEof() {
-		r = tk.file.Tokens[len(tk.file.Tokens)-1].Range
-	} else {
-		r = tk.ref().Range
-	}
-	tk.file.reportError(r, msg...)
+	tk.file.reportError(tk.ref().Range, msg...)
 }
 
 //////////////////////////////////////////////
