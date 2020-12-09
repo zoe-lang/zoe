@@ -1,0 +1,110 @@
+#(
+  All control structures are valued, but their block has to yield
+  a value, otherwise their type is void.
+#)
+
+# Nullish coalescing
+type Something is struct (
+  d: String
+)
+var c: Opt[Something]
+var b = c?.d # b is String | null
+
+# Blocks have a value
+# If they have a single instruction, then it determines their value
+# To give a value to the block, either use the => expr, or the yield statement.
+# break and continue are yields of type void.
+# return is a "special" yield that is exclusively tied to their enclosing functions.
+# A block can be tagged to specify whoe the yield
+
+# Ternary operator (more an expression, really)
+var a = if (val) { 23 } else { 24 }
+# then and else are equivalent to =>
+
+# else is always tied to its closest if
+
+# The switch
+# Its value is the union of the types all its arm return
+switch (value)
+  # Multiple arms may go to the same code block
+  | 12 | 13 | 14 => 3
+  | 3 => 34
+  else 4
+
+switch (u, v)
+  | (12, 3) => # ...
+  | (12, 4) => blk: {
+    if v.isSensible() {
+      return blk: 43
+    }
+    return blk: 42
+  }
+  | (12, 5) => if v.isSensible() then 43 else 42
+  | (4, 3) => # ...
+  else # ...
+
+switch (value) # value is String | Number | null
+  | "help" => # value is String
+  | 33 =>
+  else => 33
+
+# When using switch as a value, all possibilities have to be handled.
+switch (typeof value)
+  | SomeInt => do stuff
+  | OtherVar | SomeOtherType => # do more stuff, value is OtherVar | SomeOtherType
+  else => # ... ?
+
+# If then else
+if (condition) {
+
+# else part is optional
+} else {
+
+}
+
+# For loop, <init> ; <cond> ; step
+# Its value is an iterator of the union of all the yielded types of its block.
+for (var i = 0; i < 12; i++) {
+
+}
+
+# For loop with iterators
+for (var i in range(1, 12)) {
+
+}
+
+# For loop single line
+var some_dict = Dict::fromValues(('hello', 1), ('world', 4))
+var a = for (var (key, value) in some_dict.pairIterator()) => key
+for var b in a {
+  # ...
+}
+
+# Iterator of ($Key, $Value)
+for (var (key, val) in dict.pairIterator()) {
+  yield (key, val)
+}
+
+# while cond
+# its value is of type union of yields of its block
+while i < 12 {
+
+}
+
+while (some_val = iter.next()) {
+  # yeah
+}
+
+
+#############################################################
+# dct is Dict<String, Slice<String>>
+# values is Iterator<String>
+var values = for (var val in dct.values()) top: {
+  for var str in val.values() {
+    yield top: str
+  }
+}
+
+for (var v in values) {
+  log.print("value: ", v)
+}
