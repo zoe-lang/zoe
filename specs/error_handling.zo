@@ -39,20 +39,18 @@
 
 # Does all sort of things
 # And does them well
-type ErrorLocation is struct (
+struct ErrorLocation {
   filename: String = $.vars.current_file
   line: Size = $.vars.current_line
   column: Size = $.vars.current_column
   prev: *ErrorLocation | null
-)
+}
 
 # Somewhere, in the compiler
-type Error is struct (
+struct Error {
   message: String
   payload: any
   location: *ErrorLocation
-)
-implements {
 
   method wrap(err: *Error) -> *Error {
     err.wrapped = this # this is always a pointer
@@ -63,9 +61,9 @@ implements {
 
 # The compiler should enforce the fact that a type that embarks error
 # as a component must end its name with "Error"
-type AccessError is error + struct (
+struct AccessError {
   filename: String
-)
+}
 
 # The compiler knows that FileError is an error, and thus allows for it to be used in try blocks
 fn test() -> Int32 | error {
@@ -77,7 +75,81 @@ fn test() -> Int32 | error {
 
 # error is like any, except it's only error types
 fn test2() -> Result[SomeResult] {
-  var te = try test() catch te.wrap(FileError('mais naan'))
+
+  # The or operator binds to the left and returns the left expression if it has no error
+  # or the evaluation of the right if it had one.
+  #
+  # Why not catch ? Because catch does not really symbolize the fact that there
+  # is coalescing. Generally, it comes from languages that don't use the fact
+  # that blocks have values. Also, it is the logical antonym to throw, which
+  # is really linked with exceptions and the fact that an exception travels up
+  # the stack, whereas Zoe errors are just values like rust.
+  var ve = someFunc() or { return error } # or defines error as a value in its rightmost arm
+
+  # Or operators can be chained
+
+
+  var ve3 = someFunc() or return error
+
+  # At top level.
+  someFunc() or return error
+
+  errdefer this.close()
+
+  someOtherFunc() or return error
+
+  # An unchecked error is an error. If this function returns an error,
+  # then the compiler will complain that it should have been checked.
+  someThingThatMayError()
+
+  # To suppress the error, one can just use or void, which is about its
+  # only possible use outside of a function return type...
+  # NB: maybe something like or ignore ?
+  # Or maybe there could be a pragma.
+  someThingThatMayError() or void
+
+  # The following is *ugly*. But that may be preferible, since we *want* the developper
+  # to handle the error case.
+  # Then again, it's less "idiomatic"
+  # Although we can grep on ignore-unchecked-error, we can also grep on "or void", even
+  # if "or void" means that we need to know "more" of the language to understand why
+  # it is being used.
+  # I feel that the second option is more readable, though.
+  # Plus, with some highlighting it becomes pretty visible.
+
+  #!ignore-unchecked-error: because we really don't care if the operation did not succeed.
+  someThingThatMayError()
+
+  var ve2 = someFunc() or {
+    # or may of course have a block in which the error variable is set
+    if error is FileAccessError {
+      null
+    }
+    return error
+  }
+
+  # Some times, it makes more sense to consider several operations in a row
+  # as part of a same, longer, operation, in which an error happening at any
+  # point invalidates the operation in its entirety.
+  #
+  # In this case, pepering each operation with `or` blocks can become too heavy on the eyes.
+  try {
+    var stuff = parsePouet() # An unchecked error interrupts the flow of a try block
+    stuff.doSomethingDangerous()
+
+    # Errdefer will run at the end of the block if the control got up to this point,
+    # and will do so only if an error was left unchecked or if the function returned
+    # an error.
+    errdefer closeSomething()
+
+    stuff.evenMoreDanger()
+  } or {
+    # error is the union of errors that come from the try block
+    switch error {
+      | SomeError -> 42 # In this block, error is narrowed to SomeError
+      | else -> return error.forward(MyOwnError(message = 'Well this is messed up'))
+    }
+  }
 
   var val = switch typeof te
     | Error | FileError { return te }

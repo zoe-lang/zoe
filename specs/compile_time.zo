@@ -3,3 +3,20 @@
 
   Which are the methods that can be run then ? Only the pure ones ?
 #)
+
+
+
+fn something[$T](v: $T) {
+  $switch $T {
+    | Type1 -> stub
+    | Int -> stub
+    | Slice[Map[$K, $V]] -> # ???
+    | Slice[$U] -> {
+      # There is no pattern matching, it is not possible to ask for
+      # Slice[Map[$K, $V]], only Slice[$U] and then switch $U on Map[$K, $V] ?
+
+    }
+  }
+}
+
+var

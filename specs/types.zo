@@ -8,16 +8,17 @@ error
 
 void
 never
-Boolean
+Bool
 # Int is Int32 or Int64, depending on platform
+UInt8
 Int8
+UInt16
+Int16
+UInt32
 Int32
 #...
 Int64
 Int128
-# Is there even a point of having different bit sizes
-# There is in packed structs...
-Int438493 #
 
 Float16
 Float32
@@ -61,10 +62,19 @@ type MyType is MyStruct | Int | null {
   method doStuff(a: Boolean) -> Boolean { !a }
 
   method moreStuff() -> Int {
-    switch this
+    # Switching on a union value accepts types as well as values
+    # The type of a switch is a union type of its types
+    switch this {
+      | 2 -> 4
+      | Zobi -> {
+        # Do stuff with Zobi
+      }
       | Int -> this
+      | Float -> Float.toInt(this)
       | MyStruct -> this.myField
-      else -1
+      | null -> log.isNull()
+      | else -> -1
+    }
   }
 }
 
