@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"regexp"
@@ -24,74 +22,6 @@ var mag = color.New(color.FgMagenta).SprintFunc()
 var blue = color.New(color.FgBlue).SprintFunc()
 var grey = color.New(color.Faint).SprintFunc()
 var bblue = color.New(color.FgHiBlue, color.Bold).SprintFunc()
-
-type LspRequestHandler func(req *LspRequest) error
-
-var handlers = make(map[string]LspRequestHandler)
-
-type LspRequest struct {
-	Conn           *LspConnection
-	Id             int
-	Method         string
-	IsNotification bool
-	Params         *fastjson.Value
-}
-
-func (r *LspRequest) RawParams() []byte {
-	return r.Params.MarshalTo(nil)
-}
-
-func (r *LspRequest) ReplyEmpty() error {
-	return nil
-}
-
-func (r *LspRequest) Notify(method string, params interface{}) {
-	mars, _ := json.Marshal(map[string]interface{}{
-		"jsonrpc": "2.0",
-		"method":  method,
-		"params":  params,
-	})
-
-	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
-		log.Fatal("err not nil", err)
-	}
-}
-
-// Reply to the request if it was one.
-func (r *LspRequest) Reply(val interface{}) {
-	if r.IsNotification {
-		log.Print(red("error "), r.Method, " is a notification and must not be replied to")
-		return
-	}
-
-	mars, _ := json.Marshal(map[string]interface{}{
-		"id":      r.Id,
-		"jsonrpc": "2.0",
-		"result":  val,
-	})
-	log.Print("replying ", string(mars))
-	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
-		log.Fatal("err not nil", err)
-	}
-}
-
-// Send back an error to the requester
-func (r *LspRequest) ReplyError(val interface{}) {
-	if r.IsNotification {
-		log.Print(red("error "), r.Method, " is a notification and must not be replied to")
-		return
-	}
-
-	mars, _ := json.Marshal(map[string]interface{}{
-		"id":      r.Id,
-		"jsonrpc": "2.0",
-		"error":   val,
-	})
-	log.Print("replying error ", string(mars))
-	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
-		log.Fatal("err not nil", err)
-	}
-}
 
 // LspConnection is in charge of reading a request and sending back the results
 // It also holds a reference to a compiler session, where it will manipulate the

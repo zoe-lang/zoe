@@ -12,13 +12,11 @@
     )
   )
 #)
-fn test[$T](a: $T) -> $T { }
+fn[$T] test(a: $T) -> $T { }
 
 # ???
 $if $.target == 'windows' {
-  type MyType[$T] = struct {
-
-  }
+  type MyType[$T] is struct ()
 }
 
 

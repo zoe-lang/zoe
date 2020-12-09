@@ -35,6 +35,8 @@ func HandleDidOpen(req *LspRequest) error {
 	return nil
 }
 
+// HandleDidChange should be throttled and operate on incremental updates instead of
+// full text synchronization.
 func HandleDidChange(req *LspRequest) error {
 
 	// try to parse the changes

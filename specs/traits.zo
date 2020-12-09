@@ -1,15 +1,15 @@
 # Traits
 
 trait Trait (
-  # Traits define methods that are to be implemented
-  # These two methods have no body and must thus be implemented
-  method myMethod() -> Int,
-  method anotherMethode() -> Char,
 
-  # Could traits do that ??
-  # and maybe have those used in generics ?
-  # and thus define mehods that get added to the type that implements the trait ?
-  fn staticFn() -> Void,
+  # These require methods on the implementor.
+  # A trait only asking for methods can be implemented by any kind of type.
+  myMethod: method () -> Int,
+  anotherMethod: method () -> Char,
+
+  # Any other type required required by the type can only be implemented on struct types
+  # since they're the only ones that define fields.
+  staticFn: fn () -> Void,
 ) {
 
   fn stuff() -> void {
@@ -31,10 +31,37 @@ struct SomeStruct ()
 implements Trait {
 
   # Trait methods
-  method myMethod() -> Int {
-
+  method myMethod@Trait() -> Int {
+    # it can access the traits own methods
+    this.doSomething()
   }
 
 }
 
-type Zobi is Pouet + Toto
+
+trait Iterator[$T] (
+  # this will force the implementing type to be a struct with a some_field field.
+  # it means that a trait forcing a field may not be implemented on a union
+  some_field: Int32,
+  # Trait methods may not be templated themselves
+  getSize: method () -> Size,
+  doSomething: method () -> $U,
+)
+
+struct MapValuesIterator[$K, $V]
+implements Iterator[($K, $V)]
+(
+  map: *Map[$K, $V],
+  current: Int,
+) {
+
+  method getSize@Iterator[($K, $V)]() -> Size { this.map.size }
+
+  method next() -> {
+    Iterator(
+      value = (this.bucket, this.something),
+      done = false,
+    )
+  }
+
+}

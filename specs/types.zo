@@ -2,271 +2,206 @@
   ...
 #)
 
-# Special type
-null # Null is a value and a type. It can be affected to variables
-# void can't have a value and can't be put into a variable
+# Some basic types are implemented directly by the compiler.
+null
+error
+
 void
+never
+Boolean
+# Int is Int32 or Int64, depending on platform
+Int8
+Int32
+#...
+Int64
+Int128
+# Is there even a point of having different bit sizes
+# There is in packed structs...
+Int438493 #
 
-never # A special type that can't be a value but that is factored out when used in unions.
-  # it means the block itself will never be valued typically because the function
-  # it resides in will be returned from before the variable it was meant to be assigned to
-  # would receive its value.
+Float16
+Float32
+Float64
+Float # Float64 or Float32
 
-#?     VAR
-var a: Int
-var b = \b
-
-#?
-#?      BASIC TYPE STUFF
-#?
-
-
-#? Type alias
-type MyAlias is AnotherType
-# The type alias embarks all methods and implements from the original type
-
-### Basic types
-
-#? Structs
-struct MyType (
-  hello: String,
-  world: Int,
-)
-
-
-#? Unions
-# leading | is mandatory
-# Properties and implements that are common to all the types
-# are forwarded to the union type and is dispatched appropriately
-type SomeUnion is
-  | Doudou
-  | Dada
-
-
-#? Generics
-# Generic types names must begin with $, which marks the fact that they're not runtime values.
-struct MyType2[$T, $U] (
-  field: $T,
-  field2: $U,
-) {
-  # methods go in their implementation block
+# Structs
+struct MyStruct {
+  field: Int
+  field2: Float32
 }
-# Generic types may have bounds which limits what type can be used and give informations
-# to the compiler about the types used
-where $T is TSomeTrait + TSomeStruct
-  and $U is TSomeOtherTrait<$T>
 
-
-#? Null
-# null is a special type that represents nothing
-# A function that does not return anything returns "null"
-# It is commonly used in unions and is their default value when available
-fn main() -> null {
-  # Which means that a function returning null *must* return null.
-  # The return statement does not have a form without a value
-  return null
+# Enums
+# Enum fields are constant
+# Enums may mix types, in which case their type is an union
+enum MyEnum {
+  value: Int = 2
+  second
+  third
 }
-# Alternatively
-type Test is struct (
-  ref &OtherType | null
-)
-# A variable may not have null as its only type.
-var myvar null # This is an error
+
+# Function pointer
+var v: fn (a: Int) -> Void
+
+# Pointer
+# A pointer is not null
+*MyStruct
+# null has to be explicitely declared
+type MyType2 is *MyStruct | null
+
+# This is an alias. It keeps all of its methods and trait implementations.
+# Variables of MyType and OlderType are interchangeable, even though MyType
+# can reimplement methods from OlderType or even completely new ones.
+# Caveat : the variables *will* have to be casted explicitely.
+type MyType is OlderType
 
 
+# union
+type MyType is MyStruct | Int | null {
+  # Code blocks for unions or aliases may not include fields
+  method doStuff(a: Boolean) -> Boolean { !a }
 
-#? Any
-# The any type is a special type that is the union of anything.
-# Generic types beginning with $ with no where clauses assume the type is any
-# for runtime purposes.
-fn doSomething(val any) -> null { }
-# One can thus try to cast any to any type. However, any is not introspectable
-# at runtime ; introspection may only happen during compilation.
-
-
-
-# Generic types may reuse other generic types.
-# Where clauses do not have to be re-specified, but errors may be triggered
-# upon using the new type in ways that don't validate the underlying type's where clauses.
-type MyType[$Type] is AnotherType[$Type]
-
-
-type TSomeTrait is trait (
-  fn doStuff() -> Int
-  fn doMoreStuff() -> Void
-)
-# A trait may require the presence of other traits to be used
-# These trait's methods will be available in the implement block of this trait if it exists
-where TSomeTrait is TTrait1 + TTrait2
-# A trait may give implementations which are functions allowed to use itself
-# and its requires
-implements {
-  local fn hello() -> Int {
-    return 4
-    stop
-  }
-
-  fn someMoreSutff() -> Int {
-
+  method moreStuff() -> Int {
+    switch this
+      | Int -> this
+      | MyStruct -> this.myField
+      else -1
   }
 }
 
-#? Function pointers are simply a prototype without a name
-type FnSomething is fn(a Int) -> null
+# Traits resemble structs, except they have to be added to types
+trait MyTrait {
+  # A trait method may not be generic itself
+  method doStuff(a: Int) -> Int
+  method doSomeMoreStuff(b: String) -> String
+}
 
-#?
-#?  DEFAULT VALUES
-#?
+# A trait may require the presence of another trait.
+trait MyOtherTrait requires MyTrait, SomeOtherTrait {
+  method yes() -> { stub }
+}
 
-# When an variable or field is declared, it may leave the value out
-# In this case, it is assigned its default value, unless there is no
-# possible default value.
+struct MyStruct {
+  toto: Int
+  local b: Boolean # b will only be accessible from a redefinition of MyStruct
 
-# All numeric types have 0 assigned to them, this includes pointers, which are numeric types.
-var a Int # a = 0
-var b *MyStruct # b = 0
-# Unions having null in their possible types are assigned null by default
-var b Float | null # b is null
-# Unions without null may not have a default value
-var c Float | Int # Compile error
-# Struct default values are the struct with all its members assigned their default values
-# If one of the field of the struct does not have a default value, it fails.
-var b MyStruct # May be alright.
+  # Note, if there already was a method that satisfies the trait
+  # defined elsewhere on the type, then the trait is fine with it
+  implement MyTrait {
+    method myMethod() -> Int {
+      if this.b { 34 } else { this.toto }
+    }
+  }
 
-#?
-#?   THIS
-#?
-# Inside an implement block, this is a special variable that accesses
-# the current object as a reference.
+  # Generic traits may only be implemented once on a type.
+  # Alias the type if the trait is to be reimplemented.
+  # This means that there will be no to[Int]() to[String]()
+  # methods, since that would be ambiguous.
+  implement MyGenericTrait[Int] {
+
+  }
+
+  # The {} can be left out if the type already implements the trait
+  # thanks to other methods.
+  implement SomeOtherTrait
+
+  # This will also ask for implementations of other traits.
+  implement MyRequiringTrait
+}
 
 
-#?
-#?   SLICES
-#?
-# A slice is a view on an array
-# It has compiler support in that the [] construct maps to the Slice type, and [ ] permits both
-# access and setting an index.
-# For reference, here is its definition
-struct Slice[$T] (
-  len: Int,
-  ptr: *$T
-)
-# It has a default value, which is the empty slice.
+######################### PLAYGROUND ############################
 
-#?
-#?   POINTERS AND REFERENCES
-#?
+# Traits may only be passed around as fat pointers
+# This is the only time where dynamic dispatch is done.
+fn someArray(arr: Slice[*MyTrait]) -> Result {
+}
 
-#(
-  # /!\ Important ; will need tracking of pointers to middle of structures or arrays that would be something
-  like (*pointer, *pointer_to_beginning) with special handling to avoid having to check for memory range
-  instead of just beginning of block.
-#)
+# This works
+fn testStuff[$T: MyTrait](arr: slice[$T]) -> {
 
-#(
-  By default, Zoe passes everything by value.
-#)
+}
 
-#(
-  Pointers are just integers. When deferenced, they try to access the part of memory they point to.
-  They are UNSAFE, and as such, may only be dereferenced and manipulated in functions explicitely marked
-  as unsafe.
+# What about unions of types that all implement the same trait ?
+# No, a union has to be disambiguated first.
 
-  Their only practical use is for arrays and whatever comes from C. They have to be wrapped as soon as possible
-  into references, which are safe, or unions including null.
+# Using traits directly as types is disallowed ?
+var arr = Slice[MyTrait].new() # This does not work, because sizeof(MyTrait) gives an error.
+var val: MyTrait # This won't work, because the size used by MyTrait is, in fact, unknown.
+var val1: Something
+var val2: Other
+arr.push(val1) # This converts it to a val1@MyTrait(of Something)
+arr.push(val2) # val2@MyTrait(of Other)
+someArray(&arr)
+return arr
 
-  LOTS OF REALLY BAD IDEAS HERE PROBABLY.
-#)
-# A pointer is declared in its type with a preceding *
-var my_ptr *SomeStruct = &some_struct
-# It is dereferenced with a terminating
-var my_value SomeStruct = my_ptr
-# Pointer arithmetic can be done. Here, my_ptr moves by (4 * sizeof(SomeStruct)) before being dereferenced for writing.
-# warning ; this is ambiguous as we begin by a parenthesized expression, which can be confused with a function call.
-(my_ptr + 4).* = some_struct
-# Pointers may be dereferenced and referenced only from unsafe functions. It is the responsability of the implementor
-# that they don't go around trashing memory.
+# ... somewhere else
+arr.push(val3) # val3@MyTrait(of SomethingElse) - which might be a lot bigger
 
-# Pointers may access subfields without dereferencing
-my_ptr.field = 3
+fn makeSomeReader() -> Reader {
+  # Since the return type is a trait, we still have to compute all the different types that be
+  # returned that, in fact, are Readers.
+  # It could be a TCP reader, and HTTP request, or even a file Reader
+  # TCPRequest | HTTPRequest | FileReader as Reader ?
+  # Maybe the list is infered ?
+  # There is no such problem when returning a pointer. Or is there ?
+  # Are traits fat pointers ?
+}
 
-# A pointer may be assigned an unsigned integer value. It is valid, but very dangerous.
-# Only in safe mode though. Maybe add more guards to prevent that as much as we can ?
-my_ptr = 0x10002030
+# If we don't know the type in advance, then it means we need to store fat pointers...
+# It's either that, or all types have their vtable added in their type definition
+# But then it means when we copy them, we're "fucked" because it means overwriting the vtable pointer...
+var some_slice = Slice[Dog | Cat as Animal].new()
 
-# A pointer may be managed or unmanaged.
-# TODO define what managed / unmanaged means.
+# Functions that return traits must specify the underlying type, or do some kind of "Trait[dyn stuff]" like in Rust ?
+# What about re-implementing some trait defined method ? The compiler must be aware that at least one type
+# does so and opt into dynamic dispatch.
+# In general, maybe the compiler should be aware of how traits are being used to disambiguate when it can.
+# Nota : this only works when building stuff that use arguments coming from an unknown source.
 
-#(
-  References are like pointers in that implementation-wise, they're pointers.
-  However, references cannot point to anything else than a valid piece of memory the size
-  their type is supposed to be.
+############ The rest of the types are built upon the base types.
 
-  References have no arithmetic. References may not be converted to pointers.
-#)
-var my_ref *SomeStruct = &SomeStruct(2, "hello !")
-my_ref.* = SomeStruct(3, "world !")
-my_ref.field = 3 # Perfectly possible, without a need to explicitely dereference.
+# Slices are not "special" ?
+type Toto is Slice[Int]
+type Toto is []Slice
+type Toto is [3]Slice # an array of 3 elements.
 
-#?
-#?   CASTING AND COERCION
-#?
 
-# Let's consider these types
-struct Foo (
+
+
+# All type expressions (type, enum, trait, struct) may have method blocks
+struct Pouet[$T] {
   field: String
-)
-struct Bar (
-  field2: String,
-  field3: Int,
-)
-type FooBar is Foo + Bar
+  another_field: String
+  field2: $T
 
-# Types are coerced when variables are being assigned to a receiver of another type
-var a1: Int64
-var b1: Int32 = a # a is coerced
-var c1: FooBar
-var d: &Bar = &c # d contains the Bar part of c
-var e: &Foo = &c # e contains the Foo part of c
+  fn new() -> this {
 
-fn useBar(b: &Bar) -> null {
+  }
 
+  method doStuff() -> void {
+    log.info(this.field)
+  }
 }
-useBar(&d)
 
-# The cast operator is @
-# It keeps the "referenceness" of the original variable
-var u = 15@Int64
-var v = a@Int32
-var w = c@Bar # w is &Bar
+#####################################################
 
-# A type that has several traits or several structs can specify which it wants to use
-# before a method or field access
-type MyType3 is Struct1 + Struct2
-implements TDoesStuff, TDoesMoreStuff
-var ce = MyType()
-c@Struct1.field
-callFuncExpectingStruct1(c@Struct1)
-
-
-###################### PLAYGROUND ###############################
-
-struct Card (
-  color: Color,
-  card: Face | Int8,
-) {
-  enum Color (
-    spade,
-    heart,
-    treble,
-    diamond,
-  )
-
-  enum Face (
-    jack,
-    queen,
-    king,
-    ace,
-  )
-
+trait Reader[$T] {
+  method read(buffer: Slice[$T]) -> Int | error
+  method isClosed() -> Boolean
 }
+
+trait Writer[$T] {
+  method write(buffer: Slice[$T]) -> Int | error
+}
+
+trait Closer {
+  close: method () -> null | error
+}
+
+# How does a trait requires another ?
+trait LineReader requires Reader[Char] {
+  method readLine() -> String | error
+}
+
+type ReadCloser[$T] is Reader[$T] + Closer
+type WriteCloser[$T] is Write[$T] + Closer
