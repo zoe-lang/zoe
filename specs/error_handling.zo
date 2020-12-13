@@ -33,24 +33,33 @@
       go unnoticed. This should probably be done as checking that a given variable
       doesn't reach the end of control flow with still "| error" in its type.
 
-  Things to avoid
-    - Forcing the programmer to check for all error types all the time, since these could change.
+  It should be easy to get what an error implements
 #)
 
 # Does all sort of things
 # And does them well
+# The compiler generates them
 struct ErrorLocation {
-  filename: String = $.vars.current_file
-  line: Size = $.vars.current_line
-  column: Size = $.vars.current_column
-  prev: *ErrorLocation | null
+  filename: String
+  line: Size
+  column: Size
 }
 
 # Somewhere, in the compiler
 struct Error {
   message: String
-  payload: any
-  location: *ErrorLocation
+  payload: any # any may include null, in fact, that's its default.
+
+  # Stack traces locations are directly generated in the executable, this is not
+  # live memory.
+  location: *const ErrorLocation
+
+  # The previous error in the trace
+  prev: *const Error | null
+
+  method has[$T](kind: type $T) -> $T | null {
+
+  }
 
   method wrap(err: *Error) -> *Error {
     err.wrapped = this # this is always a pointer
@@ -63,14 +72,20 @@ struct Error {
 # as a component must end its name with "Error"
 struct AccessError {
   filename: String
+
+  implement ErrorPayload
 }
 
 # The compiler knows that FileError is an error, and thus allows for it to be used in try blocks
-fn test() -> Int32 | error {
+fn test() -> Int32 | Error {
+
   if some_condition {
     return 32
   }
-  return io.AccessError(message = 'Something happened', filename = 'Yes')
+
+  return AccessError(
+    filename = filename,
+  ).toError("can't access file")
 }
 
 # error is like any, except it's only error types
@@ -87,8 +102,6 @@ fn test2() -> Result[SomeResult] {
   var ve = someFunc() or { return error } # or defines error as a value in its rightmost arm
 
   # Or operators can be chained
-
-
   var ve3 = someFunc() or return error
 
   # At top level.
@@ -102,17 +115,17 @@ fn test2() -> Result[SomeResult] {
   # then the compiler will complain that it should have been checked.
   someThingThatMayError()
 
-  # To suppress the error, one can just use or void, which is about its
+  # To suppress the error, one can just use or nothing, which is about its
   # only possible use outside of a function return type...
   # NB: maybe something like or ignore ?
   # Or maybe there could be a pragma.
-  someThingThatMayError() or void
+  someThingThatMayError() or nothing
 
   # The following is *ugly*. But that may be preferible, since we *want* the developper
   # to handle the error case.
   # Then again, it's less "idiomatic"
-  # Although we can grep on ignore-unchecked-error, we can also grep on "or void", even
-  # if "or void" means that we need to know "more" of the language to understand why
+  # Although we can grep on ignore-unchecked-error, we can also grep on "or nothing", even
+  # if "or nothing" means that we need to know "more" of the language to understand why
   # it is being used.
   # I feel that the second option is more readable, though.
   # Plus, with some highlighting it becomes pretty visible.
@@ -165,4 +178,21 @@ fn test2() -> Result[SomeResult] {
 
   # try catch with a block is not implemented because we want to force the hand
   # of the programmer to explicitely handle errors when they happen
+}
+
+
+fn filterOut() {
+  var myvar = maybeError()
+  var myvar2 = maybeOtherError()
+
+  # ....
+
+  # Check the result of the operations later
+  if myvar is Error {
+    # now, how do we handle the payloads ?
+    # ...
+    return
+  }
+
+  # Now, myvar is the other type !
 }

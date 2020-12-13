@@ -7,6 +7,8 @@
 
 
 fn something[$T](v: $T) {
+  # $switch is replaced by a switch if $T is an union
+  # it is an error if not all types of the union are not covered
   $switch $T {
     | Type1 -> stub
     | Int -> stub
@@ -14,7 +16,9 @@ fn something[$T](v: $T) {
     | Slice[$U] -> {
       # There is no pattern matching, it is not possible to ask for
       # Slice[Map[$K, $V]], only Slice[$U] and then switch $U on Map[$K, $V] ?
-
+    | else -> {
+        # $T is unknown
+      }
     }
   }
 }

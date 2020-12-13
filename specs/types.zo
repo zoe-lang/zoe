@@ -2,12 +2,28 @@
   ...
 #)
 
-# Some basic types are implemented directly by the compiler.
+# Never is a special return type for a function that means that it will never
+# return, such as a os.panic().
+# It is otherwise handled as nothing, as in it can never be directly assigned
+# to a value, and it is factored out of unions in the end.
+never
+
+# The universal union, with the caveat that it only handles pointers
+# since we can't possibly hold the biggest object at all times in any.
+# In a way, it kinda works like traits in-memory.
+any
+
+# Null is both a type and a value
 null
+
+# error is a type, except in or right side operands where they are the current
+# error processed by the or block.
 error
 
-void
-never
+# Nothing is mostly a type, except when used as the right side of `or` to mean
+# the error is silenced.
+# Nothing can not be put in a variable.
+nothing
 Bool
 # Int is Int32 or Int64, depending on platform
 UInt8
@@ -54,6 +70,9 @@ type MyType2 is *MyStruct | null
 # can reimplement methods from OlderType or even completely new ones.
 # Caveat : the variables *will* have to be casted explicitely.
 type MyType is OlderType
+# With an empty implement block, we mean that this is not just an alias, but
+# a redefinition.
+type MyType is OlderType { }
 
 
 # union
@@ -205,13 +224,20 @@ trait Writer[$T] {
 }
 
 trait Closer {
-  close: method () -> null | error
+  method close() -> null | error
 }
 
-# How does a trait requires another ?
-trait LineReader requires Reader[Char] {
+trait LineReader {
+  implements Reader[Char]
+
+  #(?
+    Adds a readLine method
+  #)
   method readLine() -> String | error
 }
 
-type ReadCloser[$T] is Reader[$T] + Closer
-type WriteCloser[$T] is Write[$T] + Closer
+trait ReadCloser[$T] {
+  # A trait does not have to give an actual implementation to another, required trait
+  implements Reader[$T]
+  implements Closer
+}
