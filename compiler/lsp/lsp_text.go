@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/sourcegraph/go-lsp"
 )
@@ -30,6 +31,8 @@ func HandleDidOpen(req *LspRequest) error {
 			})
 		}
 		// pp.Print(f.Errors)
+	} else {
+		log.Print(err)
 	}
 	// pp.Print(fsent)
 	return nil

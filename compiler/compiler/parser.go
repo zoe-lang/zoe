@@ -330,11 +330,31 @@ func init() {
 	lbp += 2
 
 	nud(TK_QUOTE, parseQuote)
+	nud(KW_ISO, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		next := tk.Next()
+		if next.Is(TK_LBRACKET) {
+			var blk Node
+			next, blk = parseBlock(scope, next, 0)
+			block := tk.createIsoBlock(scope, blk)
+			return next, block
+		}
+		if next.Is(TK_LBRACE) {
+			var exp Node
+			next, exp = parseBlock(scope, next, 0)
+			iso_expr := tk.createIsoType(scope, exp)
+			return next, iso_expr
+		}
+
+		next.reportError(`iso expects either a {block} or a [type] expression`)
+		// We still advance the parser to make sure that we don't get stuck in a loop
+		return next, EmptyNode
+	})
 
 	literal(KW_TRUE, NODE_LIT_TRUE)
 	literal(KW_FALSE, NODE_LIT_FALSE)
-	literal(KW_NULL, NODE_LIT_NULL)
+	literal(KW_NONE, NODE_LIT_NONE)
 	literal(KW_VOID, NODE_LIT_VOID)
+	literal(KW_THIS, NODE_LIT_THIS)
 	literal(TK_CHAR, NODE_LIT_CHAR)
 	literal(TK_NUMBER, NODE_LIT_NUMBER)
 	literal(TK_RAWSTR, NODE_LIT_RAWSTR)

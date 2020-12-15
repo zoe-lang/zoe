@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/sourcegraph/go-lsp"
@@ -23,7 +24,7 @@ func HandleHover(req *LspRequest) error {
 		req.Reply(lsp.Hover{
 			Contents: []lsp.MarkedString{{
 				Language: "zoe",
-				Value:    "file not found",
+				Value:    fmt.Sprint("file '", fname, "'not found"),
 			}},
 		})
 		return nil

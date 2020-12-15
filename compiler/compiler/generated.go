@@ -35,6 +35,10 @@ func (n Node) Repr() string {
 
   case NODE_UNION: return "union"
 
+  case NODE_ISO_BLOCK: return "iso"
+
+  case NODE_ISO_TYPE: return "iso-type"
+
   case NODE_STRING: return "str"
 
   case NODE_ARRAY_LITERAL: return "array"
@@ -115,7 +119,9 @@ func (n Node) Repr() string {
 
   case NODE_BIN_DOT: return "."
 
-  case NODE_LIT_NULL: return mag("null")
+  case NODE_LIT_NONE: return mag("null")
+
+  case NODE_LIT_THIS: return mag("null")
 
   case NODE_LIT_VOID: return mag("void")
 
@@ -185,6 +191,14 @@ func (tk Tk) createStruct(scope Scope, template Node, varlist Node) Node {
 
 func (tk Tk) createUnion(scope Scope, members Node) Node {
   return tk.createNode(scope, NODE_UNION, members)
+}
+
+func (tk Tk) createIsoBlock(scope Scope, block Node) Node {
+  return tk.createNode(scope, NODE_ISO_BLOCK, block)
+}
+
+func (tk Tk) createIsoType(scope Scope, type_expr Node) Node {
+  return tk.createNode(scope, NODE_ISO_TYPE, type_expr)
 }
 
 func (tk Tk) createString(scope Scope, contents Node) Node {

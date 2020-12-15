@@ -130,8 +130,10 @@ func (z *File) Lex() error {
 			<top> "is"        => top { addToken(KW_IS); goto yyc_top }
 			<top> "return"    => top { addToken(KW_RETURN); goto yyc_top }
 			<top> "yield"     => top { addToken(KW_YIELD); goto yyc_top }
-			<top> "null"      => top { addToken(KW_NULL); goto yyc_top }
+			<top> "none"      => top { addToken(KW_NONE); goto yyc_top }
+			<top> "iso"       => top { addToken(KW_ISO); goto yyc_top }
 			<top> "void"      => top { addToken(KW_VOID); goto yyc_top }
+			<top> "this"      => top { addToken(KW_THIS); goto yyc_top }
 			<top> "true"      => top { addToken(KW_TRUE); goto yyc_top }
 			<top> "false"      => top { addToken(KW_FALSE); goto yyc_top }
 
@@ -161,6 +163,7 @@ func (z *File) Lex() error {
 				}
 				goto yyc_top
 			}
+			<top> "!"   { addToken(TK_EXCLAM); goto yyc_top }
 			<top> "<"   { addToken(TK_LT); goto yyc_top }
 			<top> ">"   { addToken(TK_GT); goto yyc_top }
 			<top> "|"   { addToken(TK_PIPE); goto yyc_top }

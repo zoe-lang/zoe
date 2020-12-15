@@ -77,7 +77,7 @@ struct AccessError {
 }
 
 # The compiler knows that FileError is an error, and thus allows for it to be used in try blocks
-fn test() -> Int32 | Error {
+fn test() -> Int32 | error {
 
   if some_condition {
     return 32
@@ -89,7 +89,10 @@ fn test() -> Int32 | Error {
 }
 
 # error is like any, except it's only error types
-fn test2() -> Result[SomeResult] {
+# the compiler inferes the error set returned by the function, users are not asked
+# to handle all possible types. Documentation will be a good enough source of information
+# for a given function.
+fn test2() -> error | nothing {
 
   # The or operator binds to the left and returns the left expression if it has no error
   # or the evaluation of the right if it had one.
@@ -110,6 +113,9 @@ fn test2() -> Result[SomeResult] {
   errdefer this.close()
 
   someOtherFunc() or return error
+
+  # Or even shorter form, which is equivalent to `or return error`
+  someOtherFunc()!
 
   # An unchecked error is an error. If this function returns an error,
   # then the compiler will complain that it should have been checked.

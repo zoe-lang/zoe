@@ -1,5 +1,9 @@
 #(?
 
+  Is it possible, by tracking the life time of values, to infer where arena allocation
+  makes more sense than lasting allocation ?
+  Maybe track the roots of coroutines ?
+
   AT THE BEGINNING, LET'S JUST HAVE SOME BIG CONTINUOUS ALLOCATOR TO FLESH OUT STUFF.
 
   Whatever happens, we will need some solid escape analisis, if only for the fact
@@ -65,181 +69,112 @@
   ## Isolated regions
    * Can not have pointers to other regions. Other regions may not point to them
    * Can be merged
+
+  # What we need to do ;
+    - for all functions, on top of doing escape analysis of their arguments / return, track
+      *WHERE* they might/definitely escape to.
 #)
 
 fn main() {
-  var myvar = isolate {
+  # Inside an isolate block, all memory creation is done in another, "virtual" context,
+  # where the data created inside may only point toward themselves and not outside.
+  # Variables from different memory contexts can only be compared together or used for
+  # copying purposes.
+  #
+  # Functions can be called as usual, but the compiler detects how the functions use
+  # their arguments and closures and how data flows between them, and disallows function
+  # calls where data transits between two different contexts.
+  # Case about closures ; a callback in an isolate may not close on a variable that comes
+  # from outside, unless it is immutable.
+  #
+  # Since an isolate is unique across the whole application, its type is always | none
+  var myvar = iso {
     # Do a lot of stuff in isolation
-    # The result of this block is an isolated root to something.
+    # The result of this block is an isolated root to something
+    # As the type of myvar is not specified, it will be infered as the return expression of the block,
+    # with all arms of the resulting union marked as isolate, and a | none
   }
 
-  isolate myvar {
-    # When in a variable isolate, we lock ourselves to its region
-
-  }
-
-  # take myvar ends myvar's isolate status
+  # The take statement is used to take a value from an isolate and integrate it to the
+  # current context.
+  # Here, take myvar ends myvar's isolate status
   var pouet = take myvar
 
-  var myvar2 = isolate {
-    # Any allocation done in the isolate pertains to its memory region
+  # The rest of the time, when using
+  some_container[0] = some_isolate
+  # the compiler automatically clears some_isolate and makes it none
+  # This works with container values as well
+  var take_it = some_isolate_slice[0] # some_isolate_slice may only be Slice[isolate Type | none]
+  some_function(some_isolate) # This also takes the isolate with it and sets its original value to none
+
+  var myvar2 = iso {
+    # We take another isolate if we want to return a new value based on them.
+    var inner_myvar = take myvar
+    # ...
   }
 
-  const pouet = isolate {
-    var p = take myvar2 # We conflate this isolate into our own.
-    # myvar2 is now null and its memory lost its isolate status.
+  # An iso[...] always has to include | none somewhere, or is that implicit
+  # For now, I'd rather have to see it everywhere.
+  var some_isolate: iso[MyStructure] | none
+  var some_isolate2: iso[*MyStructure] | String | none
 
-    # This makes an immutable variable, that we can prepare
-    # by mutating stuff all we want.
-    # Once we reach the end of this scope, whatever was created here
-    # won't be modifiable anymore.
-    "hello !"
+  while !((var val = ch.receive()) is Channel.EOF) {
+    # val is an isolate
+    var loc = take val # this ends val's isolate status
+    # but what happens to val ?
+    # How does the compiler know that it is not usable anymore ?
+
+    if some_condition {
+      var log = take val
+    } else {
+      # In here, it is *clear* that val was not taken.
+    }
+
+    # In here, not so much.
+    # val is not usable anymore. Which means that it will be collected.
+    # Maybe take works with | null if required ?
+
+    if some_condition {
+      var log = take val
+      # In here, we end the scope where val lives, so it is clear that
+      # whatever follows this if block has val still being in charge.
+      continue
+    }
+
+    # ... ? if some_condition was right, then val should not be usable anymore.
+    # what
+    val.doSomething()
+
+    # In here we just get the value.
   }
 
   # Do const isolates need to be ARC ?
 }
 
-#(?
-  Variables may be marked as pertaining to another memory region, or bucket.
-  Buckets are memory pages that are distinct from the default heap given to each
-  greenlet, that are meant to be given to other greenlets with their contents. lllrfc/kkkss
-
-  The rule to do that is that to give a bucket to another greenlet, no references
-  towards the bucket may remain.
-
-    * A bucket may *not* have a pointer that references memory from another bucket.''
-    * At any given time, a bucket is referenced by exactly one greenlet.
-
-  There might be some give / take semantics, that force a null
-
-  There could be a way to create permanent, immutable regions at run time, that could
-  be shared across greenlets, since there would be no more memory management done
-  in them. The whole block could be garbage collected prior to be turned into an
-  immutable one and then turned into one, big, Atomically Reference Counted structure.
-
-  The compiler could track when a pointer is being stored in another structure (how ?)
-  to know what functions create reference to other buckets and prohibit calling
-  them with different regions.
-
-  For instance, .push() on a slice that holds pointers or a structure that holds pointers.
-
-  There could be an @unmanaged bucket, where all memory management has to be done completly
-  manually with malloc/free or equivalent and where locking and unlocking is completly manual.
-  This would be unsafe by design. Probably all C code that is called would be done in
-  this memory region and imlementors would have to take care to make their code more suitable
-  for safe use.
-
-  The idea would be to make region management completely invisible when running single
-  greenlet code, and as unobtrusive as possible when running concurrent code.
-
-  The current region allocator is stored in a thread local that is updated by the
-  runtime whenever it swaps greenlets, and updated by greenlets themselves whenever
-  they change regions.
-
-  *** Ideas
-
-   - A 'unique' pointer type, that is necessarily | null, which can then be given.
-   - give in one swoop sets the variable to null
-   - send() expects either something that can be copied or a unique pointer to some data
-
-   How are "unique" pointers handled in closures ?
-   For instance, I may want to have it run inside an fn () callback as being closed upon.
-   Rust uses life times for that, but I might just get away with assignment analysis.
-   For instance, if the closure doesn't escape the current scope, then that's ok.
-
-#)
-fn pouet() {
-  # local is special.
-  const a = @local
-  const myvar @reg1 = [1, 2, 3]
-  const myother_var @reg2 = [myvar] # illegal !
-  const stuff = Slice.new@reg2() # @region only possible on fn, not methods, which are bound to the region of their variable
-
-  # Inside a region block, we can have as many aliases to pointers
-  # of a given region
-  var stuff = @tosend {
-    var res = Slice.new()
-    # In this scope, we set the default region as @tosend
-    # So push@tosend, but also createVar@tosend
-    res.push(create_var())
-    res
-  }
-
-  # I can now use stuff with all its const methods
-
-  othergreenlet.send(stuff)
-
-  # In toplevel scope, we have so specify stuff
-  stuff.push(create_var@reg2())
-
-  # Can I enforce this ?
-  # Only if stuff was owned by the current scope.
-  # Holy shit this is turning into Rust again. Except rust deals with granular life times, we just deal with
-  # memory regions, so this ought to be a little less complicated.
-  if stuff != null {
-    other_process.send(give stuff)
-    # For the rest of the block stuff is now null
-  }
-  stuff.doSomething()
-}
-
-
-struct Greenlet[$Send, $Receive] {
-
-  current_region: Int
-  fun: fn (green: this) -> nothing
-
-  fn create[$Send, $Receive]() -> Greenlet[$Send, $Receive] {
+type Channel[$T] is opaque { # is it opaque though ? Can't it be implemented in zoe ?
+  method receive() -> $T | Channel.EOF | error {
 
   }
 
-  # This has to be implemented ?
-  method run() -> Error | null
-
-  method receive() -> $Receive | Error {
+  method receiveIsolate() -> isolate* $T | Channel.EOF {
 
   }
 
-  # ???
-  method send(sendable: owned $Send) -> Error | null {
+  #(?
+    Close the channel. After this point, the channel will just give EOF to
+    any receive() called upon it.
+  #)
+  method close() -> error | nothing {
 
   }
-}
 
+  method send(value: $T) -> error | nothing {
 
-struct Slice[$T] {
-  # What about closures and global variables ?
-  # What regions do they pertain to ?
-
-  method push(value: $T) {
-    # An assignment.
-    # So we can track a this expression that receives a value
-    # In here, ptr integrates value. And ptr is integrated inside this,
-    # hence value is integrated by this.
-    # So Slice[$T].push() integrates `value`.
-    this.ptr[idx] = value
-  }
-}
-
-fn pouet(slc: Slice[*Int], other: *Int) {
-  slc.push(other) # push may integrate its argument
-
-  # This runs on its own context, this operation creates the new int in the
-  # same region as the function is running in.
-  # This would still be an error with regions because by default a function runs in @local
-  # Unless the function was executed in the same region as slc (this is the default with methods).
-  var a = Int(other.*)
-  slc.push(&a)
-}
-
-# How can we have a pointer to an owned pointer ?
-
-fn receiver(channel: Channel[...]) {
-
-  @other {
-    while true {
-      var v = channel.receive() # So what if we receive a unique pointer ?
-    }
   }
 
+  method sendIsolate(val: isolate *$T) -> error | nothing {
+    # We have to figure out if the type handled is a simple variable that will be copied
+    # or if we have an isolate that we can safely pass around.
+    # How do we prevent useless copies though ?
+  }
 }

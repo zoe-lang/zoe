@@ -48,6 +48,8 @@ const (
 	NODE_ENUM          // bblue("enum")       ::: varlist
 	NODE_STRUCT        // bblue("struct")     ::: template varlist
 	NODE_UNION         // "union"							::: members
+	NODE_ISO_BLOCK     // "iso"               ::: block
+	NODE_ISO_TYPE      // "iso-type"          ::: type_expr
 	NODE_STRING        // "str" ::: contents
 	NODE_ARRAY_LITERAL // "array" ::: contents
 	NODE_IF            // "if"                      ::: cond thenarm elsearm
@@ -89,7 +91,8 @@ const (
 	NODE_BIN_INDEX     // "index"
 	NODE_BIN_DOT       // "."
 
-	NODE_LIT_NULL   // mag("null")
+	NODE_LIT_NONE   // mag("null")
+	NODE_LIT_THIS   // mag("null")
 	NODE_LIT_VOID   // mag("void")
 	NODE_LIT_FALSE  // mag("false")
 	NODE_LIT_TRUE   // mag("true")
