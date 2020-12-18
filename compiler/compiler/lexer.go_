@@ -132,6 +132,7 @@ func (z *File) Lex() error {
 			<top> "yield"     => top { addToken(KW_YIELD); goto yyc_top }
 			<top> "none"      => top { addToken(KW_NONE); goto yyc_top }
 			<top> "iso"       => top { addToken(KW_ISO); goto yyc_top }
+			<top> "take"       => top { addToken(KW_TAKE); goto yyc_top }
 			<top> "void"      => top { addToken(KW_VOID); goto yyc_top }
 			<top> "this"      => top { addToken(KW_THIS); goto yyc_top }
 			<top> "true"      => top { addToken(KW_TRUE); goto yyc_top }

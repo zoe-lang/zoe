@@ -57,11 +57,11 @@ const (
 	NODE_WHILE         // "while" ::: cond block
 	NODE_IMPORT        // bblue("import") ::: module id exp
 	NODE_UNA_ELLIPSIS  // "..."
-	NODE_UNA_PLUS      // "+"
+	NODE_UNA_PLUS      // "+"    ::: exp
 	NODE_UNA_PLUSPLUS  // "++"
 	NODE_UNA_MIN       // "-"
 	NODE_UNA_MINMIN    // "--"
-	NODE_UNA_NOT       // "!"
+	NODE_UNA_NOT       // "!" ::: exp
 	NODE_UNA_POINTER   // "ptr" ::: pointed
 	NODE_UNA_REF       // "ref" ::: variable
 	NODE_UNA_BITNOT    // "~"
@@ -99,6 +99,7 @@ const (
 	NODE_LIT_CHAR   // green(n.GetText())
 	NODE_LIT_RAWSTR // green("'",n.GetText(),"'")
 	NODE_LIT_NUMBER // mag(n.GetText())
+	NODE_INTEGER    // mag(n.GetValue())
 	NODE_ID         // cyan(GetInternedString(n.InternedString()))
 
 	NODE__SIZE
@@ -186,6 +187,14 @@ func (n Node) Range() Range {
 
 func (n Node) HasPosition(lsppos *lsp.Position) bool {
 	return n.ref().Range.HasPosition(lsppos)
+}
+
+func (n Node) SetValue(v int) {
+	n.ref().Value = v
+}
+
+func (n Node) GetValue() int {
+	return n.ref().Value
 }
 
 func (n Node) SetArgs(args ...Node) {

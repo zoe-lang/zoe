@@ -139,7 +139,9 @@ func init() {
 	nud(KW_IF, parseIf)
 
 	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		return parseVar(scope, tk.Next(), lbp)
+		next, v := parseVar(scope, tk.Next(), lbp)
+		v.ExtendRange(tk.Range())
+		return next, v
 	})
 
 	nud(KW_CONST, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
@@ -195,6 +197,13 @@ func init() {
 	binary(TK_EQEQ, NODE_BIN_EQ)
 	binary(TK_NOTEQ, NODE_BIN_NEQ)
 
+	lbp_eq := lbp
+	nud(TK_EXCLAM, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		next, exp := Expression(scope, tk.Next(), lbp_eq)
+		node := tk.createUnaNot(scope, exp)
+		return next, node
+	})
+
 	lbp += 2
 
 	binary(TK_LT, NODE_BIN_LT)
@@ -217,8 +226,22 @@ func init() {
 
 	lbp += 2
 
-	unary(TK_PLUS, NODE_UNA_PLUS)
-	unary(TK_MIN, NODE_UNA_MIN)
+	lbp_addition := lbp
+	// The + prefix operator, which is essentially a noop
+	nud(TK_PLUS, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		return Expression(scope, tk.Next(), lbp_addition)
+	})
+
+	// The - prefix operator, which gets converted as a multiplication by -1
+	nud(TK_MIN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		var next, exp = Expression(scope, tk.Next(), lbp_addition)
+		// create a node for -1
+		var min_one = tk.file.createNode(tk.Range(), NODE_INTEGER, scope)
+		min_one.SetValue(-1) // a forced integer
+		bin := tk.createBinOp(scope, NODE_BIN_MUL, min_one, exp)
+		return next, bin
+	})
+
 	binary(TK_MIN, NODE_BIN_MIN)
 	binary(TK_PLUS, NODE_BIN_PLUS)
 
@@ -567,9 +590,10 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 // parseBlock parses a block of code
 func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// blk := b.createNodeFromToken(tk, NODE_BLOCK)
-	iter := tk.Next()
+	var iter = tk.Next()
+	var subscope = scope.subScope()
 
-	fragment := newList()
+	var fragment = newList()
 
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		for iter.Is(TK_SEMICOLON) {
@@ -581,12 +605,12 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 		}
 
 		var exp Node
-		iter, exp = Expression(scope, iter, 0)
+		iter, exp = Expression(subscope, iter, 0)
 		fragment.append(exp)
 		return iter
 	})
 
-	block := tk.createBlock(scope, fragment.first)
+	block := tk.createBlock(subscope, fragment.first)
 	iter = iter.expectClosing(tk, func(tk Tk) {
 		block.ExtendRange(tk.Range())
 	})

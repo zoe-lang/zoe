@@ -1,60 +1,122 @@
 #(
-  Zoe first compiles to a Middle Intermediate Representation, before
-  trying to compile code with LLVM.
-
-  There are no operators, only function calls.
+  We leave between <> what will need to be inferred
 #)
 
-fn test(arr: Slice[Int32]) -> Void {
-  for var i = 0; i < l; i++ {
-    arr[i] = i * 2
+#(
+fn(//module/main, void, 0) # returns void, no arguments
+  # Check that b was assigned or not ?
+  # Or do we insert the default at the call site
+  # Otherwise we have some kind of union ?
+  var zob <Int> <Size> # We need to complete the information about its size
+  zob = 4
+  .1 = add zob, 4
+  zob.1 = call(some_func, 2)
+  callarg .1
+  callarg 5.43 # Some callargs are reduced into slice building, for which escape analysis must be conduced
+
+  .2 = eq zob.1, 2
+  gotoif(@then.1, .2) # .2 *must* be Boolean
+  goto @endif.1
+
+  @then.1
+  zob.2 = zob.1 * 6
+  goto @endif.1
+
+  @endif.1
+
+  zob.3 = phi(2)
+  from(@then.1, zob.2)
+  default(zob.1)
+
+  switch(.var, 4)
+  case(//module/Pouet, @label.1)
+  case(//module/Pwot, @label.2)
+  case(//module/MyType, @label.4)
+  default(//hey, @label.5)
+
+#)
+fn main(a: Int, b = "toto") {
+  var zob = 4
+  zob = some_func(zob + 4, 5.43)
+  if zob == 2 {
+    zob = zob * 6
+  }
+  pouet(zob)
+
+  #(
+    .1 = is(hello.0, Truc) # This is both a boolean and a type information...
+    .2 = is(other, Bidule)
+    .3 = and(.1, .2)
+    .4 = is(hello, Truc) # How do I simplify that ?
+    .5 = is(other, TrucMuche)
+    .6 = and(.4, .5) # Union of facts between .4 and .5
+    .7 = or(.3, .6) # Keep the intersection between the facts known by .3 and .6
+    gotoif(@then, .7)
+    goto(@endif)
+  @then: # comes from gotoif(@then, .7), so uses the facts from it.
+    hello.1 = as(hello.0, .7) # Infer hello here
+    other.1 = as(other.0, .7) # Infer other, even if not used ?
+    .8 = prop(hello.1, 'doSomething')
+    call(.8) # What if doSomething() returned something that we don't check, like an error ?
+  #)
+  if hello is Truc && other is Bidule
+    || hello is Truc && other is Hello {
+      hello.doSomething()
+      # Does the presence of if imply that I need to define another variable that has another type ?
+      # hello is definitely Truc
+      # other is Bidule | Hello
   }
 }
-#>>>>
-fn test(arr: Slice[Int32]) -> Void {
-  # how does test know about arr ?
-  # what about debug symbols
-  var i Int32
-  var _cond Boolean
 
-  %loop
+#(
+`//index/Union0` = union(`//mod/Mystruct`, none)
 
-  Int32.lt(_cond, i, l)
-  gotoif _cond, %loopend
-  # That or i = Int32.add(i, 1)
-  Int32.add(i, i, 1)
-  goto %loop
+fn('test', Int, 1)
+  arg(a.0, Union0) # .0 corresponds to a declaration, the first time the symbol was seen.
 
-  %loopend
-}
+  a.1 = is(a.0, MyStruct) # => is .1 a typed to MyStruct ?
 
-fn test2(arr Slice<Int32>) -> Slice<Boolean> {
-  # Creates a Slice<Boolean>
-  var test = for var i, elt in arr {
-    elt == 32 # Do we need to return something ?
+  # Zoe should coalesce gotoifs if it cans ?
+  gotoif(@then.0, a.1)
+  goto @else.0
+
+@then.0:
+  a.1 = as(a.0, MyStruct)
+  # Should I create another identifier ?
+  goto @endif.0
+
+@else.0:
+  return -1
+
+@endif.0:
+  .3 = prop(a.1, 'toto') # prop always gets an address from its first element that is always a pointer
+  store(.3, 4)
+  .2 = prop(a.1, 'yes') # .2 is a method(a.1)
+
+  .4 = call(.2, 0)
+
+  return .4
+
+  switch()
+#)
+fn test(a: MyStruct | none) -> Int {
+  if a is MyStruct {
+    a.access(34, 'e')
+  } else {
+    return -1
   }
-
-  return test
+  a.toto = 4
+  return a.yes()
 }
-#>>>>
-fn test2(arr Slice<Int32>) -> Slice<Boolean> {
-  var _test_len Size = Slice<Int32>@Iterator::KnownSize.getSize(arr)
-  var test Slice<Boolean> = Slice::create<Boolean>(_test_len)
 
-  var _iter SliceIterator<Int32> = Slice<Int32>@Iterator<(Size, Int32)>.iterator(arr)
-  var _cond Boolean
-  var i = 0
-  var _bool Boolean
-  %loop:
-  _cond = SliceIterator<Int32>.isDone(_iter) # Condition will be inlined
-  gotoif _cond, %loopend
-  _val = SliceIterator<Int32>.next(_iter) # So will the recuperation of the values
-  i = _val.i
-  elt = _val.elt
-  _bool = Int32.equals(elt, 32)
-  Slice<Boolean>.push(test, _bool)
-  goto %loop
-
-  %loopend:
-  return test
-}
+#(
+  %1 = add 5 3
+  %2 = add _1 2
+  %3 = call @ho 44 %2 # typed easily
+  %4 = call @hi 43 43.2
+  %5 = call @hey %3 %4
+  %pouet = %5
+  %pouet'1 = add %pouet + 3
+#)
+var pouet = hey(ho(44, 5+3+2), hi(43, 43.2))
+pouet += 3

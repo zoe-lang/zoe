@@ -172,7 +172,7 @@ type Channel[$T] is opaque { # is it opaque though ? Can't it be implemented in 
 
   }
 
-  method sendIsolate(val: isolate *$T) -> error | nothing {
+  method sendIsolate(val: iso[*$T] | none) -> error | nothing {
     # We have to figure out if the type handled is a simple variable that will be copied
     # or if we have an isolate that we can safely pass around.
     # How do we prevent useless copies though ?

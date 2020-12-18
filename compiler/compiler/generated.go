@@ -135,6 +135,8 @@ func (n Node) Repr() string {
 
   case NODE_LIT_NUMBER: return mag(n.GetText())
 
+  case NODE_INTEGER: return mag(n.GetValue())
+
   case NODE_ID: return cyan(GetInternedString(n.InternedString()))
 
   }
@@ -223,6 +225,14 @@ func (tk Tk) createWhile(scope Scope, cond Node, block Node) Node {
 
 func (tk Tk) createImport(scope Scope, module Node, id Node, exp Node) Node {
   return tk.createNode(scope, NODE_IMPORT, module, id, exp)
+}
+
+func (tk Tk) createUnaPlus(scope Scope, exp Node) Node {
+  return tk.createNode(scope, NODE_UNA_PLUS, exp)
+}
+
+func (tk Tk) createUnaNot(scope Scope, exp Node) Node {
+  return tk.createNode(scope, NODE_UNA_NOT, exp)
 }
 
 func (tk Tk) createUnaPointer(scope Scope, pointed Node) Node {
