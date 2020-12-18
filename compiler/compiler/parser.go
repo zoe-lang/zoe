@@ -263,10 +263,21 @@ func init() {
 	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
 
 	led(TK_PLUSPLUS, func(scope Scope, tk Tk, left Node) (Tk, Node) {
-		return tk.Next(), tk.createUnaryOp(scope, NODE_UNA_PLUSPLUS, left)
+		var next = tk.Next()
+		var one = tk.createNode(scope, NODE_INTEGER)
+		one.SetValue(1)
+		var addition = tk.createNode(scope, NODE_BIN_PLUS, one, left)
+		var assign = tk.createNode(scope, NODE_BIN_ASSIGN, left, addition)
+		return next, assign
 	})
+
 	led(TK_MINMIN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
-		return tk.Next(), tk.createUnaryOp(scope, NODE_UNA_MINMIN, left)
+		var next = tk.Next()
+		var one = tk.createNode(scope, NODE_INTEGER)
+		one.SetValue(-1)
+		var addition = tk.createNode(scope, NODE_BIN_PLUS, one, left)
+		var assign = tk.createNode(scope, NODE_BIN_ASSIGN, left, addition)
+		return next, assign
 	})
 
 	lbp += 2

@@ -24,6 +24,8 @@ var EmptyNode = Node{}
 const (
 	FLAG_LOCAL Flag = 1 << iota
 	FLAG_CONST
+	FLAG_BLOCK_ENDS_EXECUTION // set when return is the last instruction of a block
+	// used to know if an if when it has no else block sets the rest of the block as its else condition
 )
 
 // Identifiers are interned for faster lookup in a concurrent-safe interning store
@@ -56,40 +58,36 @@ const (
 	NODE_FOR           // "for"   ::: vardecl rng block
 	NODE_WHILE         // "while" ::: cond block
 	NODE_IMPORT        // bblue("import") ::: module id exp
-	NODE_UNA_ELLIPSIS  // "..."
-	NODE_UNA_PLUS      // "+"    ::: exp
-	NODE_UNA_PLUSPLUS  // "++"
-	NODE_UNA_MIN       // "-"
-	NODE_UNA_MINMIN    // "--"
-	NODE_UNA_NOT       // "!" ::: exp
-	NODE_UNA_POINTER   // "ptr" ::: pointed
-	NODE_UNA_REF       // "ref" ::: variable
-	NODE_UNA_BITNOT    // "~"
-	NODE_BIN_ASSIGN    // "="
-	NODE_BIN_PLUS      // "+"
-	NODE_BIN_MIN       // "-"
-	NODE_BIN_DIV       // "/"
-	NODE_BIN_MUL       // "*"
-	NODE_BIN_MOD       // "%"
-	NODE_BIN_EQ        // "=="
-	NODE_BIN_NEQ       // "!="
-	NODE_BIN_GTEQ      // ">="
-	NODE_BIN_GT        // ">"
-	NODE_BIN_LTEQ      // "<="
-	NODE_BIN_LT        // "<"
-	NODE_BIN_LSHIFT    // "<<"
-	NODE_BIN_RSHIFT    // ">>"
-	NODE_BIN_BITANDEQ  // "&="
-	NODE_BIN_BITAND    // "&"
-	NODE_BIN_BITOR     // "|"
-	NODE_BIN_BITXOR    // "^"
-	NODE_BIN_OR        // "||"
-	NODE_BIN_AND       // "&&"
-	NODE_BIN_IS        // "is"
-	NODE_BIN_CAST      // "cast"
-	NODE_BIN_CALL      // "call"
-	NODE_BIN_INDEX     // "index"
-	NODE_BIN_DOT       // "."
+
+	NODE_UNA_ELLIPSIS // "..."
+	NODE_UNA_NOT      // "!" ::: exp
+	NODE_UNA_POINTER  // "ptr" ::: pointed
+	NODE_UNA_REF      // "ref" ::: variable
+
+	NODE_BIN_ASSIGN // "="
+	NODE_BIN_PLUS   // "+"
+	NODE_BIN_MIN    // "-"
+	NODE_BIN_DIV    // "/"
+	NODE_BIN_MUL    // "*"
+	NODE_BIN_MOD    // "%"
+	NODE_BIN_EQ     // "=="
+	NODE_BIN_NEQ    // "!="
+	NODE_BIN_GTEQ   // ">="
+	NODE_BIN_GT     // ">"
+	NODE_BIN_LTEQ   // "<="
+	NODE_BIN_LT     // "<"
+	NODE_BIN_LSHIFT // "<<"
+	NODE_BIN_RSHIFT // ">>"
+	NODE_BIN_BITAND // "&"
+	NODE_BIN_BITOR  // "|"
+	NODE_BIN_BITXOR // "^"
+	NODE_BIN_OR     // "||"
+	NODE_BIN_AND    // "&&"
+	NODE_BIN_IS     // "is"
+	NODE_BIN_CAST   // "cast"
+	NODE_BIN_CALL   // "call"
+	NODE_BIN_INDEX  // "index"
+	NODE_BIN_DOT    // "."
 
 	NODE_LIT_NONE   // mag("null")
 	NODE_LIT_THIS   // mag("null")

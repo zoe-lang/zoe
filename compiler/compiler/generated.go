@@ -53,21 +53,11 @@ func (n Node) Repr() string {
 
   case NODE_UNA_ELLIPSIS: return "..."
 
-  case NODE_UNA_PLUS: return "+"
-
-  case NODE_UNA_PLUSPLUS: return "++"
-
-  case NODE_UNA_MIN: return "-"
-
-  case NODE_UNA_MINMIN: return "--"
-
   case NODE_UNA_NOT: return "!"
 
   case NODE_UNA_POINTER: return "ptr"
 
   case NODE_UNA_REF: return "ref"
-
-  case NODE_UNA_BITNOT: return "~"
 
   case NODE_BIN_ASSIGN: return "="
 
@@ -96,8 +86,6 @@ func (n Node) Repr() string {
   case NODE_BIN_LSHIFT: return "<<"
 
   case NODE_BIN_RSHIFT: return ">>"
-
-  case NODE_BIN_BITANDEQ: return "&="
 
   case NODE_BIN_BITAND: return "&"
 
@@ -225,10 +213,6 @@ func (tk Tk) createWhile(scope Scope, cond Node, block Node) Node {
 
 func (tk Tk) createImport(scope Scope, module Node, id Node, exp Node) Node {
   return tk.createNode(scope, NODE_IMPORT, module, id, exp)
-}
-
-func (tk Tk) createUnaPlus(scope Scope, exp Node) Node {
-  return tk.createNode(scope, NODE_UNA_PLUS, exp)
 }
 
 func (tk Tk) createUnaNot(scope Scope, exp Node) Node {
