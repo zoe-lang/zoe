@@ -6,7 +6,7 @@ import (
 	"github.com/sourcegraph/go-lsp"
 )
 
-type TokenKind int
+type TokenKind uint32
 type TokenPos int
 
 type Range struct {
@@ -85,8 +85,11 @@ type Positioned interface {
 }
 
 type Token struct {
-	Kind TokenKind
-	Range
+	Kind   TokenKind
+	Offset uint32
+	Length uint32
+	Line   uint32
+	Column uint32
 }
 
 type Tk struct {
@@ -96,10 +99,6 @@ type Tk struct {
 
 func (tk Tk) ref() *Token {
 	return &tk.file.Tokens[tk.pos]
-}
-
-func (tk Tk) Range() Range {
-	return tk.ref().Range
 }
 
 func (tk Tk) IsEof() bool {
@@ -193,6 +192,26 @@ func (tk Tk) expectCommaIfNot(kind ...TokenKind) Tk {
 	return tk
 }
 
+func (tk Tk) Range() Range {
+	var next Tk
+	if tk.IsEof() {
+		next = tk
+	} else {
+		next = tk.Next()
+	}
+
+	var ref = tk.ref()
+	var nextref = next.ref()
+	return Range{
+		Start:     ref.Offset,
+		End:       nextref.Offset,
+		Line:      ref.Line,
+		Column:    ref.Column,
+		LineEnd:   nextref.Line,
+		ColumnEnd: nextref.Column,
+	}
+}
+
 func (tk Tk) GetText() string {
 	if tk.IsEof() {
 		return "<EOF>"
@@ -200,7 +219,7 @@ func (tk Tk) GetText() string {
 	var tokens = tk.file.Tokens
 	var t = tokens[tk.pos]
 
-	return string(tk.file.data[t.Start:t.End])
+	return string(tk.file.data[int(t.Offset) : int(t.Offset)+int(t.Length)])
 }
 
 func (tk Tk) Next() Tk {
@@ -277,7 +296,7 @@ func (tk Tk) sym() *prattTk {
 //
 
 func (tk Tk) reportError(msg ...string) {
-	tk.file.reportError(tk.ref().Range, msg...)
+	tk.file.reportError(tk.Range(), msg...)
 }
 
 //////////////////////////////////////////////

@@ -31,8 +31,8 @@ func (z *File) Lex() error {
 	data, length := z.data, uint32(len(z.data))
 	var offset uint32 = 0
 	var start uint32 = 0
-	var line uint32 = 1
-	var col uint32 = 1
+	var line uint32 = 0
+	var col uint32 = 0
 	cond := yyctop
 	comment := 0 // recursive comments
 	doc_comment := false
@@ -45,7 +45,7 @@ func (z *File) Lex() error {
 			char := data[i]
 			if char == '\n' {
 				line++
-				col = 1
+				col = 0
 			} else {
 				col++
 			}
@@ -61,14 +61,12 @@ func (z *File) Lex() error {
 	var addTokenBounds = func(kind TokenKind, offsetStart uint32, offsetEnd uint32) {
 		n := Token{}
 		// n.Value = string(value)
-		n.Start = start + offsetStart
-		n.End = offset - offsetEnd
 		n.Kind = kind
+		n.Offset = start + offsetStart
+		n.Length = offset - offsetEnd - (n.Offset)
 		n.Line = line
 		n.Column = col
 		updateLines()
-		n.LineEnd = line
-		n.ColumnEnd = col
 
 		start = offset
 

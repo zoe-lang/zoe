@@ -90,7 +90,8 @@ func NewFile(filename string) (*File, error) {
 }
 
 func (f *File) GetTokenText(tk TokenPos) string {
-	return f.GetRangeText(f.Tokens[tk].Range)
+	var t = Tk{pos: tk, file: f}
+	return f.GetRangeText(t.Range())
 }
 
 func (f *File) GetRangeText(p Range) string {
