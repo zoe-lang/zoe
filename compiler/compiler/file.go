@@ -13,23 +13,20 @@ import (
 
 type ZoeError struct {
 	File    *File
-	Range   Range
+	Range   lsp.Range
 	Message string
 }
 
 func (err ZoeError) Print(w io.Writer) {
 	fred.Fprint(w, err.File.Filename+" ")
-	fgreen.Fprint(w, err.Range.Line)
+	fgreen.Fprint(w, err.Range.Start.Line+1)
 	_, _ = w.Write([]byte(": " + err.Message + "\n"))
 }
 
 func (err ZoeError) ToLspDiagnostic() lsp.Diagnostic {
 	d := lsp.Diagnostic{}
 	d.Message = err.Message
-	d.Range.Start.Line = int(err.Range.Line - 1)
-	d.Range.Start.Character = int(err.Range.Column - 1)
-	d.Range.End.Line = int(err.Range.LineEnd - 1)
-	d.Range.End.Character = int(err.Range.ColumnEnd - 1)
+	d.Range = err.Range
 	return d
 }
 
@@ -91,31 +88,33 @@ func NewFile(filename string) (*File, error) {
 
 func (f *File) GetTokenText(tk TokenPos) string {
 	var t = Tk{pos: tk, file: f}
-	return f.GetRangeText(t.Range())
+	if t.IsEof() {
+		return "<EOF>"
+	}
+	var tt = t.ref()
+
+	return string(f.data[int(tt.Offset) : int(tt.Offset)+int(tt.Length)])
 }
 
-func (f *File) GetRangeText(p Range) string {
-	return string(f.data[p.Start:p.End])
+func (f *File) GetNodeText(np NodePosition) string {
+	var n = np.Node(f)
+	var rng = n.ref().Range
+	return string(f.data[int(f.Tokens[rng.Start].Offset):int(f.Tokens[int(rng.End)].Offset)])
 }
 
-func (f *File) GetNodeText(n NodePosition) string {
-	return f.GetRangeText(f.Nodes[n].Range)
-}
-
-func (f *File) reportError(pos Positioned, message ...string) {
-
+func (f *File) reportError(rng lsp.Range, message ...string) {
 	f.Errors = append(f.Errors, ZoeError{
 		File:    f,
-		Range:   *pos.GetPosition(),
+		Range:   rng,
 		Message: strings.Join(message, ""),
 	})
 	// f.Errors[len(f.Errors)-1].Print(os.Stderr)
 }
 
-func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...Node) Node {
+func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node) Node {
 	// maybe we should handle here the capacity of the node arrays ?
 	l := NodePosition(len(f.Nodes))
-	f.Nodes = append(f.Nodes, AstNode{Kind: kind, Range: rng, Scope: scope.pos})
+	f.Nodes = append(f.Nodes, AstNode{Kind: kind, Range: TkRange{Start: tk.pos, End: tk.pos + 1}, Scope: scope.pos})
 
 	cl := len(children)
 	if cl > 0 {
@@ -124,7 +123,7 @@ func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...
 		for i, chld := range children {
 			node.Args[i] = chld.pos
 			if !chld.IsEmpty() {
-				node.Range.Extend(chld.Range())
+				node.Range.ExtendNode(chld)
 			}
 		}
 	}
@@ -136,7 +135,7 @@ func (f *File) createNode(rng Range, kind AstNodeKind, scope Scope, children ...
 }
 
 // Find a node that matches a given range
-func (f *File) FindNodePosition(lsppos *lsp.Position) (Node, error) {
+func (f *File) FindNodePosition(lsppos lsp.Position) (Node, error) {
 	node := f.RootNode
 	// nodes := f.Nodes
 

@@ -2,87 +2,130 @@ package zoe
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/sourcegraph/go-lsp"
 )
 
 type TokenKind uint32
-type TokenPos int
+type TokenPos uint32
 
-type Range struct {
-	// should I include the source code as well ?
-	Start     uint32
-	End       uint32
-	Line      uint32
-	Column    uint32
-	LineEnd   uint32
-	ColumnEnd uint32
+//////////////////////////////////////
+
+type TkRange struct {
+	Start TokenPos
+	End   TokenPos
 }
 
-func (r Range) HasPosition(p *lsp.Position) bool {
-	line := uint32(p.Line + 1) // lsp is 0 based, but we're 1-based
-	char := uint32(p.Character + 1)
-
-	if line < r.Line || line > r.LineEnd || line == r.Line && char < r.Column || line == r.LineEnd && char >= r.ColumnEnd {
-		return false
-	}
-
-	return true
+func newTkRange() TkRange {
+	return TkRange{Start: math.MaxUint32, End: math.MaxUint32}
 }
 
-func (r Range) GetPosition() *Range {
-	return &r
-}
-
-func (r Range) ToLspRange() *lsp.Range {
-	return &lsp.Range{
-		Start: lsp.Position{
-			Line:      int(r.Line - 1),
-			Character: int(r.Column - 1),
-		},
-		End: lsp.Position{
-			Line:      int(r.LineEnd - 1),
-			Character: int(r.ColumnEnd - 1),
-		},
-	}
-}
-
-func (r *Range) Extend(other Range) {
-	if other.Line == 0 {
-		// do not extend from a buggy range
+func (t *TkRange) ExtendPos(p TokenPos) {
+	if p == math.MaxUint32 {
 		return
 	}
-	if r.Line == 0 {
-		// take the other range as our own if we didn't exist
-		*r = other
+	if t.Start > p {
+		t.Start = p
+	}
+	if t.End < p {
+		t.End = p
+	}
+}
+
+func (t *TkRange) ExtendTk(tk Tk) {
+	t.ExtendPos(tk.pos)
+}
+
+func (t *TkRange) ExtendRange(rng TkRange) {
+	t.ExtendPos(rng.Start)
+	t.ExtendPos(rng.End)
+}
+
+func (t *TkRange) ExtendNode(node Node) {
+	if node.IsEmpty() {
 		return
 	}
-
-	if r.Line == other.Line {
-		// if we're on the same line, the final column is the left-most one
-		r.Column = minInt(r.Column, other.Column)
-	} else {
-		if other.Line < r.Line {
-			r.Column = other.Column
-			r.Line = other.Line
-		}
-	}
-	if r.LineEnd == other.LineEnd {
-		r.ColumnEnd = maxInt(r.ColumnEnd, other.ColumnEnd)
-	} else {
-		if other.LineEnd > r.LineEnd {
-			r.LineEnd = other.LineEnd
-			r.ColumnEnd = other.ColumnEnd
-		}
-	}
-
-	r.Start = minInt(r.Start, other.Start)
-	r.End = maxInt(r.End, other.End)
+	var ref = node.ref()
+	t.ExtendRange(ref.Range)
 }
 
-type Positioned interface {
-	GetPosition() *Range
-}
+///////////////////////////////////
+
+// type Range struct {
+// 	// should I include the source code as well ?
+// 	Start     uint32
+// 	End       uint32
+// 	Line      uint32
+// 	Column    uint32
+// 	LineEnd   uint32
+// 	ColumnEnd uint32
+// }
+
+// func (r Range) HasPosition(p *lsp.Position) bool {
+// 	line := uint32(p.Line) // lsp is 0 based, but we're 1-based
+// 	char := uint32(p.Character)
+
+// 	if line < r.Line || line > r.LineEnd || line == r.Line && char < r.Column || line == r.LineEnd && char >= r.ColumnEnd {
+// 		return false
+// 	}
+
+// 	return true
+// }
+
+// func (r Range) GetPosition() *Range {
+// 	return &r
+// }
+
+// func (r Range) ToLspRange() *lsp.Range {
+// 	return &lsp.Range{
+// 		Start: lsp.Position{
+// 			Line:      int(r.Line - 1),
+// 			Character: int(r.Column - 1),
+// 		},
+// 		End: lsp.Position{
+// 			Line:      int(r.LineEnd - 1),
+// 			Character: int(r.ColumnEnd - 1),
+// 		},
+// 	}
+// }
+
+// func (r *Range) Extend(other Range) {
+// 	if other.Line == 0 {
+// 		// do not extend from a buggy range
+// 		return
+// 	}
+// 	if r.Line == 0 {
+// 		// take the other range as our own if we didn't exist
+// 		*r = other
+// 		return
+// 	}
+
+// 	if r.Line == other.Line {
+// 		// if we're on the same line, the final column is the left-most one
+// 		r.Column = minInt(r.Column, other.Column)
+// 	} else {
+// 		if other.Line < r.Line {
+// 			r.Column = other.Column
+// 			r.Line = other.Line
+// 		}
+// 	}
+// 	if r.LineEnd == other.LineEnd {
+// 		r.ColumnEnd = maxInt(r.ColumnEnd, other.ColumnEnd)
+// 	} else {
+// 		if other.LineEnd > r.LineEnd {
+// 			r.LineEnd = other.LineEnd
+// 			r.ColumnEnd = other.ColumnEnd
+// 		}
+// 	}
+
+// 	r.Start = minInt(r.Start, other.Start)
+// 	r.End = maxInt(r.End, other.End)
+// }
+
+// type Positioned interface {
+// 	GetPosition() *Range
+// }
 
 type Token struct {
 	Kind   TokenKind
@@ -95,6 +138,35 @@ type Token struct {
 type Tk struct {
 	pos  TokenPos
 	file *File
+}
+
+func (tk Tk) Line() int {
+	return int(tk.ref().Line)
+}
+
+func (tk Tk) Column() int {
+	return int(tk.ref().Column)
+}
+
+func (tk Tk) Offset() int {
+	return int(tk.ref().Offset)
+}
+
+func (tk Tk) Length() int {
+	return int(tk.ref().Length)
+}
+
+func (tk Tk) Range() lsp.Range {
+	return lsp.Range{
+		Start: lsp.Position{
+			Line:      tk.Line(),
+			Character: tk.Column(),
+		},
+		End: lsp.Position{
+			Line:      tk.Line(),
+			Character: tk.Column() + tk.Length(),
+		},
+	}
 }
 
 func (tk Tk) ref() *Token {
@@ -192,25 +264,25 @@ func (tk Tk) expectCommaIfNot(kind ...TokenKind) Tk {
 	return tk
 }
 
-func (tk Tk) Range() Range {
-	var next Tk
-	if tk.IsEof() {
-		next = tk
-	} else {
-		next = tk.Next()
-	}
+// func (tk Tk) Range() Range {
+// 	var next Tk
+// 	if tk.IsEof() {
+// 		next = tk
+// 	} else {
+// 		next = tk.Next()
+// 	}
 
-	var ref = tk.ref()
-	var nextref = next.ref()
-	return Range{
-		Start:     ref.Offset,
-		End:       nextref.Offset,
-		Line:      ref.Line,
-		Column:    ref.Column,
-		LineEnd:   nextref.Line,
-		ColumnEnd: nextref.Column,
-	}
-}
+// 	var ref = tk.ref()
+// 	var nextref = next.ref()
+// 	return Range{
+// 		Start:     ref.Offset,
+// 		End:       nextref.Offset,
+// 		Line:      ref.Line,
+// 		Column:    ref.Column,
+// 		LineEnd:   nextref.Line,
+// 		ColumnEnd: nextref.Column,
+// 	}
+// }
 
 func (tk Tk) GetText() string {
 	if tk.IsEof() {
@@ -303,7 +375,7 @@ func (tk Tk) reportError(msg ...string) {
 //
 
 func (tk Tk) createNode(scope Scope, nk AstNodeKind, args ...Node) Node {
-	return tk.file.createNode(tk.Range(), nk, scope, args...) // ????
+	return tk.file.createNode(tk, nk, scope, args...) // ????
 }
 
 func (tk Tk) createIdNode(scope Scope) Node {
@@ -326,5 +398,5 @@ func (tk Tk) Debug() string {
 	if tk.IsEof() {
 		return "T[EOF]"
 	}
-	return fmt.Sprintf(`T[%s '%s' @%v:%v]`, tokstr[tk.ref().Kind], tk.GetText(), tk.Range().Line, tk.Range().Column)
+	return fmt.Sprintf(`T[%s '%s' @%v:%v]`, tokstr[tk.ref().Kind], tk.GetText(), tk.Line()+1, tk.Column()+1)
 }

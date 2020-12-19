@@ -8,11 +8,11 @@ func (f *File) Parse() {
 // At the top level, just parse everything we can
 func (f *File) parseFile() (Tk, Node) {
 	scope := f.RootScope()
-	file := f.createNode(Range{}, NODE_FILE, scope)
 	tk := Tk{
 		pos:  0,
 		file: f,
 	}
+	file := f.createNode(tk, NODE_FILE, scope)
 
 	app := newList()
 	tk.whileNotEof(func(iter Tk) Tk {
@@ -54,7 +54,7 @@ func init() {
 		iter, exp := Expression(scope, tk.Next(), 0)
 		// check if we end with a parenthesis
 		if next, ok := iter.consume(TK_RPAREN); ok {
-			exp.ExtendRange(tk.Range())
+			exp.Extend(tk)
 			return next, exp
 		}
 
@@ -74,7 +74,7 @@ func init() {
 		})
 
 		tup := tk.createTuple(scope, app.first)
-		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) { tup.ExtendRange(tk.Range()) })
+		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) { tup.Extend(tk) })
 
 		return iter, tup
 	})
@@ -119,7 +119,7 @@ func init() {
 		array := tk.createArrayLiteral(scope, fragment.first)
 
 		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
-			array.ExtendRange(tk.Range())
+			array.Extend(tk)
 		})
 
 		return iter, array
@@ -142,7 +142,7 @@ func init() {
 
 	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, v := parseVar(scope, tk.Next(), lbp)
-		v.ExtendRange(tk.Range())
+		v.Extend(tk)
 		return next, v
 	})
 
@@ -237,7 +237,7 @@ func init() {
 	nud(TK_MIN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		var next, exp = Expression(scope, tk.Next(), lbp_addition)
 		// create a node for -1
-		var min_one = tk.file.createNode(tk.Range(), NODE_INTEGER, scope)
+		var min_one = tk.file.createNode(tk, NODE_INTEGER, scope)
 		min_one.SetValue(-1) // a forced integer
 		bin := tk.createBinOp(scope, NODE_BIN_MUL, min_one, exp)
 		return next, bin
@@ -324,7 +324,7 @@ func init() {
 
 		var index = tk.createBinOp(scope, NODE_BIN_INDEX, left, fragment.first)
 		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
-			index.ExtendRange(tk.Range())
+			index.Extend(tk)
 		})
 
 		return iter, index
@@ -349,7 +349,7 @@ func init() {
 		var call = tk.createBinOp(scope, NODE_BIN_CALL, left, fragment.first)
 
 		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
-			call.ExtendRange(tk.Range())
+			call.Extend(tk)
 		})
 
 		return iter, call
@@ -510,7 +510,7 @@ func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	str := tk.createString(scope, fragment.first)
 	iter, _ = iter.expect(TK_QUOTE, func(tk Tk) {
-		str.ExtendRange(tk.Range())
+		str.Extend(tk)
 	})
 
 	// this should transform the result to a string
@@ -590,7 +590,7 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	if iter.shouldBe(TK_RBRACKET) {
 		// extend the range of the switch
-		sw.ExtendRange(iter.Range())
+		sw.Extend(iter)
 		iter = iter.Next()
 	}
 	return iter, sw
@@ -688,7 +688,7 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	block := tk.createBlock(subscope, first)
 	iter = iter.expectClosing(tk, func(tk Tk) {
-		block.ExtendRange(tk.Range())
+		block.Extend(tk)
 	})
 
 	return iter, block
@@ -785,7 +785,7 @@ func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
 	})
 
 	var trait = tk.createTrait(scope, template, fields)
-	trait.ExtendRange(iter.Range())
+	trait.Extend(iter)
 
 	if !name.IsEmpty() {
 		scope.addSymbolFromIdNode(name, trait)
@@ -828,7 +828,7 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	})
 
 	var stru = tk.createStruct(scope, template, fields)
-	stru.ExtendRange(iter.Range())
+	stru.Extend(iter)
 
 	if !name.IsEmpty() {
 		scope.addSymbolFromIdNode(name, stru)
@@ -860,7 +860,7 @@ func parseEnum(scope Scope, tk Tk, _ int) (Tk, Node) {
 	})
 
 	var stru = tk.createEnum(scope, fields)
-	stru.ExtendRange(iter.Range())
+	stru.Extend(iter)
 
 	if !name.IsEmpty() {
 		scope.addSymbolFromIdNode(name, stru)

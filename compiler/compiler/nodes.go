@@ -108,7 +108,7 @@ const (
 
 type AstNode struct {
 	Kind        AstNodeKind
-	Range       Range // the range inside the source file. an enclosing node updates its range according to its internal nodes
+	Range       TkRange // the range inside the source file. an enclosing node updates its range according to its internal nodes
 	Scope       ScopePosition
 	IsIncorrect bool // true if the node was tagged as being incorrect and thus should not be type checked
 	Value       int  // can represent either a boolean (1 or 0), a node position, or a string id
@@ -182,12 +182,52 @@ func (n Node) Clone() Node {
 }
 
 ///////////////////////////////////
-func (n Node) Range() Range {
-	return n.ref().Range
+// func (n Node) Range() Range {
+// 	var ref = n.ref()
+// 	var tks = n.file.Tokens[ref.Range.Start]
+// 	var tke = n.file.Tokens[ref.Range.End]
+// 	return Range{
+// 		Start:     tks.Offset,
+// 		End:       tke.Offset,
+// 		Line:      tks.Line,
+// 		LineEnd:   tke.Line,
+// 		Column:    tks.Column,
+// 		ColumnEnd: tke.Column,
+// 	}
+// }
+
+func PositionInRange(pos lsp.Position, rng lsp.Range) bool {
+	var st = rng.Start
+	var ed = rng.End
+	return pos.Line >= st.Line && pos.Line < ed.Line &&
+		(pos.Line != st.Line || pos.Character >= st.Character) &&
+		(pos.Line != ed.Line || pos.Character < ed.Character)
 }
 
-func (n Node) HasPosition(lsppos *lsp.Position) bool {
-	return n.ref().Range.HasPosition(lsppos)
+func (n Node) HasPosition(lsppos lsp.Position) bool {
+	var rng = n.Range()
+	return PositionInRange(lsppos, rng)
+}
+
+func (n Node) Range() lsp.Range {
+	var t = n.ref().Range
+	var tks = n.file.Tokens
+	var st = tks[int(t.Start)]
+	var ed = tks[int(t.End)]
+	return lsp.Range{
+		Start: lsp.Position{
+			Line:      int(st.Line),
+			Character: int(st.Column),
+		},
+		End: lsp.Position{
+			Line:      int(ed.Line),
+			Character: int(ed.Column),
+		},
+	}
+}
+
+func (n Node) ReportError(msg ...string) {
+	n.file.reportError(n.Range(), msg...)
 }
 
 func (n Node) SetValue(v int) {
@@ -224,8 +264,7 @@ func (n Node) Kind() AstNodeKind {
 }
 
 func (n Node) GetText() string {
-	rng := n.Range()
-	return string(n.file.data[rng.Start:rng.End])
+	return n.file.GetNodeText(n.pos)
 }
 
 func (n Node) InternedString() InternedString {
@@ -237,12 +276,20 @@ func (n Node) SetInternedString(val InternedString) {
 	n.ref().Value = int(val)
 }
 
-func (n Node) ExtendRange(other Range) {
-	n.ref().Range.Extend(other)
+func (n Node) Extend(other Tk) {
+	var ref = n.ref()
+	if ref.Range.End < other.pos {
+		ref.Range.End = other.pos
+	}
+	if ref.Range.Start > other.pos {
+		ref.Range.Start = other.pos
+	}
 }
 
 func (n Node) ExtendRangeFromNode(other Node) {
 	if !other.IsEmpty() {
-		n.ExtendRange(other.Range())
+		var oref = other.ref()
+		n.Extend(Tk{pos: oref.Range.Start})
+		n.Extend(Tk{pos: oref.Range.End})
 	}
 }

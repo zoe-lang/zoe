@@ -17,9 +17,9 @@ var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
 func (n Node) Debug() string {
-	rng := n.ref().Range
+	// rng := n.ref().Range
 	color.NoColor = true
-	var res = fmt.Sprintf("(pos %v:%s %v:%v - %v:%v [%v] -> %v)", n.pos, n.Repr(), rng.Line, rng.Column, rng.LineEnd, rng.ColumnEnd, n.ref().Args, n.Next())
+	var res = fmt.Sprintf("(pos %v[%v])", n.pos, n.Repr())
 	color.NoColor = false
 	return res
 }

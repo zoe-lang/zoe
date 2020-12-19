@@ -30,7 +30,7 @@ func HandleHover(req *LspRequest) error {
 		return nil
 	}
 
-	pos, err2 := file.FindNodePosition(&params.Position)
+	pos, err2 := file.FindNodePosition(params.Position)
 	if err2 != nil {
 		req.Reply(lsp.Hover{
 			Contents: []lsp.MarkedString{{
