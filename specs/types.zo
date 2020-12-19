@@ -43,7 +43,7 @@ Float # Float64 or Float32
 
 # Structs
 struct MyStruct {
-  field: Int
+  field: Int,
   field2: Float32
 }
 
@@ -72,11 +72,11 @@ type MyType2 is *MyStruct | null
 type MyType is OlderType
 # With an empty implement block, we mean that this is not just an alias, but
 # a redefinition.
-type MyType is OlderType { }
+type MyType2 is OlderType { }
 
 
 # union
-type MyType is MyStruct | Int | null {
+type MyType3 is MyStruct | Int | null {
   # Code blocks for unions or aliases may not include fields
   method doStuff(a: Boolean) -> Boolean { !a }
 
@@ -84,15 +84,15 @@ type MyType is MyStruct | Int | null {
     # Switching on a union value accepts types as well as values
     # The type of a switch is a union type of its types
     switch this {
-      | 2 -> 4
-      | Zobi -> {
+      2 -> 4
+      Zobi -> {
         # Do stuff with Zobi
       }
-      | Int -> this
-      | Float -> Float.toInt(this)
-      | MyStruct -> this.myField
-      | null -> log.isNull()
-      | else -> -1
+      Int -> this
+      Float -> Float.toInt(this)
+      MyStruct -> this.myField
+      null -> log.isNull()
+      else -> -1
     }
   }
 }
@@ -105,11 +105,13 @@ trait MyTrait {
 }
 
 # A trait may require the presence of another trait.
-trait MyOtherTrait requires MyTrait, SomeOtherTrait {
+trait MyOtherTrait {
+  implement MyTrait
+  implement SomeOtherTrait
   method yes() -> { stub }
 }
 
-struct MyStruct {
+struct MyStruct4 {
   toto: Int
   local b: Boolean # b will only be accessible from a redefinition of MyStruct
 
@@ -179,7 +181,7 @@ fn makeSomeReader() -> Reader {
 # If we don't know the type in advance, then it means we need to store fat pointers...
 # It's either that, or all types have their vtable added in their type definition
 # But then it means when we copy them, we're "fucked" because it means overwriting the vtable pointer...
-var some_slice = Slice[Dog | Cat as Animal].new()
+var some_slice = Slice[Dog | Cat].new()
 
 # Functions that return traits must specify the underlying type, or do some kind of "Trait[dyn stuff]" like in Rust ?
 # What about re-implementing some trait defined method ? The compiler must be aware that at least one type
@@ -191,8 +193,8 @@ var some_slice = Slice[Dog | Cat as Animal].new()
 
 # Slices are not "special" ?
 type Toto is Slice[Int]
-type Toto is []Slice
-type Toto is [3]Slice # an array of 3 elements.
+type Toto2 is []Slice
+type Toto3 is [3]Slice # an array of 3 elements.
 
 
 
@@ -228,7 +230,8 @@ trait Closer {
 }
 
 trait LineReader {
-  implements Reader[Char]
+  # Pouet
+  implement Reader[Char]
 
   #(?
     Adds a readLine method
@@ -238,6 +241,6 @@ trait LineReader {
 
 trait ReadCloser[$T] {
   # A trait does not have to give an actual implementation to another, required trait
-  implements Reader[$T]
-  implements Closer
+  implement Reader[$T]
+  implement Closer
 }

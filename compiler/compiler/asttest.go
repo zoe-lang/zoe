@@ -18,7 +18,10 @@ var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
 func (n Node) Debug() string {
 	rng := n.ref().Range
-	return fmt.Sprintf("(%v:%s %v:%v - %v:%v [%v] -> %v)", n.pos, n.Repr(), rng.Line, rng.Column, rng.LineEnd, rng.ColumnEnd, n.ref().Args, n.Next)
+	color.NoColor = true
+	var res = fmt.Sprintf("(pos %v:%s %v:%v - %v:%v [%v] -> %v)", n.pos, n.Repr(), rng.Line, rng.Column, rng.LineEnd, rng.ColumnEnd, n.ref().Args, n.Next())
+	color.NoColor = false
+	return res
 }
 
 func cleanup(str []byte) []byte {

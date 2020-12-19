@@ -19,6 +19,7 @@ func (f *File) parseFile() (Tk, Node) {
 		var node Node
 		iter, node = Expression(scope, iter, 0)
 		if !node.IsEmpty() {
+			file.ExtendRangeFromNode(node)
 			app.append(node)
 		}
 		return iter
@@ -137,6 +138,7 @@ func init() {
 	nud(KW_FOR, parseFor)
 	nud(KW_WHILE, parseWhile)
 	nud(KW_IF, parseIf)
+	nud(KW_SWITCH, parseSwitch)
 
 	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, v := parseVar(scope, tk.Next(), lbp)
@@ -173,10 +175,9 @@ func init() {
 		return iter, tk.createReturn(scope, res)
 	})
 
-	lbp += 2
-
 	nud(KW_TYPE, parseTypeDecl)
 	nud(KW_STRUCT, parseStruct)
+	nud(KW_TRAIT, parseTrait)
 	nud(KW_ENUM, parseEnum)
 
 	lbp += 2
@@ -520,20 +521,79 @@ func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
 // Special handling for if block
 func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var ok bool
+	var has_else bool
 	iter := tk.Next()
 
+	// Inside the if condition, we want to know if there were some is operators associated
+	// to some identifiers, so that we can build unions for them.
+	// How to do that, through the scope ?
 	iter, cond := Expression(scope, iter, 0) // can be a block. this could be confusing.
 
 	iter.expect(TK_LBRACKET)
-	iter, then := Expression(scope, iter, 0) // most likely, a block.
+
+	var thenscope = scope.subScope()
+	var elsescope = scope.subScope()
+
+	// We need to check in the then block if it gives back control once it is done
+	// or if it stops execution in the current scope. If it does, and there is no else
+	// block, then the rest of the parent block is in fact the else condition.
+	iter, then := Expression(thenscope, iter, 0) // most likely, a block.
 
 	var els Node
+	iter, has_else = iter.consume(KW_ELSE)
+
+	if has_else {
+		iter.expect(TK_LBRACKET)
+	}
+
 	if iter, ok = iter.consume(KW_ELSE); ok {
 		iter.expect(TK_LBRACKET)
-		iter, els = Expression(scope, iter, 0)
+		iter, els = Expression(elsescope, iter, 0)
 	}
 
 	return iter, tk.createIf(scope, cond, then, els)
+}
+
+func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
+
+	// 1. Get the expression we're switching on.
+	var switchexp Node
+	iter, switchexp = Expression(scope, iter, 0)
+
+	// 2. Parse all the matching arms
+	iter, _ = iter.expect(TK_LBRACKET)
+
+	var list = newList()
+	iter = iter.whileNotClosing(func(iter Tk) Tk {
+		var first = iter
+		// iter, _ = iter.expect(TK_PIPE)
+
+		var armexp Node
+		if !iter.Is(KW_ELSE) {
+			iter, armexp = Expression(scope, iter, 0)
+		} else {
+			iter = iter.Next()
+		}
+
+		iter, _ = iter.expect(TK_ARROW)
+
+		var thenexp Node
+		iter, thenexp = Expression(scope, iter, 0)
+
+		var arm = first.createSwitchArm(scope, armexp, thenexp)
+		list.append(arm)
+		return iter
+	})
+
+	var sw = tk.createSwitch(scope, switchexp, list.first)
+
+	if iter.shouldBe(TK_RBRACKET) {
+		// extend the range of the switch
+		sw.ExtendRange(iter.Range())
+		iter = iter.Next()
+	}
+	return iter, sw
 }
 
 /////////////////////////////////////////////////////
@@ -598,14 +658,9 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, signature
 }
 
-// parseBlock parses a block of code
-func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
-	// blk := b.createNodeFromToken(tk, NODE_BLOCK)
-	var iter = tk.Next()
-	var subscope = scope.subScope()
-
+func parseUntilClosing(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk
 	var fragment = newList()
-
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
 		for iter.Is(TK_SEMICOLON) {
 			iter = iter.Next()
@@ -616,12 +671,22 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 		}
 
 		var exp Node
-		iter, exp = Expression(subscope, iter, 0)
+		iter, exp = Expression(scope, iter, 0)
 		fragment.append(exp)
 		return iter
 	})
+	return iter, fragment.first
+}
 
-	block := tk.createBlock(subscope, fragment.first)
+// parseBlock parses a block of code
+func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
+	var subscope = scope.subScope()
+
+	var first Node
+	iter, first = parseUntilClosing(scope, iter, 0)
+
+	block := tk.createBlock(subscope, first)
 	iter = iter.expectClosing(tk, func(tk Tk) {
 		block.ExtendRange(tk.Range())
 	})
@@ -683,6 +748,52 @@ func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, typ
 }
 
+func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
+
+	var strscope = scope.subScope()
+
+	var name Node
+	iter, _ = iter.expect(TK_ID, func(tk Tk) {
+		name = tk.createIdNode(scope)
+	})
+
+	var template Node
+	if iter.Is(TK_LBRACE) {
+		iter, template = parseTemplate(scope, iter, 0)
+	}
+
+	var fields Node
+	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
+
+		var node Node
+
+		if iter.Is(KW_METHOD) {
+			iter, node = parseFn(strscope, iter, 0)
+
+			if node.IsEmpty() {
+				iter.reportError("expected a method declaration")
+			}
+		} else if iter.Is(KW_IMPLEMENT) {
+			iter, node = Expression(scope, iter.Next(), 0)
+		} else {
+			iter.reportError("expected a method or an implement")
+			iter = iter.Next()
+		}
+
+		return iter, node
+	})
+
+	var trait = tk.createTrait(scope, template, fields)
+	trait.ExtendRange(iter.Range())
+
+	if !name.IsEmpty() {
+		scope.addSymbolFromIdNode(name, trait)
+	}
+
+	return iter, trait
+}
+
 func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 
@@ -699,12 +810,18 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
 		var variable Node
+		var local bool
+		iter, local = iter.consume(KW_LOCAL)
 		iter, variable = parseVar(strscope, iter, 0)
 
 		if variable.IsEmpty() {
 			iter.reportError("expected a field declaration")
+		} else {
+			if local {
+				variable.SetFlag(FLAG_LOCAL)
+			}
 		}
 
 		return iter, variable
@@ -731,7 +848,7 @@ func parseEnum(scope Scope, tk Tk, _ int) (Tk, Node) {
 	})
 
 	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
 		var variable Node
 		iter, variable = parseVar(strscope, iter, 0)
 

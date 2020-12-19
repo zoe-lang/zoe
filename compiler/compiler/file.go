@@ -3,6 +3,7 @@ package zoe
 import (
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
@@ -138,9 +139,10 @@ func (f *File) FindNodePosition(lsppos *lsp.Position) (Node, error) {
 	node := f.RootNode
 	// nodes := f.Nodes
 
-	// log.Print(lsppos.Line+1, ":", lsppos.Character+1)
+	log.Print(lsppos.Line+1, ":", lsppos.Character+1)
 search:
 	for node.HasPosition(lsppos) {
+		log.Print(node.Debug())
 		// First check in the node's children
 		for _, chl := range node.ref().Args {
 			chld := chl.Node(f)

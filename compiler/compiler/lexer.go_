@@ -118,6 +118,7 @@ func (z *File) Lex() error {
 			<top> "method"    => top { addToken(KW_METHOD); goto yyc_top }
 			<top> "enum"      => top { addToken(KW_ENUM); goto yyc_top }
 			<top> "trait"     => top { addToken(KW_TRAIT); goto yyc_top }
+			<top> "implement"     => top { addToken(KW_IMPLEMENT); goto yyc_top }
 			<top> "struct"    => top { addToken(KW_STRUCT); goto yyc_top }
 
 			<top> "for"       => top { addToken(KW_FOR); goto yyc_top }
@@ -125,6 +126,7 @@ func (z *File) Lex() error {
 			<top> "while"     => top { addToken(KW_WHILE); goto yyc_top }
 			<top> "if"        => top { addToken(KW_IF); goto yyc_top }
 			<top> "else"      => top { addToken(KW_ELSE); goto yyc_top }
+			<top> "switch"      => top { addToken(KW_SWITCH); goto yyc_top }
 
 			<top> "typeof"    => top { addToken(KW_TYPEOF); goto yyc_top }
 			<top> "is"        => top { addToken(KW_IS); goto yyc_top }

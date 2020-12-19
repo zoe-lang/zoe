@@ -33,6 +33,8 @@ func (n Node) Repr() string {
 
   case NODE_STRUCT: return bblue("struct")
 
+  case NODE_TRAIT: return bblue("trait")
+
   case NODE_UNION: return "union"
 
   case NODE_ISO_BLOCK: return "iso"
@@ -44,6 +46,10 @@ func (n Node) Repr() string {
   case NODE_ARRAY_LITERAL: return "array"
 
   case NODE_IF: return "if"
+
+  case NODE_SWITCH: return "switch"
+
+  case NODE_SWITCH_ARM: return "arm"
 
   case NODE_FOR: return "for"
 
@@ -179,6 +185,10 @@ func (tk Tk) createStruct(scope Scope, template Node, varlist Node) Node {
   return tk.createNode(scope, NODE_STRUCT, template, varlist)
 }
 
+func (tk Tk) createTrait(scope Scope, template Node, methodlist Node) Node {
+  return tk.createNode(scope, NODE_TRAIT, template, methodlist)
+}
+
 func (tk Tk) createUnion(scope Scope, members Node) Node {
   return tk.createNode(scope, NODE_UNION, members)
 }
@@ -201,6 +211,14 @@ func (tk Tk) createArrayLiteral(scope Scope, contents Node) Node {
 
 func (tk Tk) createIf(scope Scope, cond Node, thenarm Node, elsearm Node) Node {
   return tk.createNode(scope, NODE_IF, cond, thenarm, elsearm)
+}
+
+func (tk Tk) createSwitch(scope Scope, exp Node, arms Node) Node {
+  return tk.createNode(scope, NODE_SWITCH, exp, arms)
+}
+
+func (tk Tk) createSwitchArm(scope Scope, cond Node, block Node) Node {
+  return tk.createNode(scope, NODE_SWITCH_ARM, cond, block)
 }
 
 func (tk Tk) createFor(scope Scope, vardecl Node, rng Node, block Node) Node {

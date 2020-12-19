@@ -49,12 +49,15 @@ const (
 	NODE_RETURN        // "return" 						::: exp
 	NODE_ENUM          // bblue("enum")       ::: varlist
 	NODE_STRUCT        // bblue("struct")     ::: template varlist
+	NODE_TRAIT         // bblue("trait")      ::: template methodlist
 	NODE_UNION         // "union"							::: members
 	NODE_ISO_BLOCK     // "iso"               ::: block
 	NODE_ISO_TYPE      // "iso-type"          ::: type_expr
 	NODE_STRING        // "str" ::: contents
 	NODE_ARRAY_LITERAL // "array" ::: contents
 	NODE_IF            // "if"                      ::: cond thenarm elsearm
+	NODE_SWITCH        // "switch" ::: exp arms
+	NODE_SWITCH_ARM    // "arm" ::: cond block
 	NODE_FOR           // "for"   ::: vardecl rng block
 	NODE_WHILE         // "while" ::: cond block
 	NODE_IMPORT        // bblue("import") ::: module id exp

@@ -14,9 +14,10 @@ func (sp ScopePosition) Handler(file *File) Scope {
 }
 
 type concreteScope struct {
-	Parent ScopePosition
-	Owner  NodePosition
-	Names  map[InternedString]NodePosition
+	Parent        ScopePosition
+	Owner         NodePosition
+	EndsExecution bool
+	Names         map[InternedString]NodePosition
 }
 
 func (f *File) newScope() ScopePosition {

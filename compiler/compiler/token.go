@@ -162,6 +162,14 @@ func (tk Tk) expectClosing(opening Tk, fn ...func(tk Tk)) Tk {
 	return tk.Next()
 }
 
+func (tk Tk) shouldBe(kind TokenKind) bool {
+	if !tk.Is(kind) {
+		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
+		return false
+	}
+	return true
+}
+
 func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 	if !tk.Is(kind) {
 		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
