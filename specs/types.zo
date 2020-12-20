@@ -43,7 +43,7 @@ Float # Float64 or Float32
 
 # Structs
 struct MyStruct {
-  field: Int,
+  field: Int
   field2: Float32
 }
 
@@ -80,20 +80,30 @@ type MyType3 is MyStruct | Int | null {
   # Code blocks for unions or aliases may not include fields
   method doStuff(a: Boolean) -> Boolean { !a }
 
+  #(?
+    Stuff ?
+  #)
   method moreStuff() -> Int {
+
     # Switching on a union value accepts types as well as values
     # The type of a switch is a union type of its types
     switch this {
-      2 -> 4
+      2 -> { 4 },
       Zobi -> {
         # Do stuff with Zobi
-      }
-      Int -> this
-      Float -> Float.toInt(this)
-      MyStruct -> this.myField
-      null -> log.isNull()
+      },
+      Int -> switch this {
+        2 -> 3,
+        4 -> 5,
+        6 -> 3,
+        else -> -1
+      },
+      Float -> Float.toInt(this),
+      MyStruct -> this.myField,
+      null -> log.isNull(),
       else -> -1
     }
+
   }
 }
 
@@ -112,8 +122,12 @@ trait MyOtherTrait {
 }
 
 struct MyStruct4 {
-  toto: Int
+  toto: Int # We do not expect a var here, this should be an error
   local b: Boolean # b will only be accessible from a redefinition of MyStruct
+
+  method hello() -> Int {
+
+  }
 
   # Note, if there already was a method that satisfies the trait
   # defined elsewhere on the type, then the trait is fine with it
@@ -176,6 +190,8 @@ fn makeSomeReader() -> Reader {
   # Maybe the list is infered ?
   # There is no such problem when returning a pointer. Or is there ?
   # Are traits fat pointers ?
+
+  some_var: SomeType
 }
 
 # If we don't know the type in advance, then it means we need to store fat pointers...

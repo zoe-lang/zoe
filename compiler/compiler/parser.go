@@ -46,6 +46,9 @@ func init() {
 		syms[i].led = ledError
 	}
 
+	//
+	// Parse a parenthesized expression.
+	//
 	nud(TK_LPAREN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		// We are going to check if we have several components to the paren, or just
 		// one, in which case we just send it back.
@@ -79,6 +82,9 @@ func init() {
 		return iter, tup
 	})
 
+	//
+	// Namespace declaration (might go away)
+	//
 	nud(KW_NAMESPACE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		var iter = tk.Next()
 		// res.Block = res.CreateBlock()
@@ -142,7 +148,11 @@ func init() {
 
 	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, v := parseVar(scope, tk.Next(), lbp)
-		v.Extend(tk)
+		if v.expect(NODE_VAR) {
+			v.Extend(tk)
+		} else {
+			tk.reportError("expected a variable declaration")
+		}
 		return next, v
 	})
 
@@ -570,9 +580,11 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 		// iter, _ = iter.expect(TK_PIPE)
 
 		var armexp Node
+		var iselse bool
 		if !iter.Is(KW_ELSE) {
 			iter, armexp = Expression(scope, iter, 0)
 		} else {
+			iselse = true
 			iter = iter.Next()
 		}
 
@@ -580,6 +592,12 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 		var thenexp Node
 		iter, thenexp = Expression(scope, iter, 0)
+
+		if iselse {
+			iter, _ = iter.consume(TK_COMMA)
+		} else {
+			iter, _ = iter.expect(TK_COMMA)
+		}
 
 		var arm = first.createSwitchArm(scope, armexp, thenexp)
 		list.append(arm)
@@ -810,21 +828,23 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
-		var variable Node
-		var local bool
-		iter, local = iter.consume(KW_LOCAL)
-		iter, variable = parseVar(strscope, iter, 0)
+	iter, fields = tryParseList(strscope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
+		// var variable Node
+		// var local bool
+		// iter, local = iter.consume(KW_LOCAL)
+		// iter, variable = parseVar(strscope, iter, 0)
 
-		if variable.IsEmpty() {
-			iter.reportError("expected a field declaration")
-		} else {
-			if local {
-				variable.SetFlag(FLAG_LOCAL)
-			}
-		}
+		// if variable.IsEmpty() {
+		// 	iter.reportError("expected a field declaration")
+		// } else {
+		// 	if local {
+		// 		variable.SetFlag(FLAG_LOCAL)
+		// 	}
+		// }
+		var member Node
+		iter, member = Expression(strscope, iter, 0)
 
-		return iter, variable
+		return iter, member
 	})
 
 	var stru = tk.createStruct(scope, template, fields)
@@ -848,7 +868,7 @@ func parseEnum(scope Scope, tk Tk, _ int) (Tk, Node) {
 	})
 
 	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
 		var variable Node
 		iter, variable = parseVar(strscope, iter, 0)
 

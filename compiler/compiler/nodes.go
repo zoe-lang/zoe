@@ -256,7 +256,26 @@ func (n Node) GetArg(nb int) Node {
 }
 
 func (n Node) Is(nk AstNodeKind) bool {
+	if n == EmptyNode {
+		return false
+	}
 	return n.ref().Kind == nk
+}
+
+func (n Node) IsAnyOf(nk ...AstNodeKind) bool {
+	for _, nk := range nk {
+		if n.Is(nk) {
+			return true
+		}
+	}
+	return false
+}
+
+func (n Node) expect(nk ...AstNodeKind) bool {
+	if !n.IsAnyOf(nk...) {
+		return false
+	}
+	return true
 }
 
 func (n Node) Kind() AstNodeKind {
@@ -277,6 +296,9 @@ func (n Node) SetInternedString(val InternedString) {
 }
 
 func (n Node) Extend(other Tk) {
+	if n == EmptyNode {
+		return
+	}
 	var ref = n.ref()
 	if ref.Range.End < other.pos {
 		ref.Range.End = other.pos
