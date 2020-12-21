@@ -61,6 +61,7 @@ const (
 	NODE_FOR           // "for"   ::: vardecl rng block
 	NODE_WHILE         // "while" ::: cond block
 	NODE_IMPORT        // bblue("import") ::: module id exp
+	NODE_IMPLEMENT     // bblue("implement") ::: id block
 
 	NODE_UNA_ELLIPSIS // "..."
 	NODE_UNA_NOT      // "!" ::: exp

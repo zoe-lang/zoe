@@ -72,7 +72,7 @@ type MyType2 is *MyStruct | null
 type MyType is OlderType
 # With an empty implement block, we mean that this is not just an alias, but
 # a redefinition.
-type MyType2 is OlderType { }
+type MyType4 is OlderType { }
 
 
 # union
@@ -188,7 +188,7 @@ fn makeSomeReader() -> Reader {
   # It could be a TCP reader, and HTTP request, or even a file Reader
   # TCPRequest | HTTPRequest | FileReader as Reader ?
   # Maybe the list is infered ?
-  # There is no such problem when returning a pointer. Or is there ?
+   # There is no such problem when returning a pointer. Or is there ?
   # Are traits fat pointers ?
 
   some_var: SomeType

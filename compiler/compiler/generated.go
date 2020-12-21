@@ -57,6 +57,8 @@ func (n Node) Repr() string {
 
   case NODE_IMPORT: return bblue("import")
 
+  case NODE_IMPLEMENT: return bblue("implement")
+
   case NODE_UNA_ELLIPSIS: return "..."
 
   case NODE_UNA_NOT: return "!"
@@ -231,6 +233,10 @@ func (tk Tk) createWhile(scope Scope, cond Node, block Node) Node {
 
 func (tk Tk) createImport(scope Scope, module Node, id Node, exp Node) Node {
   return tk.createNode(scope, NODE_IMPORT, module, id, exp)
+}
+
+func (tk Tk) createImplement(scope Scope, id Node, block Node) Node {
+  return tk.createNode(scope, NODE_IMPLEMENT, id, block)
 }
 
 func (tk Tk) createUnaNot(scope Scope, exp Node) Node {

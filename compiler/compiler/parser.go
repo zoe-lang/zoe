@@ -146,6 +146,16 @@ func init() {
 	nud(KW_IF, parseIf)
 	nud(KW_SWITCH, parseSwitch)
 
+	nud(KW_LOCAL, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		next, v := Expression(scope, tk.Next(), lbp)
+		if v.expect(NODE_VAR) {
+			v.Extend(tk)
+		} else {
+			tk.reportError("expected a variable declaration")
+		}
+		return next, v
+	})
+
 	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, v := parseVar(scope, tk.Next(), lbp)
 		if v.expect(NODE_VAR) {
@@ -165,6 +175,19 @@ func init() {
 	})
 
 	nud(KW_IMPORT, parseImport)
+
+	nud(KW_IMPLEMENT, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		var iter = tk.Next()
+		var namexp Node
+		iter, namexp = Expression(scope, iter, 0)
+
+		var blk Node
+		if iter.Is(TK_LBRACKET) {
+			iter, blk = parseBlock(scope, iter, 0)
+		}
+
+		return iter, tk.createImplement(scope, namexp, blk)
+	})
 
 	lbp += 2
 
@@ -202,6 +225,8 @@ func init() {
 	nud(KW_METHOD, parseFn)
 
 	lbp += 2
+
+	led(TK_COLON, parseVarEnd)
 
 	// unary(KW_LOCAL)
 	// unary(KW_CONST)
@@ -705,6 +730,7 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter, first = parseUntilClosing(scope, iter, 0)
 
 	block := tk.createBlock(subscope, first)
+
 	iter = iter.expectClosing(tk, func(tk Tk) {
 		block.Extend(tk)
 	})
@@ -720,10 +746,10 @@ func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var fragment = newList()
 
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
-		iter, _ = iter.expect(TK_ID, func(tk Tk) {
-			var id = tk.createIdNode(scope)
-			fragment.append(id)
-		})
+		iter, node := Expression(scope, iter, 0)
+		if node.expect(NODE_VAR, NODE_ID) {
+			fragment.append(node)
+		}
 
 		iter = iter.expectCommaIfNot(TK_RBRACE)
 		return iter
@@ -766,10 +792,13 @@ func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, typ
 }
 
+//
+// TRAIT
+//
 func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 
-	var strscope = scope.subScope()
+	var traitscope = scope.subScope()
 
 	var name Node
 	iter, _ = iter.expect(TK_ID, func(tk Tk) {
@@ -785,19 +814,10 @@ func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
 
 		var node Node
+		iter, node = Expression(traitscope, iter, 0)
 
-		if iter.Is(KW_METHOD) {
-			iter, node = parseFn(strscope, iter, 0)
-
-			if node.IsEmpty() {
-				iter.reportError("expected a method declaration")
-			}
-		} else if iter.Is(KW_IMPLEMENT) {
-			iter, node = Expression(scope, iter.Next(), 0)
-		} else {
-			iter.reportError("expected a method or an implement")
-			iter = iter.Next()
-		}
+		// iter.reportError("expected a method or an implement")
+		// iter = iter.Next()
 
 		return iter, node
 	})
@@ -812,6 +832,9 @@ func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, trait
 }
 
+//
+//	STRUCT
+//
 func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 
@@ -829,18 +852,6 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	var fields Node
 	iter, fields = tryParseList(strscope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
-		// var variable Node
-		// var local bool
-		// iter, local = iter.consume(KW_LOCAL)
-		// iter, variable = parseVar(strscope, iter, 0)
-
-		// if variable.IsEmpty() {
-		// 	iter.reportError("expected a field declaration")
-		// } else {
-		// 	if local {
-		// 		variable.SetFlag(FLAG_LOCAL)
-		// 	}
-		// }
 		var member Node
 		iter, member = Expression(strscope, iter, 0)
 
@@ -927,6 +938,21 @@ func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var whilenode = tk.createWhile(scope, cond, block)
 	// FIXME add the subscope to the while node
 	return iter, whilenode
+}
+
+// We got here on :
+func parseVarEnd(scope Scope, tk Tk, left Node) (Tk, Node) {
+	var iter = tk.Next()
+	var typ Node
+	iter, typ = Expression(scope, iter, syms[TK_EQ].lbp+1)
+
+	var eql Node
+	if iter.Is(TK_EQ) {
+		iter, eql = Expression(scope, iter, 0)
+	}
+
+	var v = tk.createVar(scope, left, typ, eql)
+	return iter, v
 }
 
 // parse a variable statement, but also a variable declaration inside
