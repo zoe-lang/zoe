@@ -1,16 +1,21 @@
 
-type Struct is struct (
+struct Struct {
   field1: Int = 2
-)
+}
 
 type Toto is
   | Test
   | Test2
   | Test3
   | null
+{
+
+  method toto() -> nothing {
+    return a::Int32
+  }
+
+}
 
 type Toto2 is Hey | null
 
 fn test() -> Hey | Toto { }
-
-fn test2() -> struct(field1: Int) { }

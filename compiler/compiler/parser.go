@@ -399,7 +399,7 @@ func init() {
 	// binary(KW_AS)
 
 	lbp += 2
-	binary(TK_AT, NODE_BIN_CAST)
+	binary(TK_COLCOL, NODE_BIN_CAST)
 	lbp += 2
 
 	nud(TK_QUOTE, parseQuote)

@@ -31,5 +31,3 @@ package zoe
 
 // Context records the links between symbol uses and their corresponding declaration in the same file
 // or in other files
-type Context struct {
-}

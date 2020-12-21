@@ -171,6 +171,7 @@ func (z *File) Lex() error {
 			<top> "."   { addToken(TK_DOT); goto yyc_top }
 			<top> ","   { addToken(TK_COMMA); goto yyc_top }
 			<top> ":"   { addToken(TK_COLON); goto yyc_top }
+			<top> "::"   { addToken(TK_COLCOL); goto yyc_top }
 			<top> ";"   { addToken(TK_SEMICOLON); goto yyc_top }
 			<top> "+"   { addToken(TK_PLUS); goto yyc_top }
 			<top> "+="  { addToken(TK_PLUSEQ); goto yyc_top }
