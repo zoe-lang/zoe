@@ -294,11 +294,20 @@ func (tk Tk) GetText() string {
 	return string(tk.file.data[int(t.Offset) : int(t.Offset)+int(t.Length)])
 }
 
+func (tk Tk) isSkippable() bool {
+	var kind = tk.file.Tokens[tk.pos].Kind
+	return kind == TK_WHITESPACE || kind == TK_COMMENT
+}
+
 func (tk Tk) Next() Tk {
-	return Tk{
+	var iter = Tk{
 		pos:  tk.pos + 1,
 		file: tk.file,
 	}
+	for iter.isSkippable() {
+		iter.pos++
+	}
+	return iter
 }
 
 /////////////////////////////////////////////

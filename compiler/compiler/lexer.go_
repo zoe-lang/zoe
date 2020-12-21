@@ -70,10 +70,7 @@ func (z *File) Lex() error {
 
 		start = offset
 
-		is_meaningful := kind != TK_WHITESPACE && kind != TK_COMMENT
-		if is_meaningful {
-			z.Tokens = append(z.Tokens, n)
-		}
+		z.Tokens = append(z.Tokens, n)
 
 		// count lines and columns before adding
 	}

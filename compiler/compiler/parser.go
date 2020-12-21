@@ -12,6 +12,9 @@ func (f *File) parseFile() (Tk, Node) {
 		pos:  0,
 		file: f,
 	}
+	if tk.isSkippable() {
+		tk = tk.Next()
+	}
 	file := f.createNode(tk, NODE_FILE, scope)
 
 	app := newList()
