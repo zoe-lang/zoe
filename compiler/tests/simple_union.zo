@@ -16,6 +16,13 @@ type Toto is
 
 }
 
+struct Hey {
+
+}
 type Toto2 is Hey | null
 
-fn test() -> Hey | Toto { }
+
+fn test() -> Hey | Toto {
+  var t: Toto
+  var b: Toto2
+}

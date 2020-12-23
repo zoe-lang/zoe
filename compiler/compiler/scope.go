@@ -72,6 +72,30 @@ func (s Scope) subScope() Scope {
 	return newscope
 }
 
+func (s Scope) Parent() Scope {
+	return Scope{
+		pos:  s.ref().Parent,
+		file: s.file,
+	}
+}
+
+type ScopeName struct {
+	Name string
+	Node Node
+}
+
+func (s Scope) AllNames() []ScopeName {
+	var res = make([]ScopeName, 0)
+	for s.pos != -1 {
+		var ref = s.ref()
+		for i, n := range ref.Names {
+			res = append(res, ScopeName{Name: GetInternedString(i), Node: n.Node(s.file)})
+		}
+		s = ref.Parent.Handler(s.file)
+	}
+	return res
+}
+
 // Find a name in the scope
 func (s Scope) Find(name InternedString) (Node, bool) {
 	sc := s.ref()
