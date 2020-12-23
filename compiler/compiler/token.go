@@ -43,11 +43,14 @@ func (t *TkRange) ExtendRange(rng TkRange) {
 }
 
 func (t *TkRange) ExtendNode(node Node) {
-	if node.IsEmpty() {
-		return
+	// var i = 0
+	for !node.IsEmpty() {
+		// log.Print("adding ", i)
+		// i++
+		var ref = node.ref()
+		t.ExtendRange(ref.Range)
+		node = node.Next()
 	}
-	var ref = node.ref()
-	t.ExtendRange(ref.Range)
 }
 
 ///////////////////////////////////

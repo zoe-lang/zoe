@@ -43,10 +43,12 @@ func HandleHover(req *LspRequest) error {
 
 	res := lsp.Hover{}
 
-	dbg := pos.Debug()
+	var last = pos[len(pos)-1]
+	dbg := last.Debug()
+	// log.Print(pos)
 	res.Contents = []lsp.MarkedString{{
 		Language: "zoe",
-		Value:    dbg + " " + pos.GetText(),
+		Value:    dbg + " " + last.GetText(),
 	}}
 
 	req.Reply(res)

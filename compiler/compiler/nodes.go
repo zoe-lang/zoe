@@ -1,6 +1,8 @@
 package zoe
 
-import "github.com/sourcegraph/go-lsp"
+import (
+	"github.com/sourcegraph/go-lsp"
+)
 
 // Nodes are loaded into one big array to avoid too much work for the gc.
 // An AST is not guaranteed to be correct.
@@ -200,9 +202,11 @@ func (n Node) Clone() Node {
 func PositionInRange(pos lsp.Position, rng lsp.Range) bool {
 	var st = rng.Start
 	var ed = rng.End
-	return pos.Line >= st.Line && pos.Line < ed.Line &&
+	var res = pos.Line >= st.Line && pos.Line <= ed.Line &&
 		(pos.Line != st.Line || pos.Character >= st.Character) &&
-		(pos.Line != ed.Line || pos.Character < ed.Character)
+		(pos.Line != ed.Line || pos.Character <= ed.Character)
+	// log.Print(pos, rng, res)
+	return res
 }
 
 func (n Node) HasPosition(lsppos lsp.Position) bool {

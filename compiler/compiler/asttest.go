@@ -19,7 +19,7 @@ var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 func (n Node) Debug() string {
 	// rng := n.ref().Range
 	color.NoColor = true
-	var res = fmt.Sprintf("(pos %v[%v])", n.pos, n.Repr())
+	var res = fmt.Sprintf("(pos %v[%v] rng %v-%v)", n.pos, n.Repr(), n.ref().Range.Start, n.ref().Range.End)
 	color.NoColor = false
 	return res
 }

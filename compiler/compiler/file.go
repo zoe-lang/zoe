@@ -3,7 +3,6 @@ package zoe
 import (
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
@@ -120,6 +119,7 @@ func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node
 	if cl > 0 {
 		node := &f.Nodes[l]
 		node.ArgLen = int8(cl)
+
 		for i, chld := range children {
 			node.Args[i] = chld.pos
 			if !chld.IsEmpty() {
@@ -135,15 +135,16 @@ func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node
 }
 
 // Find a node that matches a given range
-func (f *File) FindNodePosition(lsppos lsp.Position) (Node, error) {
+func (f *File) FindNodePosition(lsppos lsp.Position) ([]Node, error) {
 	node := f.RootNode
+	var path = make([]Node, 0)
 	// nodes := f.Nodes
 
-	log.Print(lsppos.Line+1, ":", lsppos.Character+1)
+	// log.Print(lsppos.Line+1, ":", lsppos.Character+1)
 search:
 	for node.HasPosition(lsppos) {
-		log.Print(node.Debug())
-		// First check in the node's children
+		// log.Print(node.Debug())
+		// check in the node's children
 		for _, chl := range node.ref().Args {
 			chld := chl.Node(f)
 			if chld.IsEmpty() {
@@ -152,6 +153,7 @@ search:
 			if chld.HasPosition(lsppos) {
 				// log.Print(f.NodeDebug(chld))
 				node = chld
+				path = append(path, node)
 				continue search
 			}
 
@@ -161,6 +163,7 @@ search:
 				// log.Print(f.NodeDebug(other))
 				if other.HasPosition(lsppos) {
 					node = other
+					path = append(path, node)
 					continue search
 				}
 				other = other.Next()
@@ -171,5 +174,5 @@ search:
 		break
 	}
 
-	return node, nil
+	return path, nil
 }
