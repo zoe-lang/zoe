@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"log"
 
 	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/sourcegraph/go-lsp"
@@ -27,6 +28,7 @@ func HandleCompletion(req *LspRequest) error {
 
 	var pos = params.Position
 	var path, err = file.FindNodePosition(pos)
+	log.Print(path)
 
 	if err != nil {
 		return err

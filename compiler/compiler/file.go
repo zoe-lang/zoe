@@ -138,6 +138,7 @@ func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node
 func (f *File) FindNodePosition(lsppos lsp.Position) ([]Node, error) {
 	node := f.RootNode
 	var path = make([]Node, 0)
+	path = append(path, node)
 	// nodes := f.Nodes
 
 	// log.Print(lsppos.Line+1, ":", lsppos.Character+1)
