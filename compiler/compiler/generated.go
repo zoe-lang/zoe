@@ -159,8 +159,8 @@ func (tk Tk) createMethod(scope Scope, name Node, signature Node, definition Nod
   return tk.createNode(scope, NODE_METHOD, name, signature, definition)
 }
 
-func (tk Tk) createType(scope Scope, name Node, template Node, typeexp Node) Node {
-  return tk.createNode(scope, NODE_TYPE, name, template, typeexp)
+func (tk Tk) createType(scope Scope, name Node, template Node, typeexp Node, block Node) Node {
+  return tk.createNode(scope, NODE_TYPE, name, template, typeexp, block)
 }
 
 func (tk Tk) createNamespace(scope Scope, name Node, block Node) Node {

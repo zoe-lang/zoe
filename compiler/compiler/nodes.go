@@ -42,7 +42,7 @@ const (
 
 	NODE_FN            // bblue("fn") 				::: name signature definition
 	NODE_METHOD        // bblue("method")     ::: name signature definition
-	NODE_TYPE          // bblue("type") 			::: name template typeexp
+	NODE_TYPE          // bblue("type") 			::: name template typeexp block
 	NODE_NAMESPACE     // bblue("namespace")  ::: name block
 	NODE_VAR           // bblue("var")        ::: name typeexp assign
 	NODE_SIGNATURE     // "signature"         ::: template args rettype

@@ -792,11 +792,12 @@ func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var typdef Node
 	iter, typdef = Expression(typescope, iter, 0)
 
-	var typ = tk.createType(typescope, name, tpl, typdef)
-
+	var blk Node
 	if iter.Is(TK_LBRACKET) {
-		iter, _ = Expression(typescope, iter, 0)
+		iter, blk = Expression(typescope, iter, 0)
 	}
+
+	var typ = tk.createType(typescope, name, tpl, typdef, blk)
 
 	// register the type to the scope
 	if name != EmptyNode {
