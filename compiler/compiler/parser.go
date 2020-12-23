@@ -98,12 +98,10 @@ func init() {
 		var nmsp_scope = scope.subScope()
 
 		if _, ok := iter.expect(TK_LBRACKET); ok {
-
 			iter, block = parseBlock(nmsp_scope, iter, 0)
 		}
 
-		var nmsp = tk.createNamespace(scope, name, block)
-		nmsp_scope.setOwner(nmsp)
+		var nmsp = tk.createNamespace(nmsp_scope, name, block)
 		return iter, nmsp
 	})
 
@@ -592,6 +590,7 @@ func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, tk.createIf(scope, cond, then, els)
 }
 
+//
 func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 
@@ -647,6 +646,7 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	var fnscope = scope.subScope()
+
 	var iter = tk.Next()
 
 	// Function name, may not exist
@@ -658,7 +658,7 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// Template arguments, may not exist
 	var tpl Node
 	if iter.Is(TK_LBRACE) {
-		iter, tpl = parseTemplate(scope, iter, 0)
+		iter, tpl = parseTemplate(fnscope, iter, 0)
 	}
 
 	// Function arguments, mandatory
@@ -691,17 +691,23 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	// The signature node
-	signature := tk.createSignature(scope, tpl, args.first, rettype)
+	signature := tk.createSignature(fnscope, tpl, args.first, rettype)
+
+	var result = signature
 
 	// Function definition
 	var blk Node
 	if iter.Is(TK_LBRACKET) {
 		iter, blk = parseBlock(fnscope, iter, 0)
 		// should register the function somewhere in scope, no ?
-		return iter, tk.createFn(scope, name, signature, blk)
+		result = tk.createFn(fnscope, name, signature, blk)
 	}
 
-	return iter, signature
+	if name != EmptyNode {
+		scope.addSymbolFromIdNode(name, result)
+	}
+
+	return iter, result
 }
 
 func parseUntilClosing(scope Scope, tk Tk, _ int) (Tk, Node) {
@@ -765,6 +771,7 @@ func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	var iter = tk.Next()
+	var typescope = scope.subScope()
 
 	var name Node
 	iter, _ = iter.expect(TK_ID, func(tk Tk) {
@@ -783,9 +790,13 @@ func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter, _ = iter.consume(TK_PIPE)
 
 	var typdef Node
-	iter, typdef = Expression(scope, iter, 0)
+	iter, typdef = Expression(typescope, iter, 0)
 
-	var typ = tk.createType(scope, name, tpl, typdef)
+	var typ = tk.createType(typescope, name, tpl, typdef)
+
+	if iter.Is(TK_LBRACKET) {
+		iter, _ = Expression(typescope, iter, 0)
+	}
 
 	// register the type to the scope
 	if name != EmptyNode {
@@ -819,13 +830,10 @@ func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
 		var node Node
 		iter, node = Expression(traitscope, iter, 0)
 
-		// iter.reportError("expected a method or an implement")
-		// iter = iter.Next()
-
 		return iter, node
 	})
 
-	var trait = tk.createTrait(scope, template, fields)
+	var trait = tk.createTrait(traitscope, template, fields)
 	trait.Extend(iter)
 
 	if !name.IsEmpty() {
@@ -861,7 +869,7 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 		return iter, member
 	})
 
-	var stru = tk.createStruct(scope, template, fields)
+	var stru = tk.createStruct(strscope, template, fields)
 	stru.Extend(iter)
 
 	if !name.IsEmpty() {

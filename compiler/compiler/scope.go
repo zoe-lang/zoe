@@ -4,6 +4,8 @@ import (
 	"strconv"
 )
 
+////////////////////////
+
 type ScopePosition int
 
 func (sp ScopePosition) Handler(file *File) Scope {
@@ -13,20 +15,35 @@ func (sp ScopePosition) Handler(file *File) Scope {
 	}
 }
 
+/////////////////////////
+
 type concreteScope struct {
 	Parent        ScopePosition
 	Owner         NodePosition
 	EndsExecution bool
-	Names         map[InternedString]NodePosition
+	Names         map[InternedString]NodePosition // this is probably not what we want
 }
 
-func (f *File) newScope() ScopePosition {
+//////////////////////////
+
+type Scope struct {
+	pos  ScopePosition
+	file *File
+}
+
+// get the concrete scope reference
+func (s Scope) ref() *concreteScope {
+	return &s.file.scopes[s.pos]
+}
+
+// Create a new scope in the file
+func (f *File) newScope() Scope {
 	pos := len(f.scopes)
 	f.scopes = append(f.scopes, concreteScope{
 		Names:  make(map[InternedString]NodePosition),
 		Parent: -1,
 	})
-	return ScopePosition(pos)
+	return Scope{pos: ScopePosition(pos), file: f}
 }
 
 func (f *File) RootScope() Scope {
@@ -36,69 +53,58 @@ func (f *File) RootScope() Scope {
 	}
 }
 
-type Scope struct {
-	pos  ScopePosition
-	file *File
+func (s Scope) getOwner() NodePosition {
+	return s.ref().Owner
 }
 
-func (sh Scope) setOwner(node Node) {
-	sh.file.scopes[sh.pos].Owner = node.pos
+func (s Scope) setOwner(np NodePosition) {
+	s.ref().Owner = np
 }
 
-func (sh Scope) getOwner() NodePosition {
-	return sh.file.scopes[sh.pos].Owner
+func (s Scope) setParent(parent Scope) {
+	s.ref().Parent = parent.pos
 }
 
-func (sh Scope) setParent(parent ScopePosition) {
-	sh.file.scopes[sh.pos].Parent = parent
-}
-
-func (sh Scope) subScope() Scope {
-	newscope := sh.file.newScope()
-
-	h := Scope{
-		pos:  newscope,
-		file: sh.file,
-	}
-
-	h.setParent(sh.pos)
-
-	return h
+// Create a sub scope, that will go look into its parent
+func (s Scope) subScope() Scope {
+	newscope := s.file.newScope()
+	newscope.setParent(s)
+	return newscope
 }
 
 // Find a name in the scope
-func (sh Scope) Find(name InternedString) (Node, bool) {
-	sc := sh.file.scopes[sh.pos]
+func (s Scope) Find(name InternedString) (Node, bool) {
+	sc := s.ref()
 	if node, ok := sc.Names[name]; ok {
-		return Node{pos: node, file: sh.file}, true
+		return Node{pos: node, file: s.file}, true
 	}
 
 	return EmptyNode, false
 }
 
-func (sh Scope) FindRecursive(name InternedString) (Node, bool) {
-	if node, ok := sh.Find(name); ok {
+func (s Scope) FindRecursive(name InternedString) (Node, bool) {
+	if node, ok := s.Find(name); ok {
 		return node, true
 	}
 
-	sc := sh.file.scopes[sh.pos]
+	sc := s.ref()
 	if sc.Parent != -1 {
-		return sc.Parent.Handler(sh.file).Find(name)
+		return sc.Parent.Handler(s.file).Find(name)
 	}
 
 	return EmptyNode, false
 }
 
-func (sh Scope) addSymbolFromIdNode(idnode Node, target Node) {
+func (s Scope) addSymbolFromIdNode(idnode Node, target Node) {
 	// idn := sh.file.Nodes[idnode]
 	if !idnode.Is(NODE_ID) {
-		sh.file.reportError(idnode.Range(), "is not an identifier")
+		s.file.reportError(idnode.Range(), "is not an identifier")
 		return
 	}
 
 	var name = idnode.InternedString()
 
-	s := &sh.file.scopes[sh.pos]
+	sc := &s.file.scopes[s.pos]
 	// node := b.nodes[pos]
 	// if node.Kind != NODE_ID {
 	// 	b.reportErrorAtPosition(pos, "COMPILER ERROR not an id but was added to scope")
@@ -107,13 +113,13 @@ func (sh Scope) addSymbolFromIdNode(idnode Node, target Node) {
 
 	// value := InternedString(node.Value)
 
-	if orig, ok := sh.Find(name); ok {
+	if orig, ok := s.Find(name); ok {
 		// we do not set that variable since it already existed in one of our parent scope.
 		// note ; the choice was made to not allow shadowing to avoid footguns, since every
 		// Zoe module needs to explicitely import other symbols (except maybe for core, which will then pollute)
-		sh.file.reportError(idnode.Range(), "identifier '", GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Start.Line)))
+		s.file.reportError(idnode.Range(), "identifier '", GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Start.Line)))
 		return
 	}
 
-	s.Names[name] = target.pos
+	sc.Names[name] = target.pos
 }

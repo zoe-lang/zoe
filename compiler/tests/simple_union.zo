@@ -10,7 +10,7 @@ type Toto is
   | null
 {
 
-  method toto() -> nothing {
+  method toto() -> Int32 {
     return a::Int32
   }
 
