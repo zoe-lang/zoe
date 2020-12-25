@@ -1,1 +1,14 @@
-a = 2222
+var bac = 22
+
+fn pouet() {
+  var a = 2
+}
+
+
+fn pouet2() {
+  var i: Int = 3
+  var a = 3
+  var pouet2 = 3
+  var c = 3
+  var e = 49
+}

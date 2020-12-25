@@ -59,31 +59,49 @@ func (f *File) GetOffsetForPosition(pos lsp.Position) int {
 	var size = len(tokens) / 2 // Size is going to be divided by 2 all the time
 
 	// log.Print(pos)
+	var data = f.data
 	for {
 		var tk = tokens[tkpos]
+
 		if tkpos >= len(tokens)-1 {
+			// log.Print(tkpos, ` (`, size, `) `, tk.Line, tk.Column, " --> ", int(tk.Offset)+(pos.Character-int(tk.Column)))
 			return int(tk.Offset) + (pos.Character - int(tk.Column))
 		}
 
 		var ntk = tokens[tkpos+1]
 		size = size / 2
-
-		// log.Print(tkpos, ` (`, size, `) `, tk.Line, tk.Column)
-
 		if size == 0 {
-			// ???
-			return int(tk.Offset) + (pos.Character - int(tk.Column))
+			size = 1
 		}
+
+		// log.Print(tkpos, ` (`, size, `) `, tk.Line, tk.Column, " - ", ntk.Line, ntk.Column)
 
 		// We're before the current token
 		if pos.Line < int(tk.Line) || (pos.Line == int(tk.Line) && pos.Character < int(tk.Column)) {
 			tkpos = tkpos - size
+			continue
 		}
 
 		// We're after the current token
 		if pos.Line > int(ntk.Line) || (pos.Line == int(ntk.Line) && pos.Character >= int(ntk.Column)) {
 			tkpos = tkpos + size
+			continue
 		}
+
+		// We're on the right token, but the token might span lines, so now we go until the position
+		// manually
+		var off = int(tk.Offset)
+		var line = int(tk.Line)
+		var col = int(tk.Column)
+		for line < pos.Line || col < pos.Character {
+			col = col + 1
+			if data[off] == '\n' {
+				line = line + 1
+				col = 0
+			}
+			off = off + 1
+		}
+		return off
 
 	}
 }

@@ -65,7 +65,7 @@ func HandleDidChange(req *LspRequest) error {
 		var buf bytes.Buffer
 		var offsetstart = file.GetOffsetForPosition(chg.Range.Start)
 		var offsetend = file.GetOffsetForPosition(chg.Range.End)
-		log.Print(`In tokens[`, len(file.Tokens), `] range is `, offsetstart, `-`, offsetend)
+		// log.Print(`In tokens[`, len(file.Tokens), `] range is `, offsetstart, `-`, offsetend, ` for len `, len(data)-1)
 		_, _ = buf.Write(data[0:offsetstart])
 		if offsetstart <= offsetend {
 			_, _ = buf.Write([]byte(chg.Text))
