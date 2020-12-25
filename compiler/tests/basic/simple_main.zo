@@ -5,7 +5,20 @@ var c = 2
 var d = ("a", 3)
 
 fn main() -> void {
-  var a = 23
+  var a = &MyStruct()
+  var sep = iso {
+    var mp = Map.new[String, *MyStruct]()
+    mp.set("toto", a)
+    mp
+  }
+  doSomething(sep, 4)
+  var toto = sep
+
   io.print(5 + 2)
   callfn(4, 3, 2 + 1)
+}
+
+
+fn doSomething(map: &Map[String, *MyStruct], int: Int) -> Boolean {
+
 }

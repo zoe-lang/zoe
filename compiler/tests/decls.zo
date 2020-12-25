@@ -1,4 +1,4 @@
-var a = 1
+# var a = 1
 var c: String = "toto"
 
 fn test(a: String, b: ...String = "pouet",) -> void {
@@ -7,4 +7,16 @@ fn test(a: String, b: ...String = "pouet",) -> void {
 
 fn test2(a: String = 2, z = 3) -> void {
 
+}
+
+struct Toto {
+  field: String
+
+  fn test() {
+
+  }
+
+  method yeah(a: Int) {
+
+  }
 }

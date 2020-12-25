@@ -53,16 +53,16 @@ func HandleDidChange(req *LspRequest) error {
 
 	f, err := req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
 	if err == nil {
-		if len(f.Errors) > 0 {
-			diags := make([]lsp.Diagnostic, len(f.Errors))
-			for i, e := range f.Errors {
-				diags[i] = e.ToLspDiagnostic()
-			}
-			req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
-				URI:         changes.TextDocument.URI,
-				Diagnostics: diags,
-			})
+		// if len(f.Errors) > 0 {
+		diags := make([]lsp.Diagnostic, len(f.Errors))
+		for i, e := range f.Errors {
+			diags[i] = e.ToLspDiagnostic()
 		}
+		req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
+			URI:         changes.TextDocument.URI,
+			Diagnostics: diags,
+		})
+		// }
 		// pp.Print(f.Errors)
 	}
 

@@ -719,7 +719,12 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	if name != EmptyNode {
-		scope.addSymbolFromIdNode(name, result)
+		var is_method = tk.Is(KW_METHOD)
+		if is_method {
+
+		} else {
+			scope.addSymbolFromIdNode(name, result)
+		}
 	}
 
 	return iter, result
