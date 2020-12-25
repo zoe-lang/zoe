@@ -48,7 +48,10 @@ type File struct {
 }
 
 func (f *File) GetData() []byte {
-	return f.data
+	if len(f.data) == 0 {
+		return []byte{}
+	}
+	return f.data[0 : len(f.data)-1]
 }
 
 func (f *File) GetOffsetForPosition(pos lsp.Position) int {
@@ -94,15 +97,16 @@ func (f *File) GetOffsetForPosition(pos lsp.Position) int {
 		var line = int(tk.Line)
 		var col = int(tk.Column)
 		for line < pos.Line || col < pos.Character {
-			col = col + 1
 			if data[off] == '\n' {
 				line = line + 1
 				col = 0
+			} else {
+				col = col + 1
 			}
 			off = off + 1
 		}
-		return off
 
+		return off
 	}
 }
 

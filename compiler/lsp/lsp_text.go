@@ -22,16 +22,14 @@ func HandleDidOpen(req *LspRequest) error {
 	log.Print("added file ", string(fsent.TextDocument.URI))
 	f, err := req.Conn.Solution.AddFile(string(fsent.TextDocument.URI), fsent.TextDocument.Text, fsent.TextDocument.Version)
 	if err == nil {
-		if len(f.Errors) > 0 {
-			diags := make([]lsp.Diagnostic, len(f.Errors))
-			for i, e := range f.Errors {
-				diags[i] = e.ToLspDiagnostic()
-			}
-			req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
-				URI:         fsent.TextDocument.URI,
-				Diagnostics: diags,
-			})
+		diags := make([]lsp.Diagnostic, len(f.Errors))
+		for i, e := range f.Errors {
+			diags[i] = e.ToLspDiagnostic()
 		}
+		req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
+			URI:         fsent.TextDocument.URI,
+			Diagnostics: diags,
+		})
 		// pp.Print(f.Errors)
 	} else {
 		log.Print(err)
@@ -65,18 +63,18 @@ func HandleDidChange(req *LspRequest) error {
 		var buf bytes.Buffer
 		var offsetstart = file.GetOffsetForPosition(chg.Range.Start)
 		var offsetend = file.GetOffsetForPosition(chg.Range.End)
+		// log.Print(`REPLACING `, offsetstart, `-`, offsetend)
 		// log.Print(`In tokens[`, len(file.Tokens), `] range is `, offsetstart, `-`, offsetend, ` for len `, len(data)-1)
 		_, _ = buf.Write(data[0:offsetstart])
 		if offsetstart <= offsetend {
 			_, _ = buf.Write([]byte(chg.Text))
 		}
-		_, _ = buf.Write(data[offsetend : len(data)-1])
+		_, _ = buf.Write(data[offsetend:])
 		data = buf.Bytes()
 	}
 
 	// req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
 
-	// log.Print(string(data))
 	// log.Print(data)
 	f, err := req.Conn.Solution.AddFile(string(changes.TextDocument.URI), string(data), changes.TextDocument.Version)
 	if err == nil {

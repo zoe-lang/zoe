@@ -1,14 +1,4 @@
-var bac = 22
+struct Toto {
+  toto: Int
 
-fn pouet() {
-  var a = 2
-}
-
-
-fn pouet2() {
-  var i: Int = 3
-  var a = 3
-  var poue = 3
-  var c = 3
-  var e = 49
 }
