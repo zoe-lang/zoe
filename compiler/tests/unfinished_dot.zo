@@ -8,7 +8,7 @@ fn pouet() {
 fn pouet2() {
   var i: Int = 3
   var a = 3
-  var pouet2 = 3
+  var poue = 3
   var c = 3
   var e = 49
 }

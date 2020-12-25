@@ -22,11 +22,22 @@ func (n Node) Repr() string {
   return "<!!!>"
 }
 %% for (let n of v.nodes.filter(n => n.create.length)) { %%
-func (tk Tk) create{{
+func (n Node) set{{
     n.name.replace('NODE', '').toLowerCase().replace(/_[a-z]/g, m => m[1].toUpperCase())
-  }}(scope Scope, {{n.create.map(c => c + ' Node').join(', ')}}) Node {
-  return tk.createNode(scope, {{n.name}}, {{n.create.join(', ')}})
+  }}Children({{n.create.map(c => c + ' Node').join(', ')}}) {
+
+  if n.Kind() != {{n.name}} {
+    panic("!!")
+  }
+  n.setChildren({{n.create.join(', ')}})
 }
+
+func (tk Tk) create{{
+  n.name.replace('NODE', '').toLowerCase().replace(/_[a-z]/g, m => m[1].toUpperCase())
+}}(scope Scope, {{n.create.map(c => c + ' Node').join(', ')}}) Node {
+return tk.createNode(scope, {{n.name}}, {{n.create.join(', ')}})
+}
+
 %% } %%
 `)
 

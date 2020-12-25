@@ -141,120 +141,381 @@ func (n Node) Repr() string {
   return "<!!!>"
 }
 
+func (n Node) setFileChildren(contents Node) {
+
+  if n.Kind() != NODE_FILE {
+    panic("!!")
+  }
+  n.setChildren(contents)
+}
+
 func (tk Tk) createFile(scope Scope, contents Node) Node {
-  return tk.createNode(scope, NODE_FILE, contents)
+return tk.createNode(scope, NODE_FILE, contents)
+}
+
+
+func (n Node) setBlockChildren(contents Node) {
+
+  if n.Kind() != NODE_BLOCK {
+    panic("!!")
+  }
+  n.setChildren(contents)
 }
 
 func (tk Tk) createBlock(scope Scope, contents Node) Node {
-  return tk.createNode(scope, NODE_BLOCK, contents)
+return tk.createNode(scope, NODE_BLOCK, contents)
+}
+
+
+func (n Node) setTupleChildren(contents Node) {
+
+  if n.Kind() != NODE_TUPLE {
+    panic("!!")
+  }
+  n.setChildren(contents)
 }
 
 func (tk Tk) createTuple(scope Scope, contents Node) Node {
-  return tk.createNode(scope, NODE_TUPLE, contents)
+return tk.createNode(scope, NODE_TUPLE, contents)
+}
+
+
+func (n Node) setFnChildren(name Node, signature Node, definition Node) {
+
+  if n.Kind() != NODE_FN {
+    panic("!!")
+  }
+  n.setChildren(name, signature, definition)
 }
 
 func (tk Tk) createFn(scope Scope, name Node, signature Node, definition Node) Node {
-  return tk.createNode(scope, NODE_FN, name, signature, definition)
+return tk.createNode(scope, NODE_FN, name, signature, definition)
+}
+
+
+func (n Node) setMethodChildren(name Node, signature Node, definition Node) {
+
+  if n.Kind() != NODE_METHOD {
+    panic("!!")
+  }
+  n.setChildren(name, signature, definition)
 }
 
 func (tk Tk) createMethod(scope Scope, name Node, signature Node, definition Node) Node {
-  return tk.createNode(scope, NODE_METHOD, name, signature, definition)
+return tk.createNode(scope, NODE_METHOD, name, signature, definition)
+}
+
+
+func (n Node) setTypeChildren(name Node, template Node, typeexp Node, block Node) {
+
+  if n.Kind() != NODE_TYPE {
+    panic("!!")
+  }
+  n.setChildren(name, template, typeexp, block)
 }
 
 func (tk Tk) createType(scope Scope, name Node, template Node, typeexp Node, block Node) Node {
-  return tk.createNode(scope, NODE_TYPE, name, template, typeexp, block)
+return tk.createNode(scope, NODE_TYPE, name, template, typeexp, block)
+}
+
+
+func (n Node) setNamespaceChildren(name Node, block Node) {
+
+  if n.Kind() != NODE_NAMESPACE {
+    panic("!!")
+  }
+  n.setChildren(name, block)
 }
 
 func (tk Tk) createNamespace(scope Scope, name Node, block Node) Node {
-  return tk.createNode(scope, NODE_NAMESPACE, name, block)
+return tk.createNode(scope, NODE_NAMESPACE, name, block)
+}
+
+
+func (n Node) setVarChildren(name Node, typeexp Node, assign Node) {
+
+  if n.Kind() != NODE_VAR {
+    panic("!!")
+  }
+  n.setChildren(name, typeexp, assign)
 }
 
 func (tk Tk) createVar(scope Scope, name Node, typeexp Node, assign Node) Node {
-  return tk.createNode(scope, NODE_VAR, name, typeexp, assign)
+return tk.createNode(scope, NODE_VAR, name, typeexp, assign)
+}
+
+
+func (n Node) setSignatureChildren(template Node, args Node, rettype Node) {
+
+  if n.Kind() != NODE_SIGNATURE {
+    panic("!!")
+  }
+  n.setChildren(template, args, rettype)
 }
 
 func (tk Tk) createSignature(scope Scope, template Node, args Node, rettype Node) Node {
-  return tk.createNode(scope, NODE_SIGNATURE, template, args, rettype)
+return tk.createNode(scope, NODE_SIGNATURE, template, args, rettype)
+}
+
+
+func (n Node) setReturnChildren(exp Node) {
+
+  if n.Kind() != NODE_RETURN {
+    panic("!!")
+  }
+  n.setChildren(exp)
 }
 
 func (tk Tk) createReturn(scope Scope, exp Node) Node {
-  return tk.createNode(scope, NODE_RETURN, exp)
+return tk.createNode(scope, NODE_RETURN, exp)
+}
+
+
+func (n Node) setTakeChildren(exp Node) {
+
+  if n.Kind() != NODE_TAKE {
+    panic("!!")
+  }
+  n.setChildren(exp)
 }
 
 func (tk Tk) createTake(scope Scope, exp Node) Node {
-  return tk.createNode(scope, NODE_TAKE, exp)
+return tk.createNode(scope, NODE_TAKE, exp)
+}
+
+
+func (n Node) setEnumChildren(varlist Node) {
+
+  if n.Kind() != NODE_ENUM {
+    panic("!!")
+  }
+  n.setChildren(varlist)
 }
 
 func (tk Tk) createEnum(scope Scope, varlist Node) Node {
-  return tk.createNode(scope, NODE_ENUM, varlist)
+return tk.createNode(scope, NODE_ENUM, varlist)
+}
+
+
+func (n Node) setStructChildren(template Node, varlist Node) {
+
+  if n.Kind() != NODE_STRUCT {
+    panic("!!")
+  }
+  n.setChildren(template, varlist)
 }
 
 func (tk Tk) createStruct(scope Scope, template Node, varlist Node) Node {
-  return tk.createNode(scope, NODE_STRUCT, template, varlist)
+return tk.createNode(scope, NODE_STRUCT, template, varlist)
+}
+
+
+func (n Node) setTraitChildren(template Node, methodlist Node) {
+
+  if n.Kind() != NODE_TRAIT {
+    panic("!!")
+  }
+  n.setChildren(template, methodlist)
 }
 
 func (tk Tk) createTrait(scope Scope, template Node, methodlist Node) Node {
-  return tk.createNode(scope, NODE_TRAIT, template, methodlist)
+return tk.createNode(scope, NODE_TRAIT, template, methodlist)
+}
+
+
+func (n Node) setUnionChildren(members Node) {
+
+  if n.Kind() != NODE_UNION {
+    panic("!!")
+  }
+  n.setChildren(members)
 }
 
 func (tk Tk) createUnion(scope Scope, members Node) Node {
-  return tk.createNode(scope, NODE_UNION, members)
+return tk.createNode(scope, NODE_UNION, members)
+}
+
+
+func (n Node) setIsoBlockChildren(block Node) {
+
+  if n.Kind() != NODE_ISO_BLOCK {
+    panic("!!")
+  }
+  n.setChildren(block)
 }
 
 func (tk Tk) createIsoBlock(scope Scope, block Node) Node {
-  return tk.createNode(scope, NODE_ISO_BLOCK, block)
+return tk.createNode(scope, NODE_ISO_BLOCK, block)
+}
+
+
+func (n Node) setIsoTypeChildren(type_expr Node) {
+
+  if n.Kind() != NODE_ISO_TYPE {
+    panic("!!")
+  }
+  n.setChildren(type_expr)
 }
 
 func (tk Tk) createIsoType(scope Scope, type_expr Node) Node {
-  return tk.createNode(scope, NODE_ISO_TYPE, type_expr)
+return tk.createNode(scope, NODE_ISO_TYPE, type_expr)
+}
+
+
+func (n Node) setStringChildren(contents Node) {
+
+  if n.Kind() != NODE_STRING {
+    panic("!!")
+  }
+  n.setChildren(contents)
 }
 
 func (tk Tk) createString(scope Scope, contents Node) Node {
-  return tk.createNode(scope, NODE_STRING, contents)
+return tk.createNode(scope, NODE_STRING, contents)
+}
+
+
+func (n Node) setArrayLiteralChildren(contents Node) {
+
+  if n.Kind() != NODE_ARRAY_LITERAL {
+    panic("!!")
+  }
+  n.setChildren(contents)
 }
 
 func (tk Tk) createArrayLiteral(scope Scope, contents Node) Node {
-  return tk.createNode(scope, NODE_ARRAY_LITERAL, contents)
+return tk.createNode(scope, NODE_ARRAY_LITERAL, contents)
+}
+
+
+func (n Node) setIfChildren(cond Node, thenarm Node, elsearm Node) {
+
+  if n.Kind() != NODE_IF {
+    panic("!!")
+  }
+  n.setChildren(cond, thenarm, elsearm)
 }
 
 func (tk Tk) createIf(scope Scope, cond Node, thenarm Node, elsearm Node) Node {
-  return tk.createNode(scope, NODE_IF, cond, thenarm, elsearm)
+return tk.createNode(scope, NODE_IF, cond, thenarm, elsearm)
+}
+
+
+func (n Node) setSwitchChildren(exp Node, arms Node) {
+
+  if n.Kind() != NODE_SWITCH {
+    panic("!!")
+  }
+  n.setChildren(exp, arms)
 }
 
 func (tk Tk) createSwitch(scope Scope, exp Node, arms Node) Node {
-  return tk.createNode(scope, NODE_SWITCH, exp, arms)
+return tk.createNode(scope, NODE_SWITCH, exp, arms)
+}
+
+
+func (n Node) setSwitchArmChildren(cond Node, block Node) {
+
+  if n.Kind() != NODE_SWITCH_ARM {
+    panic("!!")
+  }
+  n.setChildren(cond, block)
 }
 
 func (tk Tk) createSwitchArm(scope Scope, cond Node, block Node) Node {
-  return tk.createNode(scope, NODE_SWITCH_ARM, cond, block)
+return tk.createNode(scope, NODE_SWITCH_ARM, cond, block)
+}
+
+
+func (n Node) setForChildren(vardecl Node, rng Node, block Node) {
+
+  if n.Kind() != NODE_FOR {
+    panic("!!")
+  }
+  n.setChildren(vardecl, rng, block)
 }
 
 func (tk Tk) createFor(scope Scope, vardecl Node, rng Node, block Node) Node {
-  return tk.createNode(scope, NODE_FOR, vardecl, rng, block)
+return tk.createNode(scope, NODE_FOR, vardecl, rng, block)
+}
+
+
+func (n Node) setWhileChildren(cond Node, block Node) {
+
+  if n.Kind() != NODE_WHILE {
+    panic("!!")
+  }
+  n.setChildren(cond, block)
 }
 
 func (tk Tk) createWhile(scope Scope, cond Node, block Node) Node {
-  return tk.createNode(scope, NODE_WHILE, cond, block)
+return tk.createNode(scope, NODE_WHILE, cond, block)
+}
+
+
+func (n Node) setImportChildren(module Node, id Node, exp Node) {
+
+  if n.Kind() != NODE_IMPORT {
+    panic("!!")
+  }
+  n.setChildren(module, id, exp)
 }
 
 func (tk Tk) createImport(scope Scope, module Node, id Node, exp Node) Node {
-  return tk.createNode(scope, NODE_IMPORT, module, id, exp)
+return tk.createNode(scope, NODE_IMPORT, module, id, exp)
+}
+
+
+func (n Node) setImplementChildren(id Node, block Node) {
+
+  if n.Kind() != NODE_IMPLEMENT {
+    panic("!!")
+  }
+  n.setChildren(id, block)
 }
 
 func (tk Tk) createImplement(scope Scope, id Node, block Node) Node {
-  return tk.createNode(scope, NODE_IMPLEMENT, id, block)
+return tk.createNode(scope, NODE_IMPLEMENT, id, block)
+}
+
+
+func (n Node) setUnaNotChildren(exp Node) {
+
+  if n.Kind() != NODE_UNA_NOT {
+    panic("!!")
+  }
+  n.setChildren(exp)
 }
 
 func (tk Tk) createUnaNot(scope Scope, exp Node) Node {
-  return tk.createNode(scope, NODE_UNA_NOT, exp)
+return tk.createNode(scope, NODE_UNA_NOT, exp)
+}
+
+
+func (n Node) setUnaPointerChildren(pointed Node) {
+
+  if n.Kind() != NODE_UNA_POINTER {
+    panic("!!")
+  }
+  n.setChildren(pointed)
 }
 
 func (tk Tk) createUnaPointer(scope Scope, pointed Node) Node {
-  return tk.createNode(scope, NODE_UNA_POINTER, pointed)
+return tk.createNode(scope, NODE_UNA_POINTER, pointed)
+}
+
+
+func (n Node) setUnaRefChildren(variable Node) {
+
+  if n.Kind() != NODE_UNA_REF {
+    panic("!!")
+  }
+  n.setChildren(variable)
 }
 
 func (tk Tk) createUnaRef(scope Scope, variable Node) Node {
-  return tk.createNode(scope, NODE_UNA_REF, variable)
+return tk.createNode(scope, NODE_UNA_REF, variable)
 }
+
 
 

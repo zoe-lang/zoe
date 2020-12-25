@@ -185,6 +185,21 @@ func (n Node) Clone() Node {
 	return res
 }
 
+func (n Node) setChildren(children ...Node) {
+	cl := len(children)
+	if cl > 0 {
+		node := &n.file.Nodes[n.pos]
+		node.ArgLen = int8(cl)
+
+		for i, chld := range children {
+			node.Args[i] = chld.pos
+			if !chld.IsEmpty() {
+				node.Range.ExtendNode(chld)
+			}
+		}
+	}
+}
+
 ///////////////////////////////////
 // func (n Node) Range() Range {
 // 	var ref = n.ref()

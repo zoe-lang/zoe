@@ -119,6 +119,20 @@ func (s Scope) FindRecursive(name InternedString) (Node, bool) {
 	return EmptyNode, false
 }
 
+func (s Scope) addSymbolFromIdNodeForce(idnode Node, target Node) {
+	// idn := sh.file.Nodes[idnode]
+	if !idnode.Is(NODE_ID) {
+		s.file.reportError(idnode.Range(), "is not an identifier")
+		return
+	}
+
+	var name = idnode.InternedString()
+
+	sc := &s.file.scopes[s.pos]
+
+	sc.Names[name] = target.pos
+}
+
 func (s Scope) addSymbolFromIdNode(idnode Node, target Node) {
 	// idn := sh.file.Nodes[idnode]
 	if !idnode.Is(NODE_ID) {

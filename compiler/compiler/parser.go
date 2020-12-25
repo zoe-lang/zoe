@@ -670,6 +670,10 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 		name = tk.createIdNode(scope)
 	})
 
+	if name != EmptyNode {
+		scope.addSymbolFromIdNode(name, name)
+	}
+
 	// Template arguments, may not exist
 	var tpl Node
 	if iter.Is(TK_LBRACE) {
@@ -723,7 +727,7 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 		if is_method {
 
 		} else {
-			scope.addSymbolFromIdNode(name, result)
+			scope.addSymbolFromIdNodeForce(name, result)
 		}
 	}
 
