@@ -47,6 +47,47 @@ type File struct {
 	DocCommentMap map[NodePosition]TokenPos // node position => token position
 }
 
+func (f *File) GetData() []byte {
+	return f.data
+}
+
+func (f *File) GetOffsetForPosition(pos lsp.Position) int {
+	// We're going to use the token positions to find the
+	// real offset, since they're ordered.
+	var tokens = f.Tokens
+	var tkpos = len(tokens) / 2
+	var size = len(tokens) / 2 // Size is going to be divided by 2 all the time
+
+	// log.Print(pos)
+	for {
+		var tk = tokens[tkpos]
+		if tkpos >= len(tokens)-1 {
+			return int(tk.Offset) + (pos.Character - int(tk.Column))
+		}
+
+		var ntk = tokens[tkpos+1]
+		size = size / 2
+
+		// log.Print(tkpos, ` (`, size, `) `, tk.Line, tk.Column)
+
+		if size == 0 {
+			// ???
+			return int(tk.Offset) + (pos.Character - int(tk.Column))
+		}
+
+		// We're before the current token
+		if pos.Line < int(tk.Line) || (pos.Line == int(tk.Line) && pos.Character < int(tk.Column)) {
+			tkpos = tkpos - size
+		}
+
+		// We're after the current token
+		if pos.Line > int(ntk.Line) || (pos.Line == int(ntk.Line) && pos.Character >= int(ntk.Column)) {
+			tkpos = tkpos + size
+		}
+
+	}
+}
+
 func NewFileFromContents(filename string, contents []byte) (*File, error) {
 	data := []byte(contents)
 

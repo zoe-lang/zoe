@@ -2,37 +2,33 @@ package zoe
 
 import (
 	"errors"
+	"log"
 	"path/filepath"
 )
 
 type Solution struct {
-	Files map[int]*File
+	Files map[string]*File
 }
 
 func NewSolution() *Solution {
 	return &Solution{
-		Files: make(map[int]*File),
+		Files: make(map[string]*File),
 	}
 }
 
 func (s *Solution) AddFile(uri string, contents string, version int) (*File, error) {
-	u := InternedIds.Save(uri)
+	// u := InternedIds.Save(uri)
 	f, err := NewFileFromContents(uri, []byte(contents))
 	f.Version = version
 
+	s.Files[uri] = f
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 
-	s.Files[u] = f
 	f.Parse()
 	return f, nil
-}
-
-// GetFile returns a file that was stored in the solution.
-func (s *Solution) GetFile(uri string) (*File, bool) {
-
-	return nil, false
 }
 
 // URI represents a file name

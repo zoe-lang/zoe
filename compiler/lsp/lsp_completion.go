@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 
-	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/sourcegraph/go-lsp"
 )
 
@@ -20,8 +19,8 @@ func HandleCompletion(req *LspRequest) error {
 		return err
 	}
 
-	fname := zoe.InternedIds.Save(string(params.TextDocument.URI))
-	var file, ok = req.Conn.Solution.Files[fname]
+	// fname := zoe.InternedIds.Save(string(params.TextDocument.URI))
+	var file, ok = req.Conn.Solution.Files[string(params.TextDocument.URI)]
 	if !ok {
 		return errors.New(`file not found`)
 	}

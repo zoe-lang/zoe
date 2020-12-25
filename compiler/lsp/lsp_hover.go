@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/sourcegraph/go-lsp"
 )
 
@@ -18,7 +17,7 @@ func HandleHover(req *LspRequest) error {
 		return err
 	}
 
-	fname := zoe.InternedIds.Save(string(params.TextDocument.URI))
+	var fname = string(params.TextDocument.URI)
 	file, ok := req.Conn.Solution.Files[fname]
 	if !ok {
 		req.Reply(lsp.Hover{

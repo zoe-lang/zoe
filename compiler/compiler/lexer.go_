@@ -1,5 +1,9 @@
 package zoe
 
+import (
+	"strconv"
+)
+
 type tkstack struct {
 	top  int
 	prev *tkstack
@@ -55,7 +59,7 @@ func (z *File) Lex() error {
 	var err = func() error {
 		offset--
 		updateLines()
-		return LexerError{Message: "invalid input '" + string(data[offset]) + "'", Line: line, Column: col, Offset: offset, Filename: z.Filename}
+		return LexerError{Message: "invalid input '" + string(data[offset]) + "' at offset " + strconv.Itoa(int(offset)), Line: line, Column: col, Offset: offset, Filename: z.Filename}
 	}
 
 	var addTokenBounds = func(kind TokenKind, offsetStart uint32, offsetEnd uint32) {

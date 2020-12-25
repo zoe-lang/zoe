@@ -24,7 +24,7 @@ func HandleInitialize(req *LspRequest) error {
 			TextDocumentSync: &lsp.TextDocumentSyncOptionsOrKind{
 				Options: &lsp.TextDocumentSyncOptions{
 					OpenClose: true,
-					Change:    lsp.TDSKFull, // TODO: change that to incremental to avoid resending the whole file all the time.
+					Change:    lsp.TDSKIncremental, // TODO: change that to incremental to avoid resending the whole file all the time.
 				},
 			},
 			CompletionProvider: &lsp.CompletionOptions{

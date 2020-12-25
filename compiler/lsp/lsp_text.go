@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 
@@ -18,6 +19,7 @@ func HandleDidOpen(req *LspRequest) error {
 		return err
 	}
 
+	log.Print("added file ", string(fsent.TextDocument.URI))
 	f, err := req.Conn.Solution.AddFile(string(fsent.TextDocument.URI), fsent.TextDocument.Text, fsent.TextDocument.Version)
 	if err == nil {
 		if len(f.Errors) > 0 {
@@ -49,9 +51,34 @@ func HandleDidChange(req *LspRequest) error {
 	if err := json.Unmarshal(req.RawParams(), &changes); err != nil {
 		return err
 	}
-	req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
 
-	f, err := req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
+	file, ok := req.Conn.Solution.Files[string(changes.TextDocument.URI)]
+	if !ok {
+		log.Print("file not found ", string(changes.TextDocument.URI))
+		// return errors.New(`file not found: ` + string(changes.TextDocument.URI))
+		return nil
+	}
+
+	var data = file.GetData()
+	// log.Print("original (", file.Version, "): ", string(data))
+	for _, chg := range changes.ContentChanges {
+		var buf bytes.Buffer
+		var offsetstart = file.GetOffsetForPosition(chg.Range.Start)
+		var offsetend = file.GetOffsetForPosition(chg.Range.End)
+		log.Print(`In tokens[`, len(file.Tokens), `] range is `, offsetstart, `-`, offsetend)
+		_, _ = buf.Write(data[0:offsetstart])
+		if offsetstart <= offsetend {
+			_, _ = buf.Write([]byte(chg.Text))
+		}
+		_, _ = buf.Write(data[offsetend : len(data)-1])
+		data = buf.Bytes()
+	}
+
+	// req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
+
+	// log.Print(string(data))
+	// log.Print(data)
+	f, err := req.Conn.Solution.AddFile(string(changes.TextDocument.URI), string(data), changes.TextDocument.Version)
 	if err == nil {
 		// if len(f.Errors) > 0 {
 		diags := make([]lsp.Diagnostic, len(f.Errors))
