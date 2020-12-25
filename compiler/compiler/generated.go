@@ -29,6 +29,8 @@ func (n Node) Repr() string {
 
   case NODE_RETURN: return "return"
 
+  case NODE_TAKE: return "take"
+
   case NODE_ENUM: return bblue("enum")
 
   case NODE_STRUCT: return bblue("struct")
@@ -177,6 +179,10 @@ func (tk Tk) createSignature(scope Scope, template Node, args Node, rettype Node
 
 func (tk Tk) createReturn(scope Scope, exp Node) Node {
   return tk.createNode(scope, NODE_RETURN, exp)
+}
+
+func (tk Tk) createTake(scope Scope, exp Node) Node {
+  return tk.createNode(scope, NODE_TAKE, exp)
 }
 
 func (tk Tk) createEnum(scope Scope, varlist Node) Node {

@@ -10,7 +10,7 @@
   that there is no explicit heap allocation.
 
   Prevent array decay ; addresses of indexed elements from a slice or array
-  may not outlive their parent variable (and like the rest of pointers, may not
+  may not escape their parent variable (and like the rest of pointers, may not
   cross region boundaries). The same goes for structures ; pointers to a non-pointer
   part of a structure follows the same rule !
 

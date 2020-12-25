@@ -192,6 +192,21 @@ func init() {
 
 	lbp += 2
 
+	nud(KW_TAKE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+		var res Node
+		iter := tk
+		// do not try to get next expression is return is immediately followed
+		// by } or ]
+		if tk.Peek(TK_RPAREN, TK_RBRACKET) {
+			// return can only return nothing if it is at the end of a block or expression
+			res = EmptyNode
+		} else {
+			iter, res = Expression(scope, tk.Next(), lbp)
+		}
+
+		return iter, tk.createTake(scope, res)
+	})
+
 	// return ...
 	// will return an empty node if
 	nud(KW_RETURN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {

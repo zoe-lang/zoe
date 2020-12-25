@@ -129,15 +129,8 @@ func (s Scope) addSymbolFromIdNode(idnode Node, target Node) {
 	var name = idnode.InternedString()
 
 	sc := &s.file.scopes[s.pos]
-	// node := b.nodes[pos]
-	// if node.Kind != NODE_ID {
-	// 	b.reportErrorAtPosition(pos, "COMPILER ERROR not an id but was added to scope")
-	// 	return
-	// }
 
-	// value := InternedString(node.Value)
-
-	if orig, ok := s.Find(name); ok {
+	if orig, ok := s.FindRecursive(name); ok {
 		// we do not set that variable since it already existed in one of our parent scope.
 		// note ; the choice was made to not allow shadowing to avoid footguns, since every
 		// Zoe module needs to explicitely import other symbols (except maybe for core, which will then pollute)
