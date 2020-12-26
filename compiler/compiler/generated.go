@@ -65,7 +65,7 @@ func (n Node) Repr() string {
 
   case NODE_UNA_NOT: return "!"
 
-  case NODE_UNA_POINTER: return "ptr"
+  case NODE_UNA_DEREF: return "deref"
 
   case NODE_UNA_REF: return "ref"
 
@@ -494,16 +494,16 @@ return tk.createNode(scope, NODE_UNA_NOT, exp)
 }
 
 
-func (n Node) setUnaPointerChildren(pointed Node) {
+func (n Node) setUnaDerefChildren(pointed Node) {
 
-  if n.Kind() != NODE_UNA_POINTER {
+  if n.Kind() != NODE_UNA_DEREF {
     panic("!!")
   }
   n.setChildren(pointed)
 }
 
-func (tk Tk) createUnaPointer(scope Scope, pointed Node) Node {
-return tk.createNode(scope, NODE_UNA_POINTER, pointed)
+func (tk Tk) createUnaDeref(scope Scope, pointed Node) Node {
+return tk.createNode(scope, NODE_UNA_DEREF, pointed)
 }
 
 

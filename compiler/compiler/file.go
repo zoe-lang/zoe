@@ -160,10 +160,14 @@ func (f *File) GetTokenText(tk TokenPos) string {
 	return string(f.data[int(tt.Offset) : int(tt.Offset)+int(tt.Length)])
 }
 
-func (f *File) GetNodeText(np NodePosition) string {
+func (f *File) GetNodeBytes(np NodePosition) []byte {
 	var n = np.Node(f)
 	var rng = n.ref().Range
-	return string(f.data[int(f.Tokens[rng.Start].Offset):int(f.Tokens[int(rng.End)].Offset)])
+	return f.data[int(f.Tokens[rng.Start].Offset):int(f.Tokens[int(rng.End)].Offset)]
+}
+
+func (f *File) GetNodeText(np NodePosition) string {
+	return string(f.GetNodeBytes(np))
 }
 
 func (f *File) reportError(rng lsp.Range, message ...string) {

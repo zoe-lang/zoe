@@ -26,8 +26,8 @@ var EmptyNode = Node{}
 const (
 	FLAG_LOCAL Flag = 1 << iota
 
-	FLAG_IS_TYPE   // if the expression resolves to a type
-	FLAG_IS_SYMBOL // if the expression resolves to a symbol
+	FLAG_IS_TYPENAME // if the expression resolves to a type
+	FLAG_IS_SYMBOL   // if the expression resolves to a symbol
 	FLAG_IS_COMPTIME
 
 	FLAG_CONST
@@ -73,7 +73,7 @@ const (
 
 	NODE_UNA_ELLIPSIS // "..."
 	NODE_UNA_NOT      // "!" ::: exp
-	NODE_UNA_POINTER  // "ptr" ::: pointed
+	NODE_UNA_DEREF    // "deref" ::: pointed
 	NODE_UNA_REF      // "ref" ::: variable
 
 	NODE_BIN_ASSIGN // "="
@@ -307,6 +307,10 @@ func (n Node) expect(nk ...AstNodeKind) bool {
 
 func (n Node) Kind() AstNodeKind {
 	return n.ref().Kind
+}
+
+func (n Node) GetBytes() []byte {
+	return n.file.GetNodeBytes(n.pos)
 }
 
 func (n Node) GetText() string {

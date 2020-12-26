@@ -1,10 +1,14 @@
 
-fn some_fn(arg: Opt[Something]) -> Opt[Something] {
+import "io" as io
+
+fn some_fn(arg: Something) -> Opt[Something] {
   # var res = arg?.prop('something').toto or 3
+  var a = "hello !"
   arg is not none
-  arg is union(Type1, Type2, Type3) {
+  arg is Type1 | Type2 | Type3 {
 
   }
+  # this is the same !
   if arg is Type1 || arg is Type2 || arg is Type3 {
 
   }
@@ -37,29 +41,34 @@ struct Toto(
 
   method doStuff() -> Int {
 
+    if var err = error.has(OpenError) {
+
+    }
+
   }
 
 # end struct Toto
 }
 
-union Opt[$T]($T | none) {
+
+type Opt[$T] ($T | none) {
+
+  method then[$U](cbk: fn (obj: $T) -> $U) -> $U | none {
+
+    if this is none { return none }
+    return cbk(this)
+
+    switch this {
+      none -> none,
+      else -> cbk(this)
+    }
+
+    return if this is not none { cbk(this) } else { none }
+  }
 
 }
 
-union Res[$T, $Err : Error]($T | $Err) {
-
-}
-
-union Opt[$T]($T | none) {
-
-}
-
-union Res[$T, $Err: Error](
-  $T,
-  $Err
-)
-
-union Test(Toto | Youpi) {
+type Test (Toto | Youpi) {
 
 }
 
@@ -67,7 +76,7 @@ trait Youpi {
 
 }
 
-union Pouet(Toto, Int) {
+type Pouet (Toto | Int) {
 
   struct Pouet()
 
@@ -87,10 +96,24 @@ struct Card(
   face: Figure | Int,
 ) {
 
-  enum Color(treble, diamonds, hearts, spades)
-  enum Figure(ace, king, queen, jack)
+  enum Color(
+    treble,
+    diamonds,
+    hearts,
+    spades,
+  )
+
+  enum Figure(
+    ace,
+    king,
+    queen,
+    jack,
+  )
 
   fn yes() -> Card {
-    return Card(color = Color.spades, )
+    return Card(
+      color = Color.spades,
+      face = Figure.ace,
+    )
   }
 }

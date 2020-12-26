@@ -348,24 +348,17 @@ func init() {
 
 	lbp += 2
 
-	// surrounding(NODE_BLOCK, NODE_BLOCK, TK_LBRACKET, TK_RBRACKET, false)
-
-	// the index operator
-	// nud(TK_LBRACE, parseLbraceNud)
-	nud(TK_STAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		iter := tk.Next()
-		iter, typeexpr := Expression(scope, iter, syms[TK_MINMIN].lbp+1)
-		if typeexpr.IsEmpty() {
-			tk.reportError("expected * to be followed by a type name")
-		}
-		return iter, tk.createUnaPointer(scope, typeexpr)
+	// Dereference expression
+	led(TK_AT, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+		return tk.Next(), tk.createUnaDeref(scope, left)
 	})
 
-	nud(TK_AMP, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	// Reference expression, takes an address or defines a pointer type.
+	nud(TK_AT, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		iter := tk.Next()
 		iter, expr := Expression(scope, iter, syms[TK_MINMIN].lbp+1)
 		if expr.IsEmpty() {
-			tk.reportError("expected & to be followed by an expression")
+			tk.reportError("expected @ to be followed by an expression")
 		}
 		return iter, tk.createUnaRef(scope, expr)
 	})
@@ -460,7 +453,21 @@ func init() {
 	literal(TK_RAWSTR, NODE_LIT_RAWSTR)
 
 	nud(TK_ID, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		return tk.Next(), tk.createIdNode(scope)
+		var node = tk.createIdNode(scope)
+		var data = node.GetBytes()
+		var pos = 0
+		if data[pos] == '$' {
+			pos++
+			node.SetFlag(FLAG_IS_COMPTIME)
+		}
+		if len(data) > pos {
+			if data[pos] >= 'a' && data[pos] <= 'z' {
+				node.SetFlag(FLAG_IS_SYMBOL)
+			} else {
+				node.SetFlag(FLAG_IS_TYPENAME)
+			}
+		}
+		return tk.Next(), node
 	})
 
 }
@@ -821,8 +828,6 @@ func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
 		iter, tpl = parseTemplate(scope, iter, 0)
 	}
 
-	iter, _ = iter.expect(KW_IS)
-
 	// there might be a pipe here. We don't have to parse a union afterwards because
 	// if there is only one type, it doesn't matter.
 	iter, _ = iter.consume(TK_PIPE)
@@ -1046,6 +1051,14 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, varnode
 	// Try to parse VAR ourselves
 }
+
+// func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
+// 	// These are the four kind of types we may have to parse
+// 	// var is_type = tk.Is(KW_TYPE)
+// 	// var is_struct = tk.Is(KW_STRUCT)
+// 	// var is_trait = tk.Is(KW_TRAIT)
+// 	// var is_enum = tk.Is(KW_ENUM)
+// }
 
 ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////
