@@ -25,6 +25,11 @@ var EmptyNode = Node{}
 
 const (
 	FLAG_LOCAL Flag = 1 << iota
+
+	FLAG_IS_TYPE   // if the expression resolves to a type
+	FLAG_IS_SYMBOL // if the expression resolves to a symbol
+	FLAG_IS_COMPTIME
+
 	FLAG_CONST
 	FLAG_BLOCK_ENDS_EXECUTION // set when return is the last instruction of a block
 	// used to know if an if when it has no else block sets the rest of the block as its else condition
@@ -91,6 +96,7 @@ const (
 	NODE_BIN_OR     // "||"
 	NODE_BIN_AND    // "&&"
 	NODE_BIN_IS     // "is"
+	NODE_BIN_IS_NOT // "isnot"
 	NODE_BIN_CAST   // "cast"
 	NODE_BIN_CALL   // "call"
 	NODE_BIN_INDEX  // "index"

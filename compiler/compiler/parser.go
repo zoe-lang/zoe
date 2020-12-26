@@ -234,7 +234,18 @@ func init() {
 
 	// =
 	binary(TK_EQ, NODE_BIN_ASSIGN)
-	binary(KW_IS, NODE_BIN_IS)
+	lbp_is := lbp
+	led(KW_IS, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+		var iter = tk.Next()
+		var right Node
+
+		if iter.Is(KW_NOT) {
+			iter, right = Expression(scope, iter.Next(), lbp_is+1)
+			return iter, tk.createNode(scope, NODE_BIN_IS_NOT, left, right)
+		}
+		iter, right = Expression(scope, iter, lbp_is+1)
+		return iter, tk.createNode(scope, NODE_BIN_IS, left, right)
+	})
 
 	// fn eats up the expression right next to it
 	nud(KW_FN, parseFn)
@@ -255,6 +266,10 @@ func init() {
 		node := tk.createUnaNot(scope, exp)
 		return next, node
 	})
+
+	lbp += 2
+	binary(TK_PIPEPIPE, NODE_BIN_AND)
+	binary(TK_AMPAMP, NODE_BIN_AND)
 
 	lbp += 2
 
@@ -305,7 +320,6 @@ func init() {
 
 	lbp += 2
 
-	binary(KW_IS, NODE_BIN_IS)
 	unary(TK_ELLIPSIS, NODE_UNA_ELLIPSIS)
 
 	lbp += 2
@@ -887,7 +901,7 @@ func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	var fields Node
-	iter, fields = tryParseList(strscope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
+	iter, fields = tryParseList(strscope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
 		var member Node
 		iter, member = Expression(strscope, iter, 0)
 
@@ -915,7 +929,7 @@ func parseEnum(scope Scope, tk Tk, _ int) (Tk, Node) {
 	})
 
 	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
+	iter, fields = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
 		var variable Node
 		iter, variable = parseVar(strscope, iter, 0)
 

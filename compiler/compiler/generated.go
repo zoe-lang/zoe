@@ -109,6 +109,8 @@ func (n Node) Repr() string {
 
   case NODE_BIN_IS: return "is"
 
+  case NODE_BIN_IS_NOT: return "isnot"
+
   case NODE_BIN_CAST: return "cast"
 
   case NODE_BIN_CALL: return "call"

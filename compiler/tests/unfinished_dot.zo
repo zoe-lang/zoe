@@ -1,4 +1,96 @@
-struct Toto {
-  toto: Int
 
+fn some_fn(arg: Opt[Something]) -> Opt[Something] {
+  # var res = arg?.prop('something').toto or 3
+  arg is not none
+  arg is union(Type1, Type2, Type3) {
+
+  }
+  if arg is Type1 || arg is Type2 || arg is Type3 {
+
+  }
+
+  if arg is not none {
+
+  }
+
+  if arg is none {
+    return none
+  }
+  # smth escapes
+  var smth = Something(value = 2)
+  smth@ = Something()
+  return @smth
+
+}
+
+
+struct OpenError(
+  Error,
+  file: String,
+  perm: Access
+)
+
+struct Toto(
+  toto: Int,
+  doudou: Yes
+) {
+
+  method doStuff() -> Int {
+
+  }
+
+# end struct Toto
+}
+
+union Opt[$T]($T | none) {
+
+}
+
+union Res[$T, $Err : Error]($T | $Err) {
+
+}
+
+union Opt[$T]($T | none) {
+
+}
+
+union Res[$T, $Err: Error](
+  $T,
+  $Err
+)
+
+union Test(Toto | Youpi) {
+
+}
+
+trait Youpi {
+
+}
+
+union Pouet(Toto, Int) {
+
+  struct Pouet()
+
+  #(?
+    Yeaah
+  #)
+  method hello() {
+    # The scope of this method accesses the outside scope, but not the symbols
+    # defined on Pouet
+  }
+
+}
+
+
+struct Card(
+  color: Color,
+  face: Figure | Int,
+) {
+
+  enum Color(treble, diamonds, hearts, spades)
+  enum Figure(ace, king, queen, jack)
+
+  fn yes() -> Card {
+    return Card(color = Color.spades, )
+  }
 }

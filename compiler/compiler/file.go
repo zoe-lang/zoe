@@ -47,6 +47,8 @@ type File struct {
 	DocCommentMap map[NodePosition]TokenPos // node position => token position
 }
 
+// GetData returns the bytes of the file without the artifical null byte added
+// during compilation.
 func (f *File) GetData() []byte {
 	if len(f.data) == 0 {
 		return []byte{}
