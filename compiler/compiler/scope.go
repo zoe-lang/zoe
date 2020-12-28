@@ -57,8 +57,8 @@ func (s Scope) getOwner() NodePosition {
 	return s.ref().Owner
 }
 
-func (s Scope) setOwner(np NodePosition) {
-	s.ref().Owner = np
+func (s Scope) setOwner(np Node) {
+	s.ref().Owner = np.pos
 }
 
 func (s Scope) setParent(parent Scope) {
@@ -68,7 +68,8 @@ func (s Scope) setParent(parent Scope) {
 // Create a sub scope, that will go look into its parent
 func (s Scope) subScope() Scope {
 	newscope := s.file.newScope()
-	newscope.setParent(s)
+	var parent = s
+	newscope.setParent(parent)
 	return newscope
 }
 

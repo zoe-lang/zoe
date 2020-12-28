@@ -1,7 +1,13 @@
 
+var ab = ""
+
 struct Struct(
   field1: Int = 2
-)
+) {
+  method test() {
+    this.field1 = 3
+  }
+}
 
 type Toto(
   Test
@@ -10,6 +16,8 @@ type Toto(
   | none
 )
 {
+
+  type Test()
 
   method toto() -> Int32 {
     return a::Int32

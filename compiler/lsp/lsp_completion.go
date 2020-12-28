@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 
+	zoe "github.com/ceymard/zoe/compiler"
 	"github.com/sourcegraph/go-lsp"
 )
 
@@ -38,9 +39,32 @@ func HandleCompletion(req *LspRequest) error {
 	if len(path) > 0 {
 		var last = path[len(path)-1]
 		for _, name := range last.Scope().AllNames() {
+			var kind lsp.CompletionItemKind
+			switch name.Node.Kind() {
+			case zoe.NODE_VAR:
+				kind = lsp.CIKVariable
+			case zoe.NODE_ENUM:
+				kind = lsp.CIKEnum
+			case zoe.NODE_STRUCT:
+				kind = lsp.CIKStruct
+			case zoe.NODE_TYPE:
+				kind = lsp.CIKClass
+			case zoe.NODE_TRAIT:
+				kind = lsp.CIKInterface
+			case zoe.NODE_FN:
+				kind = lsp.CIKFunction
+			default:
+				kind = lsp.CIKProperty
+			}
+			var docstr = ""
+			if doc, ok := name.Node.DocComment(); ok {
+				docstr = doc.GetText()
+			}
+
 			result = append(result, lsp.CompletionItem{
-				Label: name.Name,
-				Kind:  lsp.CIKProperty,
+				Label:         name.Name,
+				Kind:          kind,
+				Documentation: docstr,
 			})
 		}
 	}

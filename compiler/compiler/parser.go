@@ -899,7 +899,6 @@ func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
 	switch tk.Kind() {
 	case KW_TYPE:
 		typenode = tk.createNode(scope, NODE_TYPE)
-
 	case KW_STRUCT:
 		typenode = tk.createNode(scope, NODE_STRUCT)
 	case KW_ENUM:
@@ -909,21 +908,29 @@ func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
 	default:
 		panic("should never get here, this is a compiler bug")
 	}
+	typenode.SetFlag(FLAG_IS_TYPEDEF)
+
+	//
+	var typescope = scope.subScope()
+	typescope.setOwner(typenode)
+	if !ident.IsEmpty() {
+		scope.addSymbolFromIdNode(ident, typenode)
+	}
 
 	var template Node
 	if iter.Is(TK_LBRACE) {
-		iter, template = Expression(scope, iter, 0)
+		iter, template = Expression(typescope, iter, 0)
 	}
 
 	var def Node
 	iter.should(TK_LPAREN)
 	switch tk.Kind() {
 	case KW_TYPE:
-		iter, def = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_PIPE, true, func(scope Scope, iter Tk) (Tk, Node) {
+		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_PIPE, true, func(scope Scope, iter Tk) (Tk, Node) {
 			return Expression(scope, iter, syms[TK_PIPE].lbp+1)
 		})
 	case KW_STRUCT, KW_ENUM, KW_TRAIT:
-		iter, def = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
 			return parseVar(scope, iter, 0)
 		})
 	}
@@ -931,7 +938,7 @@ func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// The block section is optional
 	var block Node
 	if iter.Is(TK_LBRACKET) {
-		iter, block = parseBlock(scope, iter, 0)
+		iter, block = parseBlock(typescope, iter, 0)
 	}
 
 	typenode.setChildren(ident, template, def, block)

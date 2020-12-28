@@ -29,6 +29,7 @@ const (
 	FLAG_IS_TYPENAME // if the expression resolves to a type
 	FLAG_IS_SYMBOL   // if the expression resolves to a symbol
 	FLAG_IS_COMPTIME
+	FLAG_IS_TYPEDEF
 
 	FLAG_CONST
 	FLAG_BLOCK_ENDS_EXECUTION // set when return is the last instruction of a block
@@ -131,6 +132,13 @@ type AstNode struct {
 type Node struct {
 	pos  NodePosition
 	file *File
+}
+
+func (n Node) DocComment() (Tk, bool) {
+	if d, ok := n.file.DocCommentMap[n.pos]; ok {
+		return Tk{pos: d, file: n.file}, true
+	}
+	return Tk{}, false
 }
 
 // op: Node(NODE_BINOP_PLUS, value: idx:FIRST) first(TYPE_IDENT, next: second) second(NODE_LIT_INT, next: 0)
