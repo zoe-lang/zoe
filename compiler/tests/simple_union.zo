@@ -1,6 +1,12 @@
 
 var ab = ""
 
+
+type SomeType (EmptyType | MoreEmptiness) {
+  type EmptyType ()
+  type MoreEmptiness ()
+}
+
 struct Struct(
   field1: Int = 2
 ) {
@@ -31,7 +37,7 @@ struct Hey() {
 
 }
 
-type Toto2 (Hey | none)
+type Toto2 (@Hey | none)
 
 
 fn test() -> Hey | Toto {
