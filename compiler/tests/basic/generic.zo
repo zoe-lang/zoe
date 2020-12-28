@@ -1,7 +1,11 @@
 
 import 'os' as os
 
-type Toto is Map[String, Int]
+type Toto (Map[String, Int]) {
+  method test() -> String {
+
+  }
+}
 
 var a: Slice[String] = ["toto"]
 

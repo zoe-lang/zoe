@@ -2,7 +2,7 @@
 fn test[$T](arg: $T) -> $T { }
 
 #? (type Cbk ~ (signature ~ [(var a String ~) (var b Int ~)] void))
-type Cbk is fn(a: String, b: Int) -> void
+type Cbk (fn(a: String, b: Int) -> void)
 
 #? (var a ~ (fn ~ (signature ~ (var a Int 3) String) {a}))
 var a1 = fn (a: Int = 3) -> String { a }
