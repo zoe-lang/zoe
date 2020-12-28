@@ -21,6 +21,16 @@ func (n Node) Repr() string {
   }
   return "<!!!>"
 }
+
+func (n Node) DebugName() string {
+  switch n.Kind() {
+%% for (let n of v.nodes) { %%
+    case {{n.name}}: return "{{n.name}}"
+%% } %%
+  }
+  return "<!!!>"
+}
+
 %% for (let n of v.nodes.filter(n => n.create.length)) { %%
 func (n Node) set{{
     n.name.replace('NODE', '').toLowerCase().replace(/_[a-z]/g, m => m[1].toUpperCase())

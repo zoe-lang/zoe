@@ -1,15 +1,19 @@
 package zoe
 
-import "github.com/philpearl/intern"
+import (
+	"github.com/philpearl/intern"
+)
 
 type InternedString int
 
 func SaveInternedString(str string) InternedString {
 	val := InternedIds.Save(str)
+	// log.Print("saved ", str, " -> ", val)
 	return InternedString(val)
 }
 
 func GetInternedString(id InternedString) string {
+	// log.Print("getting ", id, " -> ", InternedIds.Get(int(id)))
 	return InternedIds.Get(int(id))
 }
 

@@ -49,15 +49,15 @@ const (
 
 	NODE_FN            // bblue("fn") 				::: name signature definition
 	NODE_METHOD        // bblue("method")     ::: name signature definition
-	NODE_TYPE          // bblue("type") 			::: name template typeexp block
 	NODE_NAMESPACE     // bblue("namespace")  ::: name block
+	NODE_TYPE          // bblue("type") 			::: name template typeexp block
+	NODE_ENUM          // bblue("enum")       ::: name template varlist block
+	NODE_STRUCT        // bblue("struct")     ::: name template varlist block
+	NODE_TRAIT         // bblue("trait")      ::: name template empty block
 	NODE_VAR           // bblue("var")        ::: name typeexp assign
 	NODE_SIGNATURE     // "signature"         ::: template args rettype
 	NODE_RETURN        // "return" 						::: exp
 	NODE_TAKE          // "take"              ::: exp
-	NODE_ENUM          // bblue("enum")       ::: varlist
-	NODE_STRUCT        // bblue("struct")     ::: template varlist
-	NODE_TRAIT         // bblue("trait")      ::: template methodlist
 	NODE_UNION         // "union"							::: members
 	NODE_ISO_BLOCK     // "iso"               ::: block
 	NODE_ISO_TYPE      // "iso-type"          ::: type_expr
@@ -121,7 +121,8 @@ type AstNode struct {
 	Range       TkRange // the range inside the source file. an enclosing node updates its range according to its internal nodes
 	Scope       ScopePosition
 	IsIncorrect bool // true if the node was tagged as being incorrect and thus should not be type checked
-	Value       int  // can represent either a boolean (1 or 0), a node position, or a string id
+	Flag        int
+	Value       int // can represent either a boolean (1 or 0), a node position, or a string id
 	ArgLen      int8
 	Args        [4]NodePosition // probably unused
 	Next        NodePosition    // The next node position as defined by its parent node when inside a list (tuples, template params or blocks)
@@ -156,12 +157,12 @@ func (n Node) Scope() Scope {
 	}
 }
 
-func (n Node) SetFlag(value Flag) {
-	n.ref().Value &= int(value)
+func (n Node) SetFlag(flg Flag) {
+	n.ref().Flag |= int(flg)
 }
 
-func (n Node) HasFlag(value Flag) bool {
-	return n.ref().Value&int(value) != 0
+func (n Node) HasFlag(flg Flag) bool {
+	return n.ref().Flag&int(flg) != 0
 }
 
 func (n Node) SetNext(other Node) {

@@ -19,9 +19,15 @@ func (n Node) Repr() string {
 
   case NODE_METHOD: return bblue("method")
 
+  case NODE_NAMESPACE: return bblue("namespace")
+
   case NODE_TYPE: return bblue("type")
 
-  case NODE_NAMESPACE: return bblue("namespace")
+  case NODE_ENUM: return bblue("enum")
+
+  case NODE_STRUCT: return bblue("struct")
+
+  case NODE_TRAIT: return bblue("trait")
 
   case NODE_VAR: return bblue("var")
 
@@ -30,12 +36,6 @@ func (n Node) Repr() string {
   case NODE_RETURN: return "return"
 
   case NODE_TAKE: return "take"
-
-  case NODE_ENUM: return bblue("enum")
-
-  case NODE_STRUCT: return bblue("struct")
-
-  case NODE_TRAIT: return bblue("trait")
 
   case NODE_UNION: return "union"
 
@@ -143,6 +143,146 @@ func (n Node) Repr() string {
   return "<!!!>"
 }
 
+func (n Node) DebugName() string {
+  switch n.Kind() {
+
+    case NODE_EMPTY: return "NODE_EMPTY"
+
+    case NODE_FILE: return "NODE_FILE"
+
+    case NODE_BLOCK: return "NODE_BLOCK"
+
+    case NODE_TUPLE: return "NODE_TUPLE"
+
+    case NODE_FN: return "NODE_FN"
+
+    case NODE_METHOD: return "NODE_METHOD"
+
+    case NODE_NAMESPACE: return "NODE_NAMESPACE"
+
+    case NODE_TYPE: return "NODE_TYPE"
+
+    case NODE_ENUM: return "NODE_ENUM"
+
+    case NODE_STRUCT: return "NODE_STRUCT"
+
+    case NODE_TRAIT: return "NODE_TRAIT"
+
+    case NODE_VAR: return "NODE_VAR"
+
+    case NODE_SIGNATURE: return "NODE_SIGNATURE"
+
+    case NODE_RETURN: return "NODE_RETURN"
+
+    case NODE_TAKE: return "NODE_TAKE"
+
+    case NODE_UNION: return "NODE_UNION"
+
+    case NODE_ISO_BLOCK: return "NODE_ISO_BLOCK"
+
+    case NODE_ISO_TYPE: return "NODE_ISO_TYPE"
+
+    case NODE_STRING: return "NODE_STRING"
+
+    case NODE_ARRAY_LITERAL: return "NODE_ARRAY_LITERAL"
+
+    case NODE_IF: return "NODE_IF"
+
+    case NODE_SWITCH: return "NODE_SWITCH"
+
+    case NODE_SWITCH_ARM: return "NODE_SWITCH_ARM"
+
+    case NODE_FOR: return "NODE_FOR"
+
+    case NODE_WHILE: return "NODE_WHILE"
+
+    case NODE_IMPORT: return "NODE_IMPORT"
+
+    case NODE_IMPLEMENT: return "NODE_IMPLEMENT"
+
+    case NODE_UNA_ELLIPSIS: return "NODE_UNA_ELLIPSIS"
+
+    case NODE_UNA_NOT: return "NODE_UNA_NOT"
+
+    case NODE_UNA_DEREF: return "NODE_UNA_DEREF"
+
+    case NODE_UNA_REF: return "NODE_UNA_REF"
+
+    case NODE_BIN_ASSIGN: return "NODE_BIN_ASSIGN"
+
+    case NODE_BIN_PLUS: return "NODE_BIN_PLUS"
+
+    case NODE_BIN_MIN: return "NODE_BIN_MIN"
+
+    case NODE_BIN_DIV: return "NODE_BIN_DIV"
+
+    case NODE_BIN_MUL: return "NODE_BIN_MUL"
+
+    case NODE_BIN_MOD: return "NODE_BIN_MOD"
+
+    case NODE_BIN_EQ: return "NODE_BIN_EQ"
+
+    case NODE_BIN_NEQ: return "NODE_BIN_NEQ"
+
+    case NODE_BIN_GTEQ: return "NODE_BIN_GTEQ"
+
+    case NODE_BIN_GT: return "NODE_BIN_GT"
+
+    case NODE_BIN_LTEQ: return "NODE_BIN_LTEQ"
+
+    case NODE_BIN_LT: return "NODE_BIN_LT"
+
+    case NODE_BIN_LSHIFT: return "NODE_BIN_LSHIFT"
+
+    case NODE_BIN_RSHIFT: return "NODE_BIN_RSHIFT"
+
+    case NODE_BIN_BITAND: return "NODE_BIN_BITAND"
+
+    case NODE_BIN_BITOR: return "NODE_BIN_BITOR"
+
+    case NODE_BIN_BITXOR: return "NODE_BIN_BITXOR"
+
+    case NODE_BIN_OR: return "NODE_BIN_OR"
+
+    case NODE_BIN_AND: return "NODE_BIN_AND"
+
+    case NODE_BIN_IS: return "NODE_BIN_IS"
+
+    case NODE_BIN_IS_NOT: return "NODE_BIN_IS_NOT"
+
+    case NODE_BIN_CAST: return "NODE_BIN_CAST"
+
+    case NODE_BIN_CALL: return "NODE_BIN_CALL"
+
+    case NODE_BIN_INDEX: return "NODE_BIN_INDEX"
+
+    case NODE_BIN_DOT: return "NODE_BIN_DOT"
+
+    case NODE_LIT_NONE: return "NODE_LIT_NONE"
+
+    case NODE_LIT_THIS: return "NODE_LIT_THIS"
+
+    case NODE_LIT_VOID: return "NODE_LIT_VOID"
+
+    case NODE_LIT_FALSE: return "NODE_LIT_FALSE"
+
+    case NODE_LIT_TRUE: return "NODE_LIT_TRUE"
+
+    case NODE_LIT_CHAR: return "NODE_LIT_CHAR"
+
+    case NODE_LIT_RAWSTR: return "NODE_LIT_RAWSTR"
+
+    case NODE_LIT_NUMBER: return "NODE_LIT_NUMBER"
+
+    case NODE_INTEGER: return "NODE_INTEGER"
+
+    case NODE_ID: return "NODE_ID"
+
+  }
+  return "<!!!>"
+}
+
+
 func (n Node) setFileChildren(contents Node) {
 
   if n.Kind() != NODE_FILE {
@@ -208,6 +348,19 @@ return tk.createNode(scope, NODE_METHOD, name, signature, definition)
 }
 
 
+func (n Node) setNamespaceChildren(name Node, block Node) {
+
+  if n.Kind() != NODE_NAMESPACE {
+    panic("!!")
+  }
+  n.setChildren(name, block)
+}
+
+func (tk Tk) createNamespace(scope Scope, name Node, block Node) Node {
+return tk.createNode(scope, NODE_NAMESPACE, name, block)
+}
+
+
 func (n Node) setTypeChildren(name Node, template Node, typeexp Node, block Node) {
 
   if n.Kind() != NODE_TYPE {
@@ -221,16 +374,42 @@ return tk.createNode(scope, NODE_TYPE, name, template, typeexp, block)
 }
 
 
-func (n Node) setNamespaceChildren(name Node, block Node) {
+func (n Node) setEnumChildren(name Node, template Node, varlist Node, block Node) {
 
-  if n.Kind() != NODE_NAMESPACE {
+  if n.Kind() != NODE_ENUM {
     panic("!!")
   }
-  n.setChildren(name, block)
+  n.setChildren(name, template, varlist, block)
 }
 
-func (tk Tk) createNamespace(scope Scope, name Node, block Node) Node {
-return tk.createNode(scope, NODE_NAMESPACE, name, block)
+func (tk Tk) createEnum(scope Scope, name Node, template Node, varlist Node, block Node) Node {
+return tk.createNode(scope, NODE_ENUM, name, template, varlist, block)
+}
+
+
+func (n Node) setStructChildren(name Node, template Node, varlist Node, block Node) {
+
+  if n.Kind() != NODE_STRUCT {
+    panic("!!")
+  }
+  n.setChildren(name, template, varlist, block)
+}
+
+func (tk Tk) createStruct(scope Scope, name Node, template Node, varlist Node, block Node) Node {
+return tk.createNode(scope, NODE_STRUCT, name, template, varlist, block)
+}
+
+
+func (n Node) setTraitChildren(name Node, template Node, empty Node, block Node) {
+
+  if n.Kind() != NODE_TRAIT {
+    panic("!!")
+  }
+  n.setChildren(name, template, empty, block)
+}
+
+func (tk Tk) createTrait(scope Scope, name Node, template Node, empty Node, block Node) Node {
+return tk.createNode(scope, NODE_TRAIT, name, template, empty, block)
 }
 
 
@@ -283,45 +462,6 @@ func (n Node) setTakeChildren(exp Node) {
 
 func (tk Tk) createTake(scope Scope, exp Node) Node {
 return tk.createNode(scope, NODE_TAKE, exp)
-}
-
-
-func (n Node) setEnumChildren(varlist Node) {
-
-  if n.Kind() != NODE_ENUM {
-    panic("!!")
-  }
-  n.setChildren(varlist)
-}
-
-func (tk Tk) createEnum(scope Scope, varlist Node) Node {
-return tk.createNode(scope, NODE_ENUM, varlist)
-}
-
-
-func (n Node) setStructChildren(template Node, varlist Node) {
-
-  if n.Kind() != NODE_STRUCT {
-    panic("!!")
-  }
-  n.setChildren(template, varlist)
-}
-
-func (tk Tk) createStruct(scope Scope, template Node, varlist Node) Node {
-return tk.createNode(scope, NODE_STRUCT, template, varlist)
-}
-
-
-func (n Node) setTraitChildren(template Node, methodlist Node) {
-
-  if n.Kind() != NODE_TRAIT {
-    panic("!!")
-  }
-  n.setChildren(template, methodlist)
-}
-
-func (tk Tk) createTrait(scope Scope, template Node, methodlist Node) Node {
-return tk.createNode(scope, NODE_TRAIT, template, methodlist)
 }
 
 

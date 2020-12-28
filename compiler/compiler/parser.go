@@ -159,19 +159,11 @@ func init() {
 
 	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, v := parseVar(scope, tk.Next(), lbp)
-		if v.expect(NODE_VAR) {
-			v.Extend(tk)
-		} else {
-			tk.reportError("expected a variable declaration")
-		}
 		return next, v
 	})
 
 	nud(KW_CONST, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
 		next, va := parseVar(scope, tk.Next(), lbp)
-		if !va.IsEmpty() {
-			va.SetFlag(FLAG_CONST)
-		}
 		return next, va
 	})
 
@@ -224,10 +216,10 @@ func init() {
 		return iter, tk.createReturn(scope, res)
 	})
 
-	nud(KW_TYPE, parseTypeDecl)
-	nud(KW_STRUCT, parseStruct)
-	nud(KW_TRAIT, parseTrait)
-	nud(KW_ENUM, parseEnum)
+	nud(KW_TYPE, parseType)
+	nud(KW_STRUCT, parseType)
+	nud(KW_TRAIT, parseType)
+	nud(KW_ENUM, parseType)
 
 	lbp += 2
 	lbp_equal = lbp
@@ -252,8 +244,6 @@ func init() {
 	nud(KW_METHOD, parseFn)
 
 	lbp += 2
-
-	led(TK_COLON, parseVarEnd)
 
 	// unary(KW_LOCAL)
 	// unary(KW_CONST)
@@ -812,149 +802,6 @@ func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, fragment.first
 }
 
-// parseTypeDecl parses a type declaration
-func parseTypeDecl(scope Scope, tk Tk, _ int) (Tk, Node) {
-
-	var iter = tk.Next()
-	var typescope = scope.subScope()
-
-	var name Node
-	iter, _ = iter.expect(TK_ID, func(tk Tk) {
-		name = tk.createIdNode(scope)
-	})
-
-	var tpl Node
-	if iter.Is(TK_LBRACE) {
-		iter, tpl = parseTemplate(scope, iter, 0)
-	}
-
-	// there might be a pipe here. We don't have to parse a union afterwards because
-	// if there is only one type, it doesn't matter.
-	iter, _ = iter.consume(TK_PIPE)
-
-	var typdef Node
-	iter, typdef = Expression(typescope, iter, 0)
-
-	var blk Node
-	if iter.Is(TK_LBRACKET) {
-		iter, blk = Expression(typescope, iter, 0)
-	}
-
-	var typ = tk.createType(typescope, name, tpl, typdef, blk)
-
-	// register the type to the scope
-	if name != EmptyNode {
-		scope.addSymbolFromIdNode(name, typ)
-	}
-
-	return iter, typ
-}
-
-//
-// TRAIT
-//
-func parseTrait(scope Scope, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-
-	var traitscope = scope.subScope()
-
-	var name Node
-	iter, _ = iter.expect(TK_ID, func(tk Tk) {
-		name = tk.createIdNode(scope)
-	})
-
-	var template Node
-	if iter.Is(TK_LBRACE) {
-		iter, template = parseTemplate(scope, iter, 0)
-	}
-
-	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LBRACKET, TK_RBRACKET, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
-
-		var node Node
-		iter, node = Expression(traitscope, iter, 0)
-
-		return iter, node
-	})
-
-	var trait = tk.createTrait(traitscope, template, fields)
-	trait.Extend(iter)
-
-	if !name.IsEmpty() {
-		scope.addSymbolFromIdNode(name, trait)
-	}
-
-	return iter, trait
-}
-
-//
-//	STRUCT
-//
-func parseStruct(scope Scope, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-
-	var strscope = scope.subScope()
-
-	var name Node
-	iter, _ = iter.expect(TK_ID, func(tk Tk) {
-		name = tk.createIdNode(scope)
-	})
-
-	var template Node
-	if iter.Is(TK_LBRACE) {
-		iter, template = parseTemplate(scope, iter, 0)
-	}
-
-	var fields Node
-	iter, fields = tryParseList(strscope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
-		var member Node
-		iter, member = Expression(strscope, iter, 0)
-
-		return iter, member
-	})
-
-	var stru = tk.createStruct(strscope, template, fields)
-	stru.Extend(iter)
-
-	if !name.IsEmpty() {
-		scope.addSymbolFromIdNode(name, stru)
-	}
-
-	return iter, stru
-}
-
-func parseEnum(scope Scope, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-
-	var strscope = scope.subScope()
-
-	var name Node
-	iter, _ = iter.expect(TK_ID, func(tk Tk) {
-		name = tk.createIdNode(scope)
-	})
-
-	var fields Node
-	iter, fields = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, false, func(scope Scope, iter Tk) (Tk, Node) {
-		var variable Node
-		iter, variable = parseVar(strscope, iter, 0)
-
-		if variable.IsEmpty() {
-			iter.reportError("expected a field declaration")
-		}
-
-		return iter, variable
-	})
-
-	var stru = tk.createEnum(scope, fields)
-	stru.Extend(iter)
-
-	if !name.IsEmpty() {
-		scope.addSymbolFromIdNode(name, stru)
-	}
-
-	return iter, stru
-}
-
 func parseFor(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 	var forscope = scope.subScope()
@@ -995,21 +842,6 @@ func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, whilenode
 }
 
-// We got here on :
-func parseVarEnd(scope Scope, tk Tk, left Node) (Tk, Node) {
-	var iter = tk.Next()
-	var typ Node
-	iter, typ = Expression(scope, iter, syms[TK_EQ].lbp+1)
-
-	var eql Node
-	if iter.Is(TK_EQ) {
-		iter, eql = Expression(scope, iter, 0)
-	}
-
-	var v = tk.createVar(scope, left, typ, eql)
-	return iter, v
-}
-
 // parse a variable statement, but also a variable declaration inside
 // an argument list of a function signature
 func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
@@ -1019,9 +851,11 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// first, try to scan the ident
 	// this may fail, for dubious reasons
 	var ident Node
-	iter, _ = iter.expect(TK_ID, func(tk Tk) {
-		ident = tk.createIdNode(scope)
-	})
+
+	if iter.should(TK_ID) {
+		ident = iter.createIdNode(scope)
+		iter = iter.Next()
+	}
 
 	// An optional type definition
 	var typenode Node
@@ -1052,13 +886,57 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// Try to parse VAR ourselves
 }
 
-// func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
-// 	// These are the four kind of types we may have to parse
-// 	// var is_type = tk.Is(KW_TYPE)
-// 	// var is_struct = tk.Is(KW_STRUCT)
-// 	// var is_trait = tk.Is(KW_TRAIT)
-// 	// var is_enum = tk.Is(KW_ENUM)
-// }
+func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
+	var iter = tk.Next()
+
+	var ident Node
+	if iter.should(TK_ID) {
+		ident = iter.createIdNode(scope)
+		iter = iter.Next()
+	}
+
+	var typenode Node
+	switch tk.Kind() {
+	case KW_TYPE:
+		typenode = tk.createNode(scope, NODE_TYPE)
+
+	case KW_STRUCT:
+		typenode = tk.createNode(scope, NODE_STRUCT)
+	case KW_ENUM:
+		typenode = tk.createNode(scope, NODE_ENUM)
+	case KW_TRAIT:
+		typenode = tk.createNode(scope, NODE_TRAIT)
+	default:
+		panic("should never get here, this is a compiler bug")
+	}
+
+	var template Node
+	if iter.Is(TK_LBRACE) {
+		iter, template = Expression(scope, iter, 0)
+	}
+
+	var def Node
+	iter.should(TK_LPAREN)
+	switch tk.Kind() {
+	case KW_TYPE:
+		iter, def = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_PIPE, true, func(scope Scope, iter Tk) (Tk, Node) {
+			return Expression(scope, iter, syms[TK_PIPE].lbp+1)
+		})
+	case KW_STRUCT, KW_ENUM, KW_TRAIT:
+		iter, def = tryParseList(scope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+			return parseVar(scope, iter, 0)
+		})
+	}
+
+	// The block section is optional
+	var block Node
+	if iter.Is(TK_LBRACKET) {
+		iter, block = parseBlock(scope, iter, 0)
+	}
+
+	typenode.setChildren(ident, template, def, block)
+	return iter, typenode
+}
 
 ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////

@@ -143,6 +143,10 @@ type Tk struct {
 	file *File
 }
 
+func (tk Tk) Kind() TokenKind {
+	return tk.ref().Kind
+}
+
 func (tk Tk) Line() int {
 	return int(tk.ref().Line)
 }
@@ -244,6 +248,14 @@ func (tk Tk) shouldBe(kind TokenKind) bool {
 	return true
 }
 
+func (tk Tk) should(kind TokenKind) bool {
+	if !tk.Is(kind) {
+		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
+		return false
+	}
+	return true
+}
+
 func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
 	if !tk.Is(kind) {
 		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
@@ -303,6 +315,9 @@ func (tk Tk) isSkippable() bool {
 }
 
 func (tk Tk) Next() Tk {
+	if tk.IsEof() {
+		return tk
+	}
 	var iter = Tk{
 		pos:  tk.pos + 1,
 		file: tk.file,
