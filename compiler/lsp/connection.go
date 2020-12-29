@@ -30,6 +30,7 @@ type LspConnection struct {
 	io.ReadWriteCloser
 	receivedShutdown bool
 	Solution         *zoe.Solution
+	RequestMap       map[int]*LspRequest
 }
 
 // The Zoe LSP should be capable of being multi user.
@@ -44,6 +45,7 @@ func NewConnection(conn io.ReadWriteCloser) *LspConnection {
 	return &LspConnection{
 		ReadWriteCloser: conn,
 		Solution:        zoe.NewSolution(),
+		RequestMap:      make(map[int]*LspRequest),
 	}
 }
 
@@ -64,6 +66,13 @@ func (l *LspConnection) HandleMessage(message []byte) {
 	id := parsed.GetInt("id") // we need the id to reply to the request
 	method := string(parsed.GetStringBytes("method"))
 
+	if method == "$/cancelRequest" {
+		if req, ok := l.RequestMap[id]; ok {
+			req.Cancel()
+			return
+		}
+	}
+
 	if hld, ok := handlers[method]; ok {
 		req := LspRequest{
 			Conn:           l,
@@ -72,12 +81,14 @@ func (l *LspConnection) HandleMessage(message []byte) {
 			Params:         parsed.Get("params"),
 			Method:         method,
 		}
+		l.RequestMap[id] = &req
 		if is_notification {
 			log.Print(green("!"), " notified ", cyan(method))
 		} else {
 			log.Print(green("*"), " handling ", green(method))
 		}
 		if err := hld(&req); err != nil {
+			delete(l.RequestMap, id)
 			req.ReplyError(map[string]interface{}{
 				"code":    -32700,
 				"message": err.Error(),

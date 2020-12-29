@@ -78,6 +78,7 @@ func (r *LspRequest) Reply(val interface{}) {
 		"jsonrpc": "2.0",
 		"result":  val,
 	})
+	delete(r.Conn.RequestMap, r.Id)
 	log.Print("replying ", string(mars))
 	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
 		log.Fatal("err not nil", err)
@@ -96,6 +97,7 @@ func (r *LspRequest) ReplyError(val interface{}) {
 		"jsonrpc": "2.0",
 		"error":   val,
 	})
+	delete(r.Conn.RequestMap, r.Id)
 	log.Print("replying error ", string(mars))
 	if _, err := fmt.Fprintf(r.Conn, "Content-Length: %v\r\n\r\n%s", len(mars), mars); err != nil {
 		log.Fatal("err not nil", err)

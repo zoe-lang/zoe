@@ -7,15 +7,9 @@ import (
 func init() {
 	handlers["initialize"] = HandleInitialize
 	handlers["initialized"] = HandleInitialized
-	handlers["$/cancelRequest"] = HandleCancelRequest
 }
 
 var Capabilities = lsp.ServerCapabilities{}
-
-func HandleCancelRequest(req *LspRequest) error {
-	req.Reply(nil)
-	return nil
-}
 
 func HandleInitialize(req *LspRequest) error {
 
