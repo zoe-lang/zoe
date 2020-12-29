@@ -11,6 +11,12 @@ import (
 
 func init() {
 	handlers["textDocument/completion"] = HandleCompletion
+
+	Capabilities.CompletionProvider = &lsp.CompletionOptions{
+		TriggerCharacters: []string{".", "::"},
+		// ResolveProvider:   true, // no resolve, we send everything in one go.
+	}
+
 }
 
 func HandleCompletion(req *LspRequest) error {
@@ -38,6 +44,7 @@ func HandleCompletion(req *LspRequest) error {
 
 	if len(path) > 0 {
 		var last = path[len(path)-1]
+		log.Print(last.Debug())
 		for _, name := range last.Scope().AllNames() {
 			var kind lsp.CompletionItemKind
 			switch name.Node.Kind() {
@@ -53,6 +60,8 @@ func HandleCompletion(req *LspRequest) error {
 				kind = lsp.CIKInterface
 			case zoe.NODE_FN:
 				kind = lsp.CIKFunction
+			case zoe.NODE_IMPORT:
+				kind = lsp.CIKModule
 			default:
 				kind = lsp.CIKProperty
 			}
@@ -69,15 +78,6 @@ func HandleCompletion(req *LspRequest) error {
 		}
 	}
 	req.Reply(result)
-	// log.Print(last.Scope().Find())
-
-	// req.Reply([]lsp.CompletionItem{
-	// 	{
-	// 		Label:  path[len(path)-1].Debug(),
-	// 		Kind:   lsp.CIKProperty,
-	// 		Detail: "Ooooh yeeah",
-	// 	},
-	// })
 
 	return nil
 }

@@ -11,6 +11,14 @@ import (
 func init() {
 	handlers["textDocument/didOpen"] = HandleDidOpen
 	handlers["textDocument/didChange"] = HandleDidChange
+
+	Capabilities.TextDocumentSync = &lsp.TextDocumentSyncOptionsOrKind{
+		Options: &lsp.TextDocumentSyncOptions{
+			OpenClose: true,
+			Change:    lsp.TDSKIncremental, // TODO: change that to incremental to avoid resending the whole file all the time.
+		},
+	}
+
 }
 
 func HandleDidOpen(req *LspRequest) error {

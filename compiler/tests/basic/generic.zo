@@ -2,6 +2,7 @@
 import 'os' as os
 
 type Toto (Map[String, Int]) {
+
   method test() -> String {
 
   }

@@ -105,7 +105,7 @@ func (l *LspConnection) ProcessIncomingRequests() {
 	// make the buffer big enough to handle the request.
 	var buf = bytes.NewBuffer(make([]byte, 0))
 	var chunk = make([]byte, chunkSize)
-	// var buf = make([]byte, 128*1024)
+
 	var total_read = 0
 	n, err := l.Read(chunk)
 	for n > 0 && err == nil {
@@ -133,10 +133,6 @@ func (l *LspConnection) ProcessIncomingRequests() {
 			_, _ = buf.Write(chunk[:n])
 			total_read += n
 		}
-		// log.Print(total_read, start+length)
-		// log.Print(len(buf.Bytes()), string(buf.Bytes()))
-
-		// log.Print("length", length, " -- ", indices[1])
 
 		wholeBuf := buf.Bytes()
 		// we've read it all, now we're getting parsing !

@@ -9,6 +9,7 @@ import (
 
 func init() {
 	handlers["textDocument/hover"] = HandleHover
+	Capabilities.HoverProvider = true
 }
 
 func HandleHover(req *LspRequest) error {

@@ -85,6 +85,7 @@ type ScopeName struct {
 	Node Node
 }
 
+// Get all the names available to a given scope
 func (s Scope) AllNames() []ScopeName {
 	var res = make([]ScopeName, 0)
 	for s.pos != -1 {

@@ -10,6 +10,8 @@ func init() {
 	handlers["$/cancelRequest"] = HandleCancelRequest
 }
 
+var Capabilities = lsp.ServerCapabilities{}
+
 func HandleCancelRequest(req *LspRequest) error {
 	req.Reply(nil)
 	return nil
@@ -20,19 +22,7 @@ func HandleInitialize(req *LspRequest) error {
 	// log.Print(req.Params.String())
 
 	req.Reply(lsp.InitializeResult{
-		Capabilities: lsp.ServerCapabilities{
-			TextDocumentSync: &lsp.TextDocumentSyncOptionsOrKind{
-				Options: &lsp.TextDocumentSyncOptions{
-					OpenClose: true,
-					Change:    lsp.TDSKIncremental, // TODO: change that to incremental to avoid resending the whole file all the time.
-				},
-			},
-			CompletionProvider: &lsp.CompletionOptions{
-				TriggerCharacters: []string{".", "::"},
-				// ResolveProvider:   true, // no resolve, we send everything in one go.
-			},
-			HoverProvider: true,
-		},
+		Capabilities: Capabilities,
 	})
 
 	return nil
