@@ -12,7 +12,13 @@ import (
 func init() {
 	handlers["textDocument/definition"] = HandleDefinition
 	Capabilities.DefinitionProvider = true
+	// Capabilities.TypeDefinitionProvider = true
 }
+
+// We should handle that as well.
+// func HandleTypeDefinition(req *LspRequest) error {
+
+// }
 
 func HandleDefinition(req *LspRequest) error {
 
@@ -37,6 +43,9 @@ func HandleDefinition(req *LspRequest) error {
 		return err
 	}
 	var last = path[len(path)-1]
+
+	// TODO, we should check along the path to look for the first
+	// instance of a "symbol" tree to try and resolve the symbol.
 	if !last.Is(zoe.NODE_ID) {
 		req.Reply(nil)
 		return nil
