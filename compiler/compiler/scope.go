@@ -1,9 +1,5 @@
 package zoe
 
-import (
-	"strconv"
-)
-
 ////////////////////////
 
 type ScopePosition int
@@ -109,13 +105,13 @@ func (s Scope) Find(name InternedString) (Node, bool) {
 }
 
 func (s Scope) FindRecursive(name InternedString) (Node, bool) {
+
 	if node, ok := s.Find(name); ok {
 		return node, true
 	}
-
 	sc := s.ref()
-	if sc.Parent != -1 {
-		return sc.Parent.Handler(s.file).Find(name)
+	if sc.Parent != -1 { // if we didn't get to the root scope.
+		return sc.Parent.Handler(s.file).FindRecursive(name)
 	}
 
 	return EmptyNode, false
@@ -145,14 +141,6 @@ func (s Scope) addSymbolFromIdNode(idnode Node, target Node) {
 	var name = idnode.InternedString()
 
 	sc := &s.file.scopes[s.pos]
-
-	if orig, ok := s.FindRecursive(name); ok {
-		// we do not set that variable since it already existed in one of our parent scope.
-		// note ; the choice was made to not allow shadowing to avoid footguns, since every
-		// Zoe module needs to explicitely import other symbols (except maybe for core, which will then pollute)
-		s.file.reportError(idnode.Range(), "identifier '", GetInternedString(name), "' was already defined at line ", strconv.Itoa(int(orig.Range().Start.Line+1)))
-		return
-	}
 
 	sc.Names[name] = target.pos
 }

@@ -204,7 +204,7 @@ func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node
 }
 
 // Find a node that matches a given range
-func (f *File) FindNodePosition(lsppos lsp.Position) ([]Node, error) {
+func (f *File) FindNodePosition(lsppos lsp.Position) (NodePath, error) {
 	node := f.RootNode
 	var path = make([]Node, 0)
 	path = append(path, node)

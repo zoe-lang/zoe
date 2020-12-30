@@ -165,6 +165,10 @@ func (n Node) Scope() Scope {
 	}
 }
 
+func (n Node) File() *File {
+	return n.file
+}
+
 func (n Node) SetFlag(flg Flag) {
 	n.ref().Flag |= int(flg)
 }

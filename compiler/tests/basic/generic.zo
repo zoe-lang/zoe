@@ -4,10 +4,27 @@ import 'os' as os
 type Toto (Map[String, Int]) {
 
   method test() -> String {
-
+    # var a: Int
+    a
   }
+
 }
 
 var a: Slice[String] = ["toto"]
+
+fn pouet(toto: String) {
+
+  fn zobi() {
+    test()
+    a + 2
+  }
+
+  test()
+  toto.find()
+}
+
+fn test() {
+  var b = a + 1
+}
 
 os.print("toto")
