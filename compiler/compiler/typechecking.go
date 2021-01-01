@@ -1,5 +1,7 @@
 package zoe
 
+import "log"
+
 // Name resolution
 //
 // Filenames scope (import statements look there when their module is a string)
@@ -31,3 +33,18 @@ package zoe
 
 // Context records the links between symbol uses and their corresponding declaration in the same file
 // or in other files
+
+func (n Node) CheckFile() {
+
+}
+
+// Root check.
+func (n Node) Check() {
+
+	switch n.Kind() {
+	case NODE_FILE:
+		n.CheckFile()
+		log.Print("pouet")
+	}
+
+}

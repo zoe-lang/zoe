@@ -4,16 +4,42 @@ import (
 	"errors"
 	"log"
 	"path/filepath"
+	"sync"
 )
 
 type Solution struct {
 	Files map[string]*File
+	// The dependencies between the files, where the key is the file being depended upon
+	// and the value the files linked to it.
+	// Deps map[string][]string
 }
 
 func NewSolution() *Solution {
 	return &Solution{
 		Files: make(map[string]*File),
+		// Deps:  make(map[string][]string),
 	}
+}
+
+type FileCond struct {
+	rw *sync.RWMutex
+}
+
+func newCondLock() *FileCond {
+	return &FileCond{rw: &sync.RWMutex{}}
+}
+
+func (fc *FileCond) Acquire() {
+	fc.rw.Lock()
+}
+
+func (fc *FileCond) SignalDone() {
+	fc.rw.Unlock()
+}
+
+func (fc *FileCond) Wait() {
+	fc.rw.RLock()
+	fc.rw.RUnlock()
 }
 
 func (s *Solution) AddFile(uri string, contents string, version int) (*File, error) {
@@ -28,6 +54,7 @@ func (s *Solution) AddFile(uri string, contents string, version int) (*File, err
 	}
 
 	f.Parse()
+	f.RootNode.Check()
 	return f, nil
 }
 
@@ -74,6 +101,6 @@ func Resolve(from string, asked string) (string, error) {
 	path := asked
 
 	// Now that we have the final path computed, resolve all its symlinks
-	filepath.EvalSymlinks(path)
+	path, _ = filepath.EvalSymlinks(path)
 	return "", errors.New("module '" + asked + "' could not be found")
 }

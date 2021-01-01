@@ -6,12 +6,16 @@ type Toto (Map[String, Int]) {
   method test() -> String {
     # var a: Int
     a
+
   }
 
 }
 
 var a: Slice[String] = ["toto"]
 
+#(?
+  Some comment !
+#)
 fn pouet(toto: String) {
 
   fn zobi() {
@@ -20,6 +24,7 @@ fn pouet(toto: String) {
   }
 
   test()
+  toto.test()
   toto.find()
 }
 

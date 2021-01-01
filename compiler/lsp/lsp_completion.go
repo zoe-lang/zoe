@@ -19,6 +19,27 @@ func init() {
 
 }
 
+func NodeCIKKind(n zoe.Node) lsp.CompletionItemKind {
+	switch n.Kind() {
+	case zoe.NODE_VAR:
+		return lsp.CIKVariable
+	case zoe.NODE_ENUM:
+		return lsp.CIKEnum
+	case zoe.NODE_STRUCT:
+		return lsp.CIKStruct
+	case zoe.NODE_TYPE:
+		return lsp.CIKClass
+	case zoe.NODE_TRAIT:
+		return lsp.CIKInterface
+	case zoe.NODE_FN:
+		return lsp.CIKFunction
+	case zoe.NODE_IMPORT:
+		return lsp.CIKModule
+	default:
+		return lsp.CIKProperty
+	}
+}
+
 func HandleCompletion(req *LspRequest) error {
 
 	var params = lsp.CompletionParams{}
@@ -46,34 +67,17 @@ func HandleCompletion(req *LspRequest) error {
 		var last = path[len(path)-1]
 		log.Print(last.Debug())
 		for _, name := range last.Scope().AllNames() {
-			var kind lsp.CompletionItemKind
-			switch name.Node.Kind() {
-			case zoe.NODE_VAR:
-				kind = lsp.CIKVariable
-			case zoe.NODE_ENUM:
-				kind = lsp.CIKEnum
-			case zoe.NODE_STRUCT:
-				kind = lsp.CIKStruct
-			case zoe.NODE_TYPE:
-				kind = lsp.CIKClass
-			case zoe.NODE_TRAIT:
-				kind = lsp.CIKInterface
-			case zoe.NODE_FN:
-				kind = lsp.CIKFunction
-			case zoe.NODE_IMPORT:
-				kind = lsp.CIKModule
-			default:
-				kind = lsp.CIKProperty
-			}
 			var docstr = ""
 			if doc, ok := name.Node.DocComment(); ok {
+				log.Print("found the ocmment")
 				docstr = doc.GetText()
 			}
 
 			result = append(result, lsp.CompletionItem{
 				Label:         name.Name,
-				Kind:          kind,
+				Kind:          NodeCIKKind(name.Node),
 				Documentation: docstr,
+				Detail:        docstr,
 			})
 		}
 	}

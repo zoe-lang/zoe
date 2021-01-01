@@ -731,6 +731,7 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 		iter, blk = parseBlock(fnscope, iter, 0)
 		// should register the function somewhere in scope, no ?
 		result = tk.createFn(fnscope, name, signature, blk)
+		result.Extend(iter)
 	}
 
 	if name != EmptyNode {

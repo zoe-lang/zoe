@@ -94,6 +94,15 @@ func (s Scope) AllNames() []ScopeName {
 	return res
 }
 
+func (s Scope) Names() []ScopeName {
+	var res = make([]ScopeName, 0)
+	var ref = s.ref()
+	for i, n := range ref.Names {
+		res = append(res, ScopeName{Name: GetInternedString(i), Node: n.Node(s.file)})
+	}
+	return res
+}
+
 // Find a name in the scope
 func (s Scope) Find(name InternedString) (Node, bool) {
 	sc := s.ref()

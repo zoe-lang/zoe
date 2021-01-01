@@ -30,7 +30,8 @@ func (err ZoeError) ToLspDiagnostic() lsp.Diagnostic {
 }
 
 // File holds the current parsing context
-// also does the error handling stuff.
+// A File instance may become obsolete as the editor sends new informations about it.
+// Since type checking happens in its own goroutine, its result might not be needed anymore.
 type File struct {
 	Filename string
 
