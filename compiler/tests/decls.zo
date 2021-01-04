@@ -9,8 +9,7 @@ fn test2(a: String = 2, z = 3) -> void {
 
 }
 
-struct Toto {
-  field: String
+struct Toto(field: String) {
 
   fn test() {
 

@@ -116,7 +116,7 @@ fn main() {
   # An iso[...] always has to include | none somewhere, or is that implicit
   # For now, I'd rather have to see it everywhere.
   var some_isolate: iso[MyStructure] | none
-  var some_isolate2: iso[*MyStructure] | String | none
+  var some_isolate2: iso[@MyStructure] | String | none
 
   while !((var val = ch.receive()) is Channel.EOF) {
     # val is an isolate
@@ -151,7 +151,7 @@ fn main() {
   # Do const isolates need to be ARC ?
 }
 
-type Channel[$T] is opaque { # is it opaque though ? Can't it be implemented in zoe ?
+type Channel[$T] (opaque) { # is it opaque though ? Can't it be implemented in zoe ?
   method receive() -> $T | Channel.EOF | error {
 
   }
@@ -172,7 +172,7 @@ type Channel[$T] is opaque { # is it opaque though ? Can't it be implemented in 
 
   }
 
-  method sendIsolate(val: iso[*$T] | none) -> error | nothing {
+  method sendIsolate(val: iso[@$T] | none) -> error | nothing {
     # We have to figure out if the type handled is a simple variable that will be copied
     # or if we have an isolate that we can safely pass around.
     # How do we prevent useless copies though ?
