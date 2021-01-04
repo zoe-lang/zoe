@@ -1,0 +1,12 @@
+
+type String (const Slice[Byte]) {
+
+  #(?
+    no copy is performed, a slice is simply created
+  #)
+  fn fromCString(cptr: @const Byte) {
+    # somewhere, there should be a mention that cptr is *not* a safe pointer.
+
+  }
+
+}

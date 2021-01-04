@@ -264,8 +264,10 @@ func init() {
 	lbp += 2
 
 	binary(TK_LT, NODE_BIN_LT)
+	binary(TK_LTE, NODE_BIN_LTEQ)
 	lbp_gt = lbp
 	binary(TK_GT, NODE_BIN_GT)
+	binary(TK_GTE, NODE_BIN_GTEQ)
 	// unary(TK_ELLIPSIS) // ???
 
 	lbp += 2
@@ -920,7 +922,9 @@ func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 	var template Node
 	if iter.Is(TK_LBRACE) {
-		iter, template = Expression(typescope, iter, 0)
+		iter, template = tryParseList(typescope, iter, TK_LBRACE, TK_RBRACE, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
+			return Expression(scope, iter, 0)
+		})
 	}
 
 	var def Node

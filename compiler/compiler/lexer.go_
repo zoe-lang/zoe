@@ -167,7 +167,9 @@ func (z *File) Lex() error {
 				goto yyc_top
 			}
 			<top> "!"   { addToken(TK_EXCLAM); goto yyc_top }
+			<top> "<="   { addToken(TK_LTE); goto yyc_top }
 			<top> "<"   { addToken(TK_LT); goto yyc_top }
+			<top> ">="   { addToken(TK_GTE); goto yyc_top }
 			<top> ">"   { addToken(TK_GT); goto yyc_top }
 			<top> "|"   { addToken(TK_PIPE); goto yyc_top }
 			<top> "||"   { addToken(TK_PIPEPIPE); goto yyc_top }

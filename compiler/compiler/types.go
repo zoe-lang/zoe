@@ -51,6 +51,12 @@ type TypeModule struct {
 	Members map[InternedString]IType
 }
 
+type TypeTemplate struct {
+	TypeBase
+	// Is it really IType, since we're going to have to resolve ?
+	Args []IType
+}
+
 type TypeFunction struct {
 	TypeBase
 	Args       []IType

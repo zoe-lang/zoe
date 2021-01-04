@@ -16,6 +16,72 @@ struct Toto(field: String) {
   }
 
   method yeah(a: Int) {
+    test()
+  }
+}
 
+# var a = 1
+var c: String = "toto"
+
+fn test(a: String, b: ...String = "pouet",) -> void {
+  return a + a
+}
+
+fn test2(a: String = 2, z = 3) -> void {
+
+}
+
+struct Toto(field: String) {
+
+  fn test() {
+
+  }
+
+  method yeah(a: Int) {
+    test()
+  }
+}
+
+# var a = 1
+var c: String = "toto"
+
+fn test(a: String, b: ...String = "pouet",) -> void {
+  return a + a
+}
+
+fn test2(a: String = 2, z = 3) -> void {
+
+}
+
+struct Toto(field: String) {
+
+  fn test() {
+
+  }
+
+  method yeah(a: Int) {
+    test()
+  }
+}
+
+# var a = 1
+var c: String = "toto"
+
+fn test(a: String, b: ...String = "pouet",) -> void {
+  return a + a
+}
+
+fn test2(a: String = 2, z = 3) -> void {
+
+}
+
+struct Toto(field: String) {
+
+  fn test() {
+
+  }
+
+  method yeah(a: Int) {
+    test()
   }
 }
