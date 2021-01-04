@@ -2,15 +2,18 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"log"
 
+	"github.com/creachadair/jrpc2/handler"
 	"github.com/sourcegraph/go-lsp"
 )
 
 func init() {
-	handlers["textDocument/didOpen"] = HandleDidOpen
-	handlers["textDocument/didChange"] = HandleDidChange
+	addHandler(func(l *LspConnection, mp handler.Map) {
+		mp["textDocument/didOpen"] = handler.New(l.HandleDidOpen)
+		mp["textDocument/didChange"] = handler.New(l.HandleDidChange)
+	})
 
 	Capabilities.TextDocumentSync = &lsp.TextDocumentSyncOptionsOrKind{
 		Options: &lsp.TextDocumentSyncOptions{
@@ -21,20 +24,17 @@ func init() {
 
 }
 
-func HandleDidOpen(req *LspRequest) error {
-	fsent := lsp.DidOpenTextDocumentParams{}
-	if err := json.Unmarshal(req.RawParams(), &fsent); err != nil {
-		return err
-	}
+func (l *LspConnection) HandleDidOpen(ctx context.Context, fsent lsp.DidOpenTextDocumentParams) error {
 
 	log.Print("added file ", string(fsent.TextDocument.URI))
-	f, err := req.Conn.Solution.AddFile(string(fsent.TextDocument.URI), fsent.TextDocument.Text, fsent.TextDocument.Version)
+	f, err := l.Solution.AddFile(string(fsent.TextDocument.URI), fsent.TextDocument.Text, fsent.TextDocument.Version)
 	if err == nil {
 		diags := make([]lsp.Diagnostic, len(f.Errors))
 		for i, e := range f.Errors {
 			diags[i] = e.ToLspDiagnostic()
 		}
-		req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
+
+		l.Server.Notify(ctx, "textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
 			URI:         fsent.TextDocument.URI,
 			Diagnostics: diags,
 		})
@@ -48,17 +48,10 @@ func HandleDidOpen(req *LspRequest) error {
 
 // HandleDidChange should be throttled and operate on incremental updates instead of
 // full text synchronization.
-func HandleDidChange(req *LspRequest) error {
+func (l *LspConnection) HandleDidChange(ctx context.Context, changes lsp.DidChangeTextDocumentParams) error {
 
 	// try to parse the changes
-
-	changes := lsp.DidChangeTextDocumentParams{}
-	// log.Print(string(req.RawParams()))
-	if err := json.Unmarshal(req.RawParams(), &changes); err != nil {
-		return err
-	}
-
-	file, ok := req.Conn.Solution.Files[string(changes.TextDocument.URI)]
+	file, ok := l.Solution.Files[string(changes.TextDocument.URI)]
 	if !ok {
 		log.Print("file not found ", string(changes.TextDocument.URI))
 		// return errors.New(`file not found: ` + string(changes.TextDocument.URI))
@@ -84,14 +77,14 @@ func HandleDidChange(req *LspRequest) error {
 	// req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
 
 	// log.Print(data)
-	f, err := req.Conn.Solution.AddFile(string(changes.TextDocument.URI), string(data), changes.TextDocument.Version)
+	f, err := l.Solution.AddFile(string(changes.TextDocument.URI), string(data), changes.TextDocument.Version)
 	if err == nil {
 		// if len(f.Errors) > 0 {
 		diags := make([]lsp.Diagnostic, len(f.Errors))
 		for i, e := range f.Errors {
 			diags[i] = e.ToLspDiagnostic()
 		}
-		req.Notify("textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
+		l.Server.Notify(ctx, "textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
 			URI:         changes.TextDocument.URI,
 			Diagnostics: diags,
 		})

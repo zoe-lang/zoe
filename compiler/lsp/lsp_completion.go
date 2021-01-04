@@ -1,20 +1,23 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"log"
 
 	zoe "github.com/ceymard/zoe/compiler"
+	"github.com/creachadair/jrpc2/handler"
 	"github.com/sourcegraph/go-lsp"
 )
 
 func init() {
-	handlers["textDocument/completion"] = HandleCompletion
+
+	addHandler(func(l *LspConnection, mp handler.Map) {
+		mp["textDocument/completion"] = handler.New(l.HandleCompletion)
+	})
 
 	Capabilities.CompletionProvider = &lsp.CompletionOptions{
 		TriggerCharacters: []string{".", "::"},
-		// ResolveProvider:   true, // no resolve, we send everything in one go.
 	}
 
 }
@@ -40,17 +43,12 @@ func NodeCIKKind(n zoe.Node) lsp.CompletionItemKind {
 	}
 }
 
-func HandleCompletion(req *LspRequest) error {
-
-	var params = lsp.CompletionParams{}
-	if err := json.Unmarshal(req.RawParams(), &params); err != nil {
-		return err
-	}
+func (l *LspConnection) HandleCompletion(_ context.Context, params lsp.CompletionParams) ([]lsp.CompletionItem, error) {
 
 	// fname := zoe.InternedIds.Save(string(params.TextDocument.URI))
-	var file, ok = req.Conn.Solution.Files[string(params.TextDocument.URI)]
+	var file, ok = l.Solution.Files[string(params.TextDocument.URI)]
 	if !ok {
-		return errors.New(`file not found`)
+		return nil, errors.New(`file not found`)
 	}
 
 	var pos = params.Position
@@ -58,7 +56,7 @@ func HandleCompletion(req *LspRequest) error {
 	log.Print(path)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var result = make([]lsp.CompletionItem, 0)
@@ -81,7 +79,6 @@ func HandleCompletion(req *LspRequest) error {
 			})
 		}
 	}
-	req.Reply(result)
 
-	return nil
+	return result, nil
 }

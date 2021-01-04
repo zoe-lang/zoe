@@ -1,16 +1,20 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"log"
 
 	zoe "github.com/ceymard/zoe/compiler"
+	"github.com/creachadair/jrpc2/handler"
 	"github.com/sourcegraph/go-lsp"
 )
 
 func init() {
-	handlers["textDocument/definition"] = HandleDefinition
+	addHandler(func(l *LspConnection, mp handler.Map) {
+		mp["textDocument/definition"] = handler.New(l.HandleDefinition)
+
+	})
 	Capabilities.DefinitionProvider = true
 	// Capabilities.TypeDefinitionProvider = true
 }
@@ -20,17 +24,12 @@ func init() {
 
 // }
 
-func HandleDefinition(req *LspRequest) error {
-
-	var params lsp.TextDocumentPositionParams
-	if err := json.Unmarshal(req.RawParams(), &params); err != nil {
-		return err
-	}
+func (l *LspConnection) HandleDefinition(_ context.Context, params lsp.TextDocumentPositionParams) (*lsp.Location, error) {
 
 	// fname := zoe.InternedIds.Save(string(params.TextDocument.URI))
-	var file, ok = req.Conn.Solution.Files[string(params.TextDocument.URI)]
+	var file, ok = l.Solution.Files[string(params.TextDocument.URI)]
 	if !ok {
-		return errors.New(`file not found`)
+		return nil, errors.New(`file not found`)
 	}
 
 	var pos = params.Position
@@ -40,27 +39,24 @@ func HandleDefinition(req *LspRequest) error {
 	// we should find a definition for it.
 
 	if err != nil || len(path) == 0 {
-		return err
+		return nil, err
 	}
 	var last = path[len(path)-1]
 
 	// TODO, we should check along the path to look for the first
 	// instance of a "symbol" tree to try and resolve the symbol.
 	if !last.Is(zoe.NODE_ID) {
-		req.Reply(nil)
-		return nil
+		return nil, nil
 	}
 
 	if found, ok := last.FindDefinition(); ok {
 		var loc = lsp.Location{}
 		loc.URI = lsp.DocumentURI(found.File().Filename)
 		loc.Range = found.Range()
-		req.Reply(loc)
-		return nil
+		return &loc, nil
 	}
 
 	log.Print(path)
 
-	req.Reply(nil)
-	return nil
+	return nil, nil
 }

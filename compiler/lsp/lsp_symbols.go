@@ -1,10 +1,11 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 
 	zoe "github.com/ceymard/zoe/compiler"
+	"github.com/creachadair/jrpc2/handler"
 	"github.com/sourcegraph/go-lsp"
 )
 
@@ -24,7 +25,9 @@ type DocumentSymbol struct {
 }
 
 func init() {
-	handlers["textDocument/documentSymbol"] = HandleFileSymbols
+	addHandler(func(l *LspConnection, mp handler.Map) {
+		mp["textDocument/documentSymbol"] = handler.New(l.HandleFileSymbols)
+	})
 	Capabilities.DocumentSymbolProvider = true
 }
 
@@ -49,16 +52,12 @@ func NodeSymbolKind(n zoe.Node) lsp.SymbolKind {
 	}
 }
 
-func HandleFileSymbols(req *LspRequest) error {
-	var params lsp.DocumentSymbolParams
-	if err := json.Unmarshal(req.RawParams(), &params); err != nil {
-		return err
-	}
+func (l *LspConnection) HandleFileSymbols(_ context.Context, params lsp.DocumentSymbolParams) ([]DocumentSymbol, error) {
 
 	// fname := zoe.InternedIds.Save(string(params.TextDocument.URI))
-	var file, ok = req.Conn.Solution.Files[string(params.TextDocument.URI)]
+	var file, ok = l.Solution.Files[string(params.TextDocument.URI)]
 	if !ok {
-		return errors.New(`file not found`)
+		return nil, errors.New(`file not found`)
 	}
 
 	var process_scope func(zoe.Scope) []DocumentSymbol
@@ -82,6 +81,5 @@ func HandleFileSymbols(req *LspRequest) error {
 	}
 	var res = process_scope(file.RootScope())
 
-	req.Reply(res)
-	return nil
+	return res, nil
 }

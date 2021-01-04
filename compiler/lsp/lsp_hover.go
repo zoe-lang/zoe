@@ -1,44 +1,42 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 
+	"github.com/creachadair/jrpc2/handler"
 	"github.com/sourcegraph/go-lsp"
 )
 
 func init() {
-	handlers["textDocument/hover"] = HandleHover
+	// handlers["textDocument/hover"] = HandleHover
+	addHandler(func(l *LspConnection, mp handler.Map) {
+		mp["textDocument/hover"] = handler.New(l.HandleHover)
+	})
 	Capabilities.HoverProvider = true
 }
 
-func HandleHover(req *LspRequest) error {
-	params := lsp.TextDocumentPositionParams{}
-	if err := json.Unmarshal(req.RawParams(), &params); err != nil {
-		return err
-	}
+func (l *LspConnection) HandleHover(_ context.Context, params lsp.TextDocumentPositionParams) (*lsp.Hover, error) {
 
 	var fname = string(params.TextDocument.URI)
-	file, ok := req.Conn.Solution.Files[fname]
+	file, ok := l.Solution.Files[fname]
 	if !ok {
-		req.Reply(lsp.Hover{
+		return &lsp.Hover{
 			Contents: []lsp.MarkedString{{
 				Language: "zoe",
 				Value:    fmt.Sprint("file '", fname, "'not found"),
 			}},
-		})
-		return nil
+		}, nil
 	}
 
 	pos, err2 := file.FindNodePosition(params.Position)
 	if err2 != nil {
-		req.Reply(lsp.Hover{
+		return &lsp.Hover{
 			Contents: []lsp.MarkedString{{
 				Language: "zoe",
 				Value:    err2.Error(),
 			}},
-		})
-		return err2
+		}, err2
 	}
 
 	res := lsp.Hover{}
@@ -51,6 +49,5 @@ func HandleHover(req *LspRequest) error {
 		Value:    dbg + " " + last.GetText(),
 	}}
 
-	req.Reply(res)
-	return nil
+	return &res, nil
 }

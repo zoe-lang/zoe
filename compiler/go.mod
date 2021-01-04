@@ -3,6 +3,7 @@ module github.com/ceymard/zoe
 go 1.15
 
 require (
+	github.com/creachadair/jrpc2 v0.11.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.10.0
 	github.com/k0kubun/pp v3.0.1+incompatible

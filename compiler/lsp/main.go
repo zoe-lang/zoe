@@ -30,6 +30,6 @@ func main() {
 		}
 		log.Printf("Client connected [%s]", conn.RemoteAddr().Network())
 		theconn := NewConnection(conn)
-		go theconn.ProcessIncomingRequests()
+		go theconn.Listen()
 	}
 }

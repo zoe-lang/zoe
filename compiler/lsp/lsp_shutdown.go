@@ -1,18 +1,25 @@
 package main
 
+import (
+	"context"
+
+	"github.com/creachadair/jrpc2/handler"
+)
+
 func init() {
-	handlers["shutdown"] = HandleShutdown
-	handlers["exit"] = HandleExit
+	addHandler(func(l *LspConnection, mp handler.Map) {
+		mp["shutdown"] = handler.New(l.HandleShutdown)
+		mp["exit"] = handler.New(l.HandleExit)
+	})
 }
 
-func HandleShutdown(req *LspRequest) error {
+func (l *LspConnection) HandleShutdown(_ context.Context) error {
 	// FIXME should probably do some cleanup...
-	req.Conn.receivedShutdown = true
-	req.Reply(nil)
+	l.receivedShutdown = true
 	return nil
 }
 
-func HandleExit(req *LspRequest) error {
+func (l *LspConnection) HandleExit(_ context.Context) error {
 	// if req.Conn.receivedShutdown {
 	// 	os.Exit(0)
 	// }
