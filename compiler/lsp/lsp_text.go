@@ -65,7 +65,7 @@ func (l *LspConnection) HandleDidChange(ctx context.Context, changes lsp.DidChan
 		var offsetstart = file.GetOffsetForPosition(chg.Range.Start)
 		var offsetend = file.GetOffsetForPosition(chg.Range.End)
 		// log.Print(`REPLACING `, offsetstart, `-`, offsetend)
-		// log.Print(`In tokens[`, len(file.Tokens), `] range is `, offsetstart, `-`, offsetend, ` for len `, len(data)-1)
+		log.Print(`In tokens[`, len(file.Tokens), `] range is `, offsetstart, `-`, offsetend, ` for len `, len(data)-1)
 		_, _ = buf.Write(data[0:offsetstart])
 		if offsetstart <= offsetend {
 			_, _ = buf.Write([]byte(chg.Text))
@@ -76,7 +76,7 @@ func (l *LspConnection) HandleDidChange(ctx context.Context, changes lsp.DidChan
 
 	// req.Conn.Solution.AddFile(string(changes.TextDocument.URI), changes.ContentChanges[0].Text, changes.TextDocument.Version)
 
-	// log.Print(data)
+	log.Print(string(data))
 	f, err := l.Solution.AddFile(string(changes.TextDocument.URI), string(data), changes.TextDocument.Version)
 	if err == nil {
 		// if len(f.Errors) > 0 {

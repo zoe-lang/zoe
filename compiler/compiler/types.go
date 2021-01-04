@@ -84,11 +84,26 @@ type TypeUnion struct {
 	Members map[InternedString]IType
 }
 
-type TypeLiteral struct {
+type TypeBuiltin struct {
 	TypeBase
 }
 
 var (
-	None = &TypeLiteral{}
-	Void = &TypeLiteral{}
+	None    = TypeBuiltin{}
+	Void    = TypeBuiltin{}
+	Bool    = TypeBuiltin{}
+	Int     = TypeBuiltin{}
+	Int16   = TypeBuiltin{}
+	Int32   = TypeBuiltin{}
+	Int64   = TypeBuiltin{}
+	UInt    = TypeBuiltin{}
+	UInt16  = TypeBuiltin{}
+	UInt32  = TypeBuiltin{}
+	UInt64  = TypeBuiltin{}
+	Size    = TypeBuiltin{}
+	Int128  = TypeBuiltin{}
+	Byte    = TypeBuiltin{}
+	Float32 = TypeBuiltin{}
+	Float64 = TypeBuiltin{}
+	Float   = TypeBuiltin{}
 )
