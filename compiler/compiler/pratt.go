@@ -2,12 +2,12 @@ package zoe
 
 type prattTk struct {
 	lbp int                                            // left binding power
-	nud func(scope Scope, tk Tk, lbp int) (Tk, Node)   // when landing on it as a value or prefix
-	led func(scope Scope, tk Tk, left Node) (Tk, Node) // when landing on it as an operator
+	nud func(ctx Context, tk Tk, lbp int) (Tk, Node)   // when landing on it as a value or prefix
+	led func(ctx Context, tk Tk, left Node) (Tk, Node) // when landing on it as an operator
 }
 
 // Expression is the standard Pratt parser Expression function
-func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
+func Expression(ctx Context, tk Tk, rbp int) (Tk, Node) {
 	// This is an error case, but has to be handled
 	if tk.IsEof() {
 		// error ?
@@ -15,7 +15,7 @@ func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
 	}
 
 	sym_cur := tk.sym()
-	tk, left := sym_cur.nud(scope, tk, rbp)
+	tk, left := sym_cur.nud(ctx, tk, rbp)
 
 	// nud might have advanced without us knowing...
 	if tk.IsEof() {
@@ -26,7 +26,7 @@ func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
 
 	for rbp < next_sym.lbp {
 		// log.Print(c.Current.KindStr(), c.Current.Value(c.data))
-		tk, left = next_sym.led(scope, tk, left)
+		tk, left = next_sym.led(ctx, tk, left)
 
 		if tk.IsEof() {
 			return tk, left
@@ -40,8 +40,8 @@ func Expression(scope Scope, tk Tk, rbp int) (Tk, Node) {
 
 func literal(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
-	s.nud = func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		return tk.Next(), tk.createNode(scope, nk)
+	s.nud = func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		return tk.Next(), tk.createNode(ctx, nk)
 	}
 }
 
@@ -53,10 +53,10 @@ func binary(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
 	s.lbp = precedence
 
-	s.led = func(lbp int) func(scope Scope, tk Tk, left Node) (Tk, Node) {
-		return func(scope Scope, tk Tk, left Node) (Tk, Node) {
-			next, right := Expression(scope, tk.Next(), lbp-1)
-			return next, tk.createNode(scope, nk, left, right) // b.createNodeFromToken(tk, nk, scope, left, right)
+	s.led = func(lbp int) func(ctx Context, tk Tk, left Node) (Tk, Node) {
+		return func(ctx Context, tk Tk, left Node) (Tk, Node) {
+			next, right := Expression(ctx, tk.Next(), lbp-1)
+			return next, tk.createNode(ctx, nk, left, right) // b.createNodeFromToken(tk, nk, scope, left, right)
 		}
 	}(precedence)
 }
@@ -64,25 +64,25 @@ func binary(tk TokenKind, nk AstNodeKind) {
 func unary(tk TokenKind, nk AstNodeKind) {
 	s := &syms[tk]
 	rbp := lbp - 1
-	s.nud = func(scope Scope, tk Tk, _ int) (Tk, Node) {
-		next, right := Expression(scope, tk.Next(), rbp)
-		return next, tk.createNode(scope, nk, right) // b.createNodeFromToken(tk, nk, scope, right)
+	s.nud = func(ctx Context, tk Tk, _ int) (Tk, Node) {
+		next, right := Expression(ctx, tk.Next(), rbp)
+		return next, tk.createNode(ctx, nk, right) // b.createNodeFromToken(tk, nk, scope, right)
 		// return NewNode(nk, tk.Position, c.Expression(rbp))
 	}
 }
 
-func led(tk TokenKind, fn func(scope Scope, tk Tk, left Node) (Tk, Node)) {
+func led(tk TokenKind, fn func(ctx Context, tk Tk, left Node) (Tk, Node)) {
 	s := &syms[tk]
 	s.lbp = lbp
 	s.led = fn
 }
 
-func nud(tk TokenKind, fn func(scope Scope, tk Tk, lbp int) (Tk, Node)) {
+func nud(tk TokenKind, fn func(ctx Context, tk Tk, lbp int) (Tk, Node)) {
 	s := &syms[tk]
 	s.nud = fn
 }
 
-func tryParseList(scope Scope, iter Tk, openKind, closeKind, separatorKind TokenKind, mandatorySep bool, fn func(scope Scope, iter Tk) (Tk, Node)) (Tk, Node) {
+func tryParseList(ctx Context, iter Tk, openKind, closeKind, separatorKind TokenKind, mandatorySep bool, fn func(ctx Context, iter Tk) (Tk, Node)) (Tk, Node) {
 	// It's always rbp 0
 	var list = newList()
 	var ok bool
@@ -96,7 +96,7 @@ func tryParseList(scope Scope, iter Tk, openKind, closeKind, separatorKind Token
 		var node Node
 		var orig = iter
 
-		iter, node = fn(scope, iter)
+		iter, node = fn(ctx, iter)
 		if !node.IsEmpty() {
 			list.append(node)
 		}

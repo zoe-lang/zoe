@@ -401,24 +401,24 @@ func (tk Tk) reportError(msg ...string) {
 //////////////////////////////////////////////
 //
 
-func (tk Tk) createNode(scope Scope, nk AstNodeKind, args ...Node) Node {
-	return tk.file.createNode(tk, nk, scope, args...) // ????
+func (tk Tk) createNode(ctx Context, nk AstNodeKind, args ...Node) Node {
+	return tk.file.createNode(tk, nk, ctx, args...) // ????
 }
 
-func (tk Tk) createIdNode(scope Scope) Node {
+func (tk Tk) createIdNode(ctx Context) Node {
 	idstr := SaveInternedString(tk.GetText())
-	idnode := tk.createNode(scope, NODE_ID)
+	idnode := tk.createNode(ctx, NODE_ID)
 	idnode.SetInternedString(idstr)
 	// b.file.Nodes[idnode].Value = idstr
 	return idnode
 }
 
-func (tk Tk) createBinOp(scope Scope, kind AstNodeKind, left Node, right Node) Node {
-	return tk.createNode(scope, kind, left, right)
+func (tk Tk) createBinOp(ctx Context, kind AstNodeKind, left Node, right Node) Node {
+	return tk.createNode(ctx, kind, left, right)
 }
 
-func (tk Tk) createUnaryOp(scope Scope, kind AstNodeKind, left Node) Node {
-	return tk.createNode(scope, kind, left)
+func (tk Tk) createUnaryOp(ctx Context, kind AstNodeKind, left Node) Node {
+	return tk.createNode(ctx, kind, left)
 }
 
 func (tk Tk) Debug() string {

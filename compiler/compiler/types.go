@@ -1,109 +1,176 @@
 package zoe
 
-// A type has two components ; its definition and its namespace / methods
+// We have symbols in scopes
+//
+// A symbol can be
+//	 - an import
+//   - a variable
+//   - a function / method
+//   - a named scope (like a file or a namespace)
+//   - a type definition (struct / type / union / enum), which is itself a namespace when resolved directly
+//   - a template !
+//
+// A symbol always has members !
+// What about scopes ? Should scopes live separately ?
+// In a file, the root scope is available to all. But outside the file, the root scope
+// becomes a module, which has members !
+//
+// a file module, when a name registers ;
+//   - registers the name in its associated scope
+//   - *also* registers the name in its members
+//
+// All symbols have types associated with them, that can be retrived using GetType() on them.
+// A Type's type is a TypeDefinition.
+// A type may have members, which are struct members and methods.
+//
+// A type is associated to a namespace, where *methods* may be located that can
+// be called on a type (with instance as first argument) or be called an instance.
+//
+// We distinguish two types of symbol scopes ;
+//   - the ones where instructions are being executed, in the body of functions
+//   - the ones where only definitions reside (and some execution ?)
 
-type NodePath []Node
+type Names map[Name]Symbol
 
-func (n Node) ResolveMember() Node {
-	return Node{}
+func (n *Names) RegisterSymbol(sym Symbol) {
+	(*n)[sym.Name()] = sym
 }
 
-// For a given expression, find the symbol it is referencing. This could
-// be a variable, a type, or a member.
-// This is generally a prelude to type finding.
-// It crosses files boundaries when on an import.
-func (n Node) FindDefinition() (Node, bool) {
-	if !n.Is(NODE_ID) {
-		panic("compiler error, the node should be an Id node")
-	}
-	var is = n.InternedString()
-	// log.Print(is, " -> ", GetInternedString(is))
-	if found, ok := n.Scope().FindRecursive(is); ok {
-		// This is where we should check whether found is actually an import.
-		return found, true
-	}
-	return Node{}, false
+// Nameholders can be scopes or types
+// Scopes just add the symbol to their map, while types can filter stuff and
+// send to their namespace
+type Nameholder interface {
+	RegisterSymbol(name Name, sym Symbol)
 }
 
-// Find the type of a variable
-func (np NodePath) FindTypeDefinition() Node {
-	return Node{}
+///////////////////////////////////////////////////
+// Symbol
+
+type Symbol interface {
+	Name() Name
+	Scope() Scope
+	Node() Node
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///
-///
-
-// Type interface represents something that holds a Type
-type IType interface {
-	IsDefined() bool
+type symbolBase struct {
+	name Name
+	node Node
 }
 
-type TypeBase struct{}
-
-func (tb *TypeBase) IsDefined() bool {
-	return tb != nil
+func (s *symbolBase) Name() Name {
+	return s.name
 }
 
-type TypeModule struct {
-	TypeBase
-	Members map[InternedString]IType
+func (s *symbolBase) Scope() Scope {
+	return s.node.Scope()
 }
 
-type TypeTemplate struct {
-	TypeBase
-	// Is it really IType, since we're going to have to resolve ?
-	Args []IType
+func (s *symbolBase) Node() Node {
+	return s.node
 }
 
-type TypeFunction struct {
-	TypeBase
-	Args       []IType
-	ReturnType IType
+////////////////////////////////////////////////////////
+// Types with members
+
+type Membered struct {
+	names Names
 }
 
-type TypeEnum struct {
-	// Also, values ?
-	TypeBase
-	Members map[InternedString]IType
+func (m *Membered) GetMembers() Names {
+	return m.names
 }
 
-type TypeStruct struct {
-	TypeBase
-	Fields map[InternedString]IType
+// Namespace holds names
+type Namespace struct {
+	names Names
 }
 
-type TypePointer struct {
-	TypeBase
-	Pointed IType
+////////////////////////////////////////////////////////////////
+// All the type definitions need the following
+
+type typedefBase struct {
+	symbolBase
+	Namespace
+	Implements []*Implement
 }
 
-type TypeUnion struct {
-	TypeBase
-	Members map[InternedString]IType
+func (b *typedefBase) RegisterImplement(impl *Implement) {
+	b.Implements = append(b.Implements, impl)
+	impl.ParentType = b
 }
 
-type TypeBuiltin struct {
-	TypeBase
+type TypeDefinition interface {
+	RegisterImplement(impl *Implement)
+	// TryRegisterSymbol(sym Symbol) bool
 }
 
-var (
-	None    = TypeBuiltin{}
-	Void    = TypeBuiltin{}
-	Bool    = TypeBuiltin{}
-	Int     = TypeBuiltin{}
-	Int16   = TypeBuiltin{}
-	Int32   = TypeBuiltin{}
-	Int64   = TypeBuiltin{}
-	UInt    = TypeBuiltin{}
-	UInt16  = TypeBuiltin{}
-	UInt32  = TypeBuiltin{}
-	UInt64  = TypeBuiltin{}
-	Size    = TypeBuiltin{}
-	Int128  = TypeBuiltin{}
-	Byte    = TypeBuiltin{}
-	Float32 = TypeBuiltin{}
-	Float64 = TypeBuiltin{}
-	Float   = TypeBuiltin{}
-)
+///////////////////////////////////////////////////////////////////
+
+type NamespaceDef struct {
+	typedefBase
+	Membered
+}
+
+// StructDef gets its members
+type StructDef struct {
+	typedefBase
+	Membered
+}
+
+// When struct receives a name, it must check if it should add it to its members,
+// to its namespace, or to its associated scope (its namespace is its scope)
+
+type Implement struct {
+	Membered
+	ParentType TypeDefinition // implements always have an associated type
+	Node       Node
+}
+
+type EnumDef struct {
+	typedefBase
+	Membered // there needs to be a check done somewhere ?
+}
+
+type UnionDef struct {
+	// shit shit, type expressions...
+	TypeDefinition
+	Union Union
+}
+
+////// Function definition
+
+type FnDef struct {
+	symbolBase
+}
+
+////////
+
+type Union struct {
+	TypeDefinition
+	Membered
+	Types []TypeExpression
+}
+
+// Invalid type is the result
+type InvalidType struct {
+	TypeDefinition
+}
+
+//////////////////////////////////////////////////////
+// Pure symbols
+
+type Import struct {
+	symbolBase
+}
+
+type Variable struct {
+	symbolBase
+}
+
+//////////////////////////////////////////////////////
+//
+
+// TypeExpression
+type TypeExpression interface {
+	GetMembers() Names
+}

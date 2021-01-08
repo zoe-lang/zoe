@@ -7,7 +7,11 @@ func (f *File) Parse() {
 
 // At the top level, just parse everything we can
 func (f *File) parseFile() (Tk, Node) {
-	scope := f.RootScope()
+	// var module = TypeModule{}
+	var scope = f.RootScope()
+	var fdef = &NamespaceDef{}
+	var ctx = Context{scope: scope, currentType: fdef}
+
 	tk := Tk{
 		pos:  0,
 		file: f,
@@ -15,12 +19,12 @@ func (f *File) parseFile() (Tk, Node) {
 	if tk.isSkippable() {
 		tk = tk.Next()
 	}
-	file := f.createNode(tk, NODE_FILE, scope)
+	file := f.createNode(tk, NODE_FILE, ctx)
 
 	app := newList()
 	tk.whileNotEof(func(iter Tk) Tk {
 		var node Node
-		iter, node = Expression(scope, iter, 0)
+		iter, node = Expression(ctx, iter, 0)
 		if !node.IsEmpty() {
 			file.ExtendRangeFromNode(node)
 			app.append(node)
@@ -52,12 +56,12 @@ func init() {
 	//
 	// Parse a parenthesized expression.
 	//
-	nud(TK_LPAREN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_LPAREN, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		// We are going to check if we have several components to the paren, or just
 		// one, in which case we just send it back.
 		// an empty () parenthesis block is an error as it doesn't mean anything.
 
-		iter, exp := Expression(scope, tk.Next(), 0)
+		iter, exp := Expression(ctx, tk.Next(), 0)
 		// check if we end with a parenthesis
 		if next, ok := iter.consume(TK_RPAREN); ok {
 			exp.Extend(tk)
@@ -71,7 +75,7 @@ func init() {
 		app.append(exp)
 
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
-			iter, exp = Expression(scope, iter, 0)
+			iter, exp = Expression(ctx, iter, 0)
 			if !iter.Is(TK_RPAREN) {
 				iter, _ = iter.expect(TK_COMMA) // there can be a comma
 			}
@@ -79,7 +83,7 @@ func init() {
 			return iter
 		})
 
-		tup := tk.createTuple(scope, app.first)
+		tup := tk.createTuple(ctx, app.first)
 		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) { tup.Extend(tk) })
 
 		return iter, tup
@@ -88,34 +92,43 @@ func init() {
 	//
 	// Namespace declaration (might go away)
 	//
-	nud(KW_NAMESPACE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_NAMESPACE, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		var iter = tk.Next()
 		// res.Block = res.CreateBlock()
+		var nmsp = &NamespaceDef{}
+
 		var name Node
-		iter, name = Expression(scope, iter, 0)
+		if iter.Is(TK_ID) {
+			name = iter.createIdNode(ctx)
+			iter = iter.Next()
+		}
+
+		var nmsp_scope = ctx.CreateNamespaceContext(nmsp)
+		// iter, name = Expression(ctx, iter, 0)
 
 		var block Node
-		var nmsp_scope = scope.subScope()
 
 		if _, ok := iter.expect(TK_LBRACKET); ok {
 			iter, block = parseBlock(nmsp_scope, iter, 0)
 		}
 
-		var nmsp = tk.createNamespace(nmsp_scope, name, block)
-		return iter, nmsp
+		var nmsp_node = tk.createNamespace(nmsp_scope, name, block)
+		nmsp.node = nmsp_node
+
+		return iter, nmsp_node
 	})
 
 	// { , a block
 	nud(TK_LBRACKET, parseBlock)
 
-	nud(TK_LBRACE, func(scope Scope, tk Tk, _ int) (Tk, Node) {
+	nud(TK_LBRACE, func(ctx Context, tk Tk, _ int) (Tk, Node) {
 		// function call !
 		var iter = tk.Next()
 
 		fragment := newList()
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
-			iter, exp = Expression(scope, iter, 0)
+			iter, exp = Expression(ctx, iter, 0)
 			fragment.append(exp)
 			if !iter.Is(TK_RBRACE) {
 				iter, _ = iter.consume(TK_COMMA)
@@ -123,7 +136,7 @@ func init() {
 			return iter
 		})
 
-		array := tk.createArrayLiteral(scope, fragment.first)
+		array := tk.createArrayLiteral(ctx, fragment.first)
 
 		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
 			array.Extend(tk)
@@ -135,9 +148,9 @@ func init() {
 	// The doc comment forwards the results but sets itself first on the node that resulted
 	// Doc comments whose next meaningful token are other doc comments or the end of the file
 	// are added at the module level
-	nud(TK_DOCCOMMENT, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_DOCCOMMENT, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		// tkpos := b.current - 1           // the parsed token position
-		next, node := Expression(scope, tk.Next(), lbp) // forward the current lbp to the expression
+		next, node := Expression(ctx, tk.Next(), lbp) // forward the current lbp to the expression
 		tk.file.DocCommentMap[node.pos] = tk.pos
 		return next, node
 	})
@@ -147,8 +160,8 @@ func init() {
 	nud(KW_IF, parseIf)
 	nud(KW_SWITCH, parseSwitch)
 
-	nud(KW_LOCAL, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next, v := Expression(scope, tk.Next(), lbp)
+	nud(KW_LOCAL, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		next, v := Expression(ctx, tk.Next(), lbp)
 		if v.expect(NODE_VAR) {
 			v.Extend(tk)
 		} else {
@@ -157,34 +170,34 @@ func init() {
 		return next, v
 	})
 
-	nud(KW_VAR, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next, v := parseVar(scope, tk.Next(), lbp)
+	nud(KW_VAR, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		next, v := parseVar(ctx, tk.Next(), lbp)
 		return next, v
 	})
 
-	nud(KW_CONST, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next, va := parseVar(scope, tk.Next(), lbp)
+	nud(KW_CONST, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		next, va := parseVar(ctx, tk.Next(), lbp)
 		return next, va
 	})
 
 	nud(KW_IMPORT, parseImport)
 
-	nud(KW_IMPLEMENT, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_IMPLEMENT, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		var iter = tk.Next()
 		var namexp Node
-		iter, namexp = Expression(scope, iter, 0)
+		iter, namexp = Expression(ctx, iter, 0)
 
 		var blk Node
 		if iter.Is(TK_LBRACKET) {
-			iter, blk = parseBlock(scope, iter, 0)
+			iter, blk = parseBlock(ctx, iter, 0)
 		}
 
-		return iter, tk.createImplement(scope, namexp, blk)
+		return iter, tk.createImplement(ctx, namexp, blk)
 	})
 
 	lbp += 2
 
-	nud(KW_TAKE, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_TAKE, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		var res Node
 		iter := tk
 		// do not try to get next expression is return is immediately followed
@@ -193,15 +206,15 @@ func init() {
 			// return can only return nothing if it is at the end of a block or expression
 			res = EmptyNode
 		} else {
-			iter, res = Expression(scope, tk.Next(), lbp)
+			iter, res = Expression(ctx, tk.Next(), lbp)
 		}
 
-		return iter, tk.createTake(scope, res)
+		return iter, tk.createTake(ctx, res)
 	})
 
 	// return ...
 	// will return an empty node if
-	nud(KW_RETURN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_RETURN, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		var res Node
 		iter := tk
 		// do not try to get next expression is return is immediately followed
@@ -210,10 +223,10 @@ func init() {
 			// return can only return nothing if it is at the end of a block or expression
 			res = EmptyNode
 		} else {
-			iter, res = Expression(scope, tk.Next(), lbp)
+			iter, res = Expression(ctx, tk.Next(), lbp)
 		}
 
-		return iter, tk.createReturn(scope, res)
+		return iter, tk.createReturn(ctx, res)
 	})
 
 	nud(KW_TYPE, parseType)
@@ -227,16 +240,16 @@ func init() {
 	// =
 	binary(TK_EQ, NODE_BIN_ASSIGN)
 	lbp_is := lbp
-	led(KW_IS, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(KW_IS, func(ctx Context, tk Tk, left Node) (Tk, Node) {
 		var iter = tk.Next()
 		var right Node
 
 		if iter.Is(KW_NOT) {
-			iter, right = Expression(scope, iter.Next(), lbp_is+1)
-			return iter, tk.createNode(scope, NODE_BIN_IS_NOT, left, right)
+			iter, right = Expression(ctx, iter.Next(), lbp_is+1)
+			return iter, tk.createNode(ctx, NODE_BIN_IS_NOT, left, right)
 		}
-		iter, right = Expression(scope, iter, lbp_is+1)
-		return iter, tk.createNode(scope, NODE_BIN_IS, left, right)
+		iter, right = Expression(ctx, iter, lbp_is+1)
+		return iter, tk.createNode(ctx, NODE_BIN_IS, left, right)
 	})
 
 	// fn eats up the expression right next to it
@@ -251,9 +264,9 @@ func init() {
 	binary(TK_NOTEQ, NODE_BIN_NEQ)
 
 	lbp_eq := lbp
-	nud(TK_EXCLAM, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		next, exp := Expression(scope, tk.Next(), lbp_eq)
-		node := tk.createUnaNot(scope, exp)
+	nud(TK_EXCLAM, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		next, exp := Expression(ctx, tk.Next(), lbp_eq)
+		node := tk.createUnaNot(ctx, exp)
 		return next, node
 	})
 
@@ -275,8 +288,8 @@ func init() {
 	binary(TK_PIPE, NODE_BIN_BITOR)
 	// conflict with bitwise or !
 	// how the hell am I supposed to tell the difference between the two ?
-	// led(TK_PIPE, func(scope Scope, tk Tk, left Node) (Tk, Node) {
-	// 	right := c.Expression(scope, lbp)
+	// led(TK_PIPE, func(ctx Context, tk Tk, left Node) (Tk, Node) {
+	// 	right := c.Expression(ctx, lbp)
 	// 	if v, ok := left.(*Union); ok {
 	// 		return v.AddTypeExprs(right)
 	// 	}
@@ -287,17 +300,17 @@ func init() {
 
 	lbp_addition := lbp
 	// The + prefix operator, which is essentially a noop
-	nud(TK_PLUS, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		return Expression(scope, tk.Next(), lbp_addition)
+	nud(TK_PLUS, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		return Expression(ctx, tk.Next(), lbp_addition)
 	})
 
 	// The - prefix operator, which gets converted as a multiplication by -1
-	nud(TK_MIN, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		var next, exp = Expression(scope, tk.Next(), lbp_addition)
+	nud(TK_MIN, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		var next, exp = Expression(ctx, tk.Next(), lbp_addition)
 		// create a node for -1
-		var min_one = tk.file.createNode(tk, NODE_INTEGER, scope)
+		var min_one = tk.file.createNode(tk, NODE_INTEGER, ctx)
 		min_one.SetValue(-1) // a forced integer
-		bin := tk.createBinOp(scope, NODE_BIN_MUL, min_one, exp)
+		bin := tk.createBinOp(ctx, NODE_BIN_MUL, min_one, exp)
 		return next, bin
 	})
 
@@ -320,39 +333,39 @@ func init() {
 	// When used right next to an expression, then paren is a function call
 	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
 
-	led(TK_PLUSPLUS, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_PLUSPLUS, func(ctx Context, tk Tk, left Node) (Tk, Node) {
 		var next = tk.Next()
-		var one = tk.createNode(scope, NODE_INTEGER)
+		var one = tk.createNode(ctx, NODE_INTEGER)
 		one.SetValue(1)
-		var addition = tk.createNode(scope, NODE_BIN_PLUS, one, left)
-		var assign = tk.createNode(scope, NODE_BIN_ASSIGN, left, addition)
+		var addition = tk.createNode(ctx, NODE_BIN_PLUS, one, left)
+		var assign = tk.createNode(ctx, NODE_BIN_ASSIGN, left, addition)
 		return next, assign
 	})
 
-	led(TK_MINMIN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_MINMIN, func(ctx Context, tk Tk, left Node) (Tk, Node) {
 		var next = tk.Next()
-		var one = tk.createNode(scope, NODE_INTEGER)
+		var one = tk.createNode(ctx, NODE_INTEGER)
 		one.SetValue(-1)
-		var addition = tk.createNode(scope, NODE_BIN_PLUS, one, left)
-		var assign = tk.createNode(scope, NODE_BIN_ASSIGN, left, addition)
+		var addition = tk.createNode(ctx, NODE_BIN_PLUS, one, left)
+		var assign = tk.createNode(ctx, NODE_BIN_ASSIGN, left, addition)
 		return next, assign
 	})
 
 	lbp += 2
 
 	// Dereference expression
-	led(TK_AT, func(scope Scope, tk Tk, left Node) (Tk, Node) {
-		return tk.Next(), tk.createUnaDeref(scope, left)
+	led(TK_AT, func(ctx Context, tk Tk, left Node) (Tk, Node) {
+		return tk.Next(), tk.createUnaDeref(ctx, left)
 	})
 
 	// Reference expression, takes an address or defines a pointer type.
-	nud(TK_AT, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(TK_AT, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		iter := tk.Next()
-		iter, expr := Expression(scope, iter, syms[TK_MINMIN].lbp+1)
+		iter, expr := Expression(ctx, iter, syms[TK_MINMIN].lbp+1)
 		if expr.IsEmpty() {
 			tk.reportError("expected @ to be followed by an expression")
 		}
-		return iter, tk.createUnaRef(scope, expr)
+		return iter, tk.createUnaRef(ctx, expr)
 	})
 
 	lbp += 2
@@ -360,19 +373,19 @@ func init() {
 	// led(TK_FATARROW, parseFnFatArrow)
 	// binary(NODE_FNDEF, TK_FATARROW)
 
-	led(TK_LBRACE, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_LBRACE, func(ctx Context, tk Tk, left Node) (Tk, Node) {
 		var iter = tk.Next()
 		var fragment = newList()
 
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
-			iter, exp = Expression(scope, iter, 0)
+			iter, exp = Expression(ctx, iter, 0)
 			fragment.append(exp)
 			iter = iter.expectCommaIfNot(TK_RBRACE)
 			return iter
 		})
 
-		var index = tk.createBinOp(scope, NODE_BIN_INDEX, left, fragment.first)
+		var index = tk.createBinOp(ctx, NODE_BIN_INDEX, left, fragment.first)
 		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
 			index.Extend(tk)
 		})
@@ -382,21 +395,21 @@ func init() {
 
 	lbp += 2
 
-	led(TK_LPAREN, func(scope Scope, tk Tk, left Node) (Tk, Node) {
+	led(TK_LPAREN, func(ctx Context, tk Tk, left Node) (Tk, Node) {
 		// function call !
 		var iter = tk.Next()
 		var fragment = newList()
 
 		iter = iter.whileNotClosing(func(iter Tk) Tk {
 			var exp Node
-			iter, exp = Expression(scope, iter, 0)
+			iter, exp = Expression(ctx, iter, 0)
 
 			fragment.append(exp)
 			iter = iter.expectCommaIfNot(TK_RPAREN)
 			return iter
 		})
 
-		var call = tk.createBinOp(scope, NODE_BIN_CALL, left, fragment.first)
+		var call = tk.createBinOp(ctx, NODE_BIN_CALL, left, fragment.first)
 
 		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
 			call.Extend(tk)
@@ -415,18 +428,18 @@ func init() {
 	lbp += 2
 
 	nud(TK_QUOTE, parseQuote)
-	nud(KW_ISO, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
+	nud(KW_ISO, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
 		next := tk.Next()
 		if next.Is(TK_LBRACKET) {
 			var blk Node
-			next, blk = parseBlock(scope, next, 0)
-			block := tk.createIsoBlock(scope, blk)
+			next, blk = parseBlock(ctx, next, 0)
+			block := tk.createIsoBlock(ctx, blk)
 			return next, block
 		}
 		if next.Is(TK_LBRACE) {
 			var exp Node
-			next, exp = parseBlock(scope, next, 0)
-			iso_expr := tk.createIsoType(scope, exp)
+			next, exp = parseBlock(ctx, next, 0)
+			iso_expr := tk.createIsoType(ctx, exp)
 			return next, iso_expr
 		}
 
@@ -444,8 +457,8 @@ func init() {
 	literal(TK_NUMBER, NODE_LIT_NUMBER)
 	literal(TK_RAWSTR, NODE_LIT_RAWSTR)
 
-	nud(TK_ID, func(scope Scope, tk Tk, lbp int) (Tk, Node) {
-		var node = tk.createIdNode(scope)
+	nud(TK_ID, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
+		var node = tk.createIdNode(ctx)
 		var data = node.GetBytes()
 		var pos = 0
 		if data[pos] == '$' {
@@ -469,15 +482,15 @@ func init() {
 
 var syms = make([]prattTk, TK__MAX) // Far more than necessary
 
-func nudError(scope Scope, tk Tk, rbp int) (Tk, Node) {
+func nudError(ctx Context, tk Tk, rbp int) (Tk, Node) {
 	tk.reportError(`unexpected '`, tk.GetText(), `'`)
 	if tk.IsClosing() {
 		return tk, EmptyNode
 	}
-	return Expression(scope, tk.Next(), rbp)
+	return Expression(ctx, tk.Next(), rbp)
 }
 
-func ledError(_ Scope, tk Tk, left Node) (Tk, Node) {
+func ledError(_ Context, tk Tk, left Node) (Tk, Node) {
 	tk.reportError(`unexpected '`, tk.GetText(), `'`)
 	return tk.Next(), left
 }
@@ -485,7 +498,7 @@ func ledError(_ Scope, tk Tk, left Node) (Tk, Node) {
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseImport(ctx Context, tk Tk, _ int) (Tk, Node) {
 	// import is always (imp module subexp name)
 	// module is either a string or a path expression
 	var iter = tk.Next()
@@ -493,24 +506,25 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var ok bool
 
 	if iter.Is(TK_RAWSTR) {
-		mod = iter.createNode(scope, NODE_LIT_RAWSTR)
+		mod = iter.createNode(ctx, NODE_LIT_RAWSTR)
 		iter = iter.Next()
 	} else {
-		iter, mod = Expression(scope, iter, syms[TK_DOT].lbp-1)
+		iter, mod = Expression(ctx, iter, syms[TK_DOT].lbp-1)
 	}
 
 	if iter, ok = iter.consume(KW_AS); ok {
 		var name Node
 		if iter.Is(TK_ID) {
-			name = iter.createIdNode(scope)
+			name = iter.createIdNode(ctx)
 			iter = iter.Next()
 		}
 
-		var imp = tk.createImport(scope, mod, name, EmptyNode)
+		var imp = tk.createImport(ctx, mod, name, EmptyNode)
 
 		if !name.IsEmpty() {
+			var is = &Import{symbolBase{name: name.InternedString(), node: imp}}
 			// Add the import to the current scope.
-			scope.addSymbolFromIdNode(name, imp)
+			ctx.RegisterSymbol(is)
 		}
 
 		return iter, imp
@@ -527,28 +541,31 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 		mod2 := mod.Clone()
 
 		var path Node
-		iter, path = Expression(scope, iter, syms[TK_DOT].lbp-1) // we want the tk_dots
+		iter, path = Expression(ctx, iter, syms[TK_DOT].lbp-1) // we want the tk_dots
 
 		if iter, ok = iter.consume(KW_AS); ok {
 			var as Node
 			var prev = iter
 
 			if iter.Is(TK_ID) {
-				as = iter.createIdNode(scope)
+				as = iter.createIdNode(ctx)
 				iter = iter.Next()
 			}
 
-			var imp = prev.createImport(scope, mod2, as, path)
+			var imp = prev.createImport(ctx, mod2, as, path)
 			if !as.IsEmpty() {
-				scope.addSymbolFromIdNode(as, imp)
+				var is = &Import{symbolBase{name: as.InternedString(), node: imp}}
+				ctx.RegisterSymbol(is)
 			}
 
 			fragment.append(imp)
 		} else {
 			var id2 = path.Clone()
-			var imp = iter.createImport(scope, mod2, id2, path)
+			var imp = iter.createImport(ctx, mod2, id2, path)
 
-			scope.addSymbolFromIdNode(id2, imp)
+			if !id2.IsEmpty() {
+				ctx.RegisterSymbol(&Import{symbolBase{name: id2.InternedString(), node: imp}})
+			}
 			fragment.append(imp)
 		}
 		iter = iter.expectCommaIfNot(TK_RPAREN)
@@ -562,17 +579,17 @@ func parseImport(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 ///////////////////////////////////////////////////////
 // "
-func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseQuote(ctx Context, tk Tk, _ int) (Tk, Node) {
 	iter := tk.Next()
 	fragment := newList()
 	iter = iter.whileNot(TK_QUOTE, func(iter Tk) Tk {
 		var exp Node
-		iter, exp = Expression(scope, iter, 0)
+		iter, exp = Expression(ctx, iter, 0)
 		fragment.append(exp)
 		return iter
 	})
 
-	str := tk.createString(scope, fragment.first)
+	str := tk.createString(ctx, fragment.first)
 	iter, _ = iter.expect(TK_QUOTE, func(tk Tk) {
 		str.Extend(tk)
 	})
@@ -583,7 +600,7 @@ func parseQuote(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 /////////////////////////////////////////////////////
 // Special handling for if block
-func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseIf(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var ok bool
 	var has_else bool
 	iter := tk.Next()
@@ -591,12 +608,12 @@ func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
 	// Inside the if condition, we want to know if there were some is operators associated
 	// to some identifiers, so that we can build unions for them.
 	// How to do that, through the scope ?
-	iter, cond := Expression(scope, iter, 0) // can be a block. this could be confusing.
+	iter, cond := Expression(ctx, iter, 0) // can be a block. this could be confusing.
 
 	iter.expect(TK_LBRACKET)
 
-	var thenscope = scope.subScope()
-	var elsescope = scope.subScope()
+	var thenscope = ctx.SubScope()
+	var elsescope = ctx.SubScope()
 
 	// We need to check in the then block if it gives back control once it is done
 	// or if it stops execution in the current scope. If it does, and there is no else
@@ -615,16 +632,16 @@ func parseIf(scope Scope, tk Tk, _ int) (Tk, Node) {
 		iter, els = Expression(elsescope, iter, 0)
 	}
 
-	return iter, tk.createIf(scope, cond, then, els)
+	return iter, tk.createIf(ctx, cond, then, els)
 }
 
 //
-func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseSwitch(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 
 	// 1. Get the expression we're switching on.
 	var switchexp Node
-	iter, switchexp = Expression(scope, iter, 0)
+	iter, switchexp = Expression(ctx, iter, 0)
 
 	// 2. Parse all the matching arms
 	iter, _ = iter.expect(TK_LBRACKET)
@@ -637,7 +654,7 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 		var armexp Node
 		var iselse bool
 		if !iter.Is(KW_ELSE) {
-			iter, armexp = Expression(scope, iter, 0)
+			iter, armexp = Expression(ctx, iter, 0)
 		} else {
 			iselse = true
 			iter = iter.Next()
@@ -646,7 +663,7 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 		iter, _ = iter.expect(TK_ARROW)
 
 		var thenexp Node
-		iter, thenexp = Expression(scope, iter, 0)
+		iter, thenexp = Expression(ctx, iter, 0)
 
 		if iselse {
 			iter, _ = iter.consume(TK_COMMA)
@@ -654,12 +671,12 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 			iter, _ = iter.expect(TK_COMMA)
 		}
 
-		var arm = first.createSwitchArm(scope, armexp, thenexp)
+		var arm = first.createSwitchArm(ctx, armexp, thenexp)
 		list.append(arm)
 		return iter
 	})
 
-	var sw = tk.createSwitch(scope, switchexp, list.first)
+	var sw = tk.createSwitch(ctx, switchexp, list.first)
 
 	if iter.shouldBe(TK_RBRACKET) {
 		// extend the range of the switch
@@ -671,21 +688,17 @@ func parseSwitch(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 /////////////////////////////////////////////////////
 // Special handling for fn
-func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseFn(ctx Context, tk Tk, _ int) (Tk, Node) {
 
-	var fnscope = scope.subScope()
+	var fnscope = ctx.SubScope()
 
 	var iter = tk.Next()
 
 	// Function name, may not exist
 	var name Node
 	iter, _ = iter.consume(TK_ID, func(tk Tk) {
-		name = tk.createIdNode(scope)
+		name = tk.createIdNode(ctx)
 	})
-
-	if name != EmptyNode {
-		scope.addSymbolFromIdNode(name, name)
-	}
 
 	// Template arguments, may not exist
 	var tpl Node
@@ -737,18 +750,16 @@ func parseFn(scope Scope, tk Tk, _ int) (Tk, Node) {
 	}
 
 	if name != EmptyNode {
-		var is_method = tk.Is(KW_METHOD)
-		if is_method {
+		// var is_method = tk.Is(KW_METHOD)
+		if !blk.IsEmpty() {
 
-		} else {
-			scope.addSymbolFromIdNodeForce(name, result)
 		}
 	}
 
 	return iter, result
 }
 
-func parseUntilClosing(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseUntilClosing(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var iter = tk
 	var fragment = newList()
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
@@ -761,7 +772,7 @@ func parseUntilClosing(scope Scope, tk Tk, _ int) (Tk, Node) {
 		}
 
 		var exp Node
-		iter, exp = Expression(scope, iter, 0)
+		iter, exp = Expression(ctx, iter, 0)
 		fragment.append(exp)
 		return iter
 	})
@@ -769,12 +780,12 @@ func parseUntilClosing(scope Scope, tk Tk, _ int) (Tk, Node) {
 }
 
 // parseBlock parses a block of code
-func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseBlock(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
-	var subscope = scope.subScope()
+	var subscope = ctx.SubScope()
 
 	var first Node
-	iter, first = parseUntilClosing(scope, iter, 0)
+	iter, first = parseUntilClosing(ctx, iter, 0)
 
 	block := tk.createBlock(subscope, first)
 
@@ -787,13 +798,13 @@ func parseBlock(scope Scope, tk Tk, _ int) (Tk, Node) {
 
 // parseTemplate parses a template declaration, which is enclosed between [ ]
 // it is expected that '[' has been consumed, and that tk is '['
-func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseTemplate(ctx Context, tk Tk, _ int) (Tk, Node) {
 	// tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
 	var iter = tk.Next()
 	var fragment = newList()
 
 	iter = iter.whileNotClosing(func(iter Tk) Tk {
-		iter, node := Expression(scope, iter, 0)
+		iter, node := Expression(ctx, iter, 0)
 		if node.expect(NODE_VAR, NODE_ID) {
 			fragment.append(node)
 		}
@@ -805,9 +816,9 @@ func parseTemplate(scope Scope, tk Tk, _ int) (Tk, Node) {
 	return iter, fragment.first
 }
 
-func parseFor(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseFor(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
-	var forscope = scope.subScope()
+	var forscope = ctx.SubScope()
 
 	// the "var ..." part of the for loop
 	var decl Node
@@ -816,20 +827,20 @@ func parseFor(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter, _ = iter.expect(KW_IN)
 
 	var inexp Node
-	iter, inexp = Expression(scope, iter, 0)
+	iter, inexp = Expression(ctx, iter, 0)
 
 	iter.expect(TK_LBRACKET)
 
 	var block Node
 	iter, block = Expression(forscope, iter, 0)
 
-	var fornode = tk.createFor(scope, decl, inexp, block)
+	var fornode = tk.createFor(ctx, decl, inexp, block)
 	// I should add the subscope to the for node !
 	return iter, fornode
 }
 
-func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
-	var whilescope = scope.subScope()
+func parseWhile(ctx Context, tk Tk, _ int) (Tk, Node) {
+	var whilescope = ctx.SubScope()
 	var iter = tk.Next()
 
 	var cond Node
@@ -840,14 +851,14 @@ func parseWhile(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var block Node
 	iter, block = Expression(whilescope, iter, 0)
 
-	var whilenode = tk.createWhile(scope, cond, block)
+	var whilenode = tk.createWhile(ctx, cond, block)
 	// FIXME add the subscope to the while node
 	return iter, whilenode
 }
 
 // parse a variable statement, but also a variable declaration inside
 // an argument list of a function signature
-func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseVar(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var iter = tk
 	var ok bool
 
@@ -856,7 +867,7 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var ident Node
 
 	if iter.should(TK_ID) {
-		ident = iter.createIdNode(scope)
+		ident = iter.createIdNode(ctx)
 		iter = iter.Next()
 	}
 
@@ -864,13 +875,13 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 	var typenode Node
 	if iter, ok = iter.consume(TK_COLON); ok {
 		// there is a type expression
-		iter, typenode = Expression(scope, iter, syms[TK_EQ].lbp+1)
+		iter, typenode = Expression(ctx, iter, syms[TK_EQ].lbp+1)
 	}
 
 	// An optional default value
 	var expnode Node
 	if iter, ok = iter.consume(TK_EQ); ok {
-		iter, expnode = Expression(scope, iter, 0)
+		iter, expnode = Expression(ctx, iter, 0)
 	}
 
 	if iter.pos == tk.pos {
@@ -880,50 +891,50 @@ func parseVar(scope Scope, tk Tk, _ int) (Tk, Node) {
 		return iter.Next(), EmptyNode
 	}
 
-	var varnode = tk.createVar(scope, ident, typenode, expnode)
+	var varnode = tk.createVar(ctx, ident, typenode, expnode)
 	if !ident.IsEmpty() {
-		scope.addSymbolFromIdNode(ident, varnode)
+		// scope.addSymbolFromIdNode(ident, varnode)
 	}
 
 	return iter, varnode
 	// Try to parse VAR ourselves
 }
 
-func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
+func parseType(ctx Context, tk Tk, _ int) (Tk, Node) {
 	var iter = tk.Next()
 
 	var ident Node
 	if iter.should(TK_ID) {
-		ident = iter.createIdNode(scope)
+		ident = iter.createIdNode(ctx)
 		iter = iter.Next()
 	}
 
 	var typenode Node
 	switch tk.Kind() {
 	case KW_TYPE:
-		typenode = tk.createNode(scope, NODE_TYPE)
+		typenode = tk.createNode(ctx, NODE_TYPE)
 	case KW_STRUCT:
-		typenode = tk.createNode(scope, NODE_STRUCT)
+		typenode = tk.createNode(ctx, NODE_STRUCT)
 	case KW_ENUM:
-		typenode = tk.createNode(scope, NODE_ENUM)
+		typenode = tk.createNode(ctx, NODE_ENUM)
 	case KW_TRAIT:
-		typenode = tk.createNode(scope, NODE_TRAIT)
+		typenode = tk.createNode(ctx, NODE_TRAIT)
 	default:
 		panic("should never get here, this is a compiler bug")
 	}
 	typenode.SetFlag(FLAG_IS_TYPEDEF)
 
 	//
-	var typescope = scope.subScope()
-	typescope.setOwner(typenode)
+	var typescope = ctx.SubScope()
+	typescope.scope.setOwner(typenode)
 	if !ident.IsEmpty() {
-		scope.addSymbolFromIdNode(ident, typenode)
+		// scope.addSymbolFromIdNode(ident, typenode)
 	}
 
 	var template Node
 	if iter.Is(TK_LBRACE) {
-		iter, template = tryParseList(typescope, iter, TK_LBRACE, TK_RBRACE, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
-			return Expression(scope, iter, 0)
+		iter, template = tryParseList(typescope, iter, TK_LBRACE, TK_RBRACE, TK_COMMA, true, func(ctx Context, iter Tk) (Tk, Node) {
+			return Expression(ctx, iter, 0)
 		})
 	}
 
@@ -931,12 +942,12 @@ func parseType(scope Scope, tk Tk, _ int) (Tk, Node) {
 	iter.should(TK_LPAREN)
 	switch tk.Kind() {
 	case KW_TYPE:
-		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_PIPE, true, func(scope Scope, iter Tk) (Tk, Node) {
-			return Expression(scope, iter, syms[TK_PIPE].lbp+1)
+		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_PIPE, true, func(ctx Context, iter Tk) (Tk, Node) {
+			return Expression(ctx, iter, syms[TK_PIPE].lbp+1)
 		})
 	case KW_STRUCT, KW_ENUM, KW_TRAIT:
-		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(scope Scope, iter Tk) (Tk, Node) {
-			return parseVar(scope, iter, 0)
+		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(ctx Context, iter Tk) (Tk, Node) {
+			return parseVar(ctx, iter, 0)
 		})
 	}
 

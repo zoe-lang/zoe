@@ -180,10 +180,10 @@ func (f *File) reportError(rng lsp.Range, message ...string) {
 	// f.Errors[len(f.Errors)-1].Print(os.Stderr)
 }
 
-func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node) Node {
+func (f *File) createNode(tk Tk, kind AstNodeKind, ctx Context, children ...Node) Node {
 	// maybe we should handle here the capacity of the node arrays ?
 	l := NodePosition(len(f.Nodes))
-	f.Nodes = append(f.Nodes, AstNode{Kind: kind, Range: TkRange{Start: tk.pos, End: tk.pos + 1}, Scope: scope.pos})
+	f.Nodes = append(f.Nodes, AstNode{Kind: kind, Range: TkRange{Start: tk.pos, End: tk.pos + 1}, Scope: ctx.scope.pos})
 
 	cl := len(children)
 	if cl > 0 {
@@ -205,7 +205,7 @@ func (f *File) createNode(tk Tk, kind AstNodeKind, scope Scope, children ...Node
 }
 
 // Find a node that matches a given range
-func (f *File) FindNodePosition(lsppos lsp.Position) (NodePath, error) {
+func (f *File) FindNodePosition(lsppos lsp.Position) ([]Node, error) {
 	node := f.RootNode
 	var path = make([]Node, 0)
 	path = append(path, node)

@@ -137,7 +137,7 @@ namespace String {
 
 var a = createStuff() # a does not specify, so it removes the tmp part
 var b = const createStuff() # b is immutable and the result from newStuff() can no longer be changed
-new c = createStuff() # c is still mutable but the scope of things that can be accessed
+var c = createStuff() # c is still mutable but the scope of things that can be accessed
 # new offers the guarantee that no matter what, until it becomes mutable or immutable, no part
 # of its memory is given to anything that can modify it later on elsewhere.
 
@@ -150,17 +150,17 @@ var a Slice[Int] # The ints in the Slice are new also as long as a wasn't change
 
 # What about pure methods, that may only modify oneself
 # What about infecting methods with new types / const types, just like it infects generics
-fn modifyA(a: *Slice[Int]) {
+fn modifyA(a: @Slice[Int]) {
   a.push(34) # 34 is new here.
 }
 
 var b Slice<Int> # b is not new
-fn doStuffWithA(a: *Slice[Int], b: *Slice[Int]) {
+fn doStuffWithA(a: @Slice[Int], b: @Slice[Int]) {
   b.push(a[0])
 }
 
-modifyA(&a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
-modifyB(&a, &b) # Why doesn't it work ?
+modifyA(@a) # works, because modifyA(a &new Slice<Int>) still compiles as such.
+modifyB(@a, @b) # Why doesn't it work ?
 
 ##########################################################################################
 ##########################################################################################
@@ -169,23 +169,27 @@ modifyB(&a, &b) # Why doesn't it work ?
 
 
 
-type Slice[$T] is struct (
-  len:        Int
-  real_size:  Int
-  ptr:        *$T
-)
-implements {
-  append(objs... $T) {
+struct Slice[$T] (
+  len:        Int,
+  real_size:  Int,
+  ptr:        @$T,
+) {
+  fn pouet() {
+
+  }
+
+  method append(objs: $T) {
+    pouet() # in scope for methods ?
     # reallocate
-    *(ptr + this.len) = obj
+    @(ptr + this.len) = obj
   }
 }
 
 ## What becomes of the new ? When is it dropped ?
 # Here, s is definitely mutable for us, but we want it to become const later
 # so that we may simply send it across our threads without fearing for access.
-let s new []*SomeType
-s.append(&SomeType(), SomeType())
+var s: []@SomeType
+s.append(@SomeType(), SomeType())
 return s
 
 
@@ -273,12 +277,10 @@ namespace Slice {
     staged res_ptr = ptr.alloc(new_len) # String(len = new_len, real_size = new_len, ptr = ptr.alloc(new_len))
     var wptr = res.ptr
     for s in strs {
-      let
-       = s.len
+      var toto = s.len
       ptr.copy(s.ptr, wptr,
       )
-      wptr +=
-
+      wptr + 2
     }
 
     # res_ptr can be assigned to ptr since we're leaving the scope and can now become const

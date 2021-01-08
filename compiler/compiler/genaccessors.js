@@ -44,8 +44,8 @@ func (n Node) set{{
 
 func (tk Tk) create{{
   n.name.replace('NODE', '').toLowerCase().replace(/_[a-z]/g, m => m[1].toUpperCase())
-}}(scope Scope, {{n.create.map(c => c + ' Node').join(', ')}}) Node {
-return tk.createNode(scope, {{n.name}}, {{n.create.join(', ')}})
+}}(ctx Context, {{n.create.map(c => c + ' Node').join(', ')}}) Node {
+return tk.createNode(ctx, {{n.name}}, {{n.create.join(', ')}})
 }
 
 %% } %%

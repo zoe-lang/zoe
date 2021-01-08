@@ -359,3 +359,20 @@ func (n Node) ExtendRangeFromNode(other Node) {
 		n.Extend(Tk{pos: oref.Range.End})
 	}
 }
+
+// For a given expression, find the symbol it is referencing. This could
+// be a variable, a type, or a member.
+// This is generally a prelude to type finding.
+// It crosses files boundaries when on an import.
+func (n Node) FindDefinition() (Node, bool) {
+	if !n.Is(NODE_ID) {
+		panic("compiler error, the node should be an Id node")
+	}
+	var is = n.InternedString()
+	// log.Print(is, " -> ", GetInternedString(is))
+	if found, ok := n.Scope().FindRecursive(is); ok {
+		// This is where we should check whether found is actually an import.
+		return found, true
+	}
+	return Node{}, false
+}

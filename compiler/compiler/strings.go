@@ -5,6 +5,7 @@ import (
 )
 
 type InternedString int
+type Name = InternedString
 
 func SaveInternedString(str string) InternedString {
 	val := InternedIds.Save(str)

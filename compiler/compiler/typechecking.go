@@ -1,7 +1,5 @@
 package zoe
 
-import "log"
-
 // Name resolution
 //
 // Filenames scope (import statements look there when their module is a string)
@@ -38,13 +36,18 @@ func (n Node) CheckFile() {
 
 }
 
+// Create the corresponding union type
+func (n Node) CheckUnion() {
+
+}
+
 // Root check.
 func (n Node) Check() {
 
 	switch n.Kind() {
 	case NODE_FILE:
 		n.CheckFile()
-		log.Print("pouet")
+		// log.Print("pouet")
 	}
 
 }

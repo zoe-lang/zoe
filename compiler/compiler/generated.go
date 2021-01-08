@@ -291,8 +291,8 @@ func (n Node) setFileChildren(contents Node) {
   n.setChildren(contents)
 }
 
-func (tk Tk) createFile(scope Scope, contents Node) Node {
-return tk.createNode(scope, NODE_FILE, contents)
+func (tk Tk) createFile(ctx Context, contents Node) Node {
+return tk.createNode(ctx, NODE_FILE, contents)
 }
 
 
@@ -304,8 +304,8 @@ func (n Node) setBlockChildren(contents Node) {
   n.setChildren(contents)
 }
 
-func (tk Tk) createBlock(scope Scope, contents Node) Node {
-return tk.createNode(scope, NODE_BLOCK, contents)
+func (tk Tk) createBlock(ctx Context, contents Node) Node {
+return tk.createNode(ctx, NODE_BLOCK, contents)
 }
 
 
@@ -317,8 +317,8 @@ func (n Node) setTupleChildren(contents Node) {
   n.setChildren(contents)
 }
 
-func (tk Tk) createTuple(scope Scope, contents Node) Node {
-return tk.createNode(scope, NODE_TUPLE, contents)
+func (tk Tk) createTuple(ctx Context, contents Node) Node {
+return tk.createNode(ctx, NODE_TUPLE, contents)
 }
 
 
@@ -330,8 +330,8 @@ func (n Node) setFnChildren(name Node, signature Node, definition Node) {
   n.setChildren(name, signature, definition)
 }
 
-func (tk Tk) createFn(scope Scope, name Node, signature Node, definition Node) Node {
-return tk.createNode(scope, NODE_FN, name, signature, definition)
+func (tk Tk) createFn(ctx Context, name Node, signature Node, definition Node) Node {
+return tk.createNode(ctx, NODE_FN, name, signature, definition)
 }
 
 
@@ -343,8 +343,8 @@ func (n Node) setMethodChildren(name Node, signature Node, definition Node) {
   n.setChildren(name, signature, definition)
 }
 
-func (tk Tk) createMethod(scope Scope, name Node, signature Node, definition Node) Node {
-return tk.createNode(scope, NODE_METHOD, name, signature, definition)
+func (tk Tk) createMethod(ctx Context, name Node, signature Node, definition Node) Node {
+return tk.createNode(ctx, NODE_METHOD, name, signature, definition)
 }
 
 
@@ -356,8 +356,8 @@ func (n Node) setNamespaceChildren(name Node, block Node) {
   n.setChildren(name, block)
 }
 
-func (tk Tk) createNamespace(scope Scope, name Node, block Node) Node {
-return tk.createNode(scope, NODE_NAMESPACE, name, block)
+func (tk Tk) createNamespace(ctx Context, name Node, block Node) Node {
+return tk.createNode(ctx, NODE_NAMESPACE, name, block)
 }
 
 
@@ -369,8 +369,8 @@ func (n Node) setTypeChildren(name Node, template Node, typeexp Node, block Node
   n.setChildren(name, template, typeexp, block)
 }
 
-func (tk Tk) createType(scope Scope, name Node, template Node, typeexp Node, block Node) Node {
-return tk.createNode(scope, NODE_TYPE, name, template, typeexp, block)
+func (tk Tk) createType(ctx Context, name Node, template Node, typeexp Node, block Node) Node {
+return tk.createNode(ctx, NODE_TYPE, name, template, typeexp, block)
 }
 
 
@@ -382,8 +382,8 @@ func (n Node) setEnumChildren(name Node, template Node, varlist Node, block Node
   n.setChildren(name, template, varlist, block)
 }
 
-func (tk Tk) createEnum(scope Scope, name Node, template Node, varlist Node, block Node) Node {
-return tk.createNode(scope, NODE_ENUM, name, template, varlist, block)
+func (tk Tk) createEnum(ctx Context, name Node, template Node, varlist Node, block Node) Node {
+return tk.createNode(ctx, NODE_ENUM, name, template, varlist, block)
 }
 
 
@@ -395,8 +395,8 @@ func (n Node) setStructChildren(name Node, template Node, varlist Node, block No
   n.setChildren(name, template, varlist, block)
 }
 
-func (tk Tk) createStruct(scope Scope, name Node, template Node, varlist Node, block Node) Node {
-return tk.createNode(scope, NODE_STRUCT, name, template, varlist, block)
+func (tk Tk) createStruct(ctx Context, name Node, template Node, varlist Node, block Node) Node {
+return tk.createNode(ctx, NODE_STRUCT, name, template, varlist, block)
 }
 
 
@@ -408,8 +408,8 @@ func (n Node) setTraitChildren(name Node, template Node, empty Node, block Node)
   n.setChildren(name, template, empty, block)
 }
 
-func (tk Tk) createTrait(scope Scope, name Node, template Node, empty Node, block Node) Node {
-return tk.createNode(scope, NODE_TRAIT, name, template, empty, block)
+func (tk Tk) createTrait(ctx Context, name Node, template Node, empty Node, block Node) Node {
+return tk.createNode(ctx, NODE_TRAIT, name, template, empty, block)
 }
 
 
@@ -421,8 +421,8 @@ func (n Node) setVarChildren(name Node, typeexp Node, assign Node) {
   n.setChildren(name, typeexp, assign)
 }
 
-func (tk Tk) createVar(scope Scope, name Node, typeexp Node, assign Node) Node {
-return tk.createNode(scope, NODE_VAR, name, typeexp, assign)
+func (tk Tk) createVar(ctx Context, name Node, typeexp Node, assign Node) Node {
+return tk.createNode(ctx, NODE_VAR, name, typeexp, assign)
 }
 
 
@@ -434,8 +434,8 @@ func (n Node) setSignatureChildren(template Node, args Node, rettype Node) {
   n.setChildren(template, args, rettype)
 }
 
-func (tk Tk) createSignature(scope Scope, template Node, args Node, rettype Node) Node {
-return tk.createNode(scope, NODE_SIGNATURE, template, args, rettype)
+func (tk Tk) createSignature(ctx Context, template Node, args Node, rettype Node) Node {
+return tk.createNode(ctx, NODE_SIGNATURE, template, args, rettype)
 }
 
 
@@ -447,8 +447,8 @@ func (n Node) setReturnChildren(exp Node) {
   n.setChildren(exp)
 }
 
-func (tk Tk) createReturn(scope Scope, exp Node) Node {
-return tk.createNode(scope, NODE_RETURN, exp)
+func (tk Tk) createReturn(ctx Context, exp Node) Node {
+return tk.createNode(ctx, NODE_RETURN, exp)
 }
 
 
@@ -460,8 +460,8 @@ func (n Node) setTakeChildren(exp Node) {
   n.setChildren(exp)
 }
 
-func (tk Tk) createTake(scope Scope, exp Node) Node {
-return tk.createNode(scope, NODE_TAKE, exp)
+func (tk Tk) createTake(ctx Context, exp Node) Node {
+return tk.createNode(ctx, NODE_TAKE, exp)
 }
 
 
@@ -473,8 +473,8 @@ func (n Node) setUnionChildren(members Node) {
   n.setChildren(members)
 }
 
-func (tk Tk) createUnion(scope Scope, members Node) Node {
-return tk.createNode(scope, NODE_UNION, members)
+func (tk Tk) createUnion(ctx Context, members Node) Node {
+return tk.createNode(ctx, NODE_UNION, members)
 }
 
 
@@ -486,8 +486,8 @@ func (n Node) setIsoBlockChildren(block Node) {
   n.setChildren(block)
 }
 
-func (tk Tk) createIsoBlock(scope Scope, block Node) Node {
-return tk.createNode(scope, NODE_ISO_BLOCK, block)
+func (tk Tk) createIsoBlock(ctx Context, block Node) Node {
+return tk.createNode(ctx, NODE_ISO_BLOCK, block)
 }
 
 
@@ -499,8 +499,8 @@ func (n Node) setIsoTypeChildren(type_expr Node) {
   n.setChildren(type_expr)
 }
 
-func (tk Tk) createIsoType(scope Scope, type_expr Node) Node {
-return tk.createNode(scope, NODE_ISO_TYPE, type_expr)
+func (tk Tk) createIsoType(ctx Context, type_expr Node) Node {
+return tk.createNode(ctx, NODE_ISO_TYPE, type_expr)
 }
 
 
@@ -512,8 +512,8 @@ func (n Node) setStringChildren(contents Node) {
   n.setChildren(contents)
 }
 
-func (tk Tk) createString(scope Scope, contents Node) Node {
-return tk.createNode(scope, NODE_STRING, contents)
+func (tk Tk) createString(ctx Context, contents Node) Node {
+return tk.createNode(ctx, NODE_STRING, contents)
 }
 
 
@@ -525,8 +525,8 @@ func (n Node) setArrayLiteralChildren(contents Node) {
   n.setChildren(contents)
 }
 
-func (tk Tk) createArrayLiteral(scope Scope, contents Node) Node {
-return tk.createNode(scope, NODE_ARRAY_LITERAL, contents)
+func (tk Tk) createArrayLiteral(ctx Context, contents Node) Node {
+return tk.createNode(ctx, NODE_ARRAY_LITERAL, contents)
 }
 
 
@@ -538,8 +538,8 @@ func (n Node) setIfChildren(cond Node, thenarm Node, elsearm Node) {
   n.setChildren(cond, thenarm, elsearm)
 }
 
-func (tk Tk) createIf(scope Scope, cond Node, thenarm Node, elsearm Node) Node {
-return tk.createNode(scope, NODE_IF, cond, thenarm, elsearm)
+func (tk Tk) createIf(ctx Context, cond Node, thenarm Node, elsearm Node) Node {
+return tk.createNode(ctx, NODE_IF, cond, thenarm, elsearm)
 }
 
 
@@ -551,8 +551,8 @@ func (n Node) setSwitchChildren(exp Node, arms Node) {
   n.setChildren(exp, arms)
 }
 
-func (tk Tk) createSwitch(scope Scope, exp Node, arms Node) Node {
-return tk.createNode(scope, NODE_SWITCH, exp, arms)
+func (tk Tk) createSwitch(ctx Context, exp Node, arms Node) Node {
+return tk.createNode(ctx, NODE_SWITCH, exp, arms)
 }
 
 
@@ -564,8 +564,8 @@ func (n Node) setSwitchArmChildren(cond Node, block Node) {
   n.setChildren(cond, block)
 }
 
-func (tk Tk) createSwitchArm(scope Scope, cond Node, block Node) Node {
-return tk.createNode(scope, NODE_SWITCH_ARM, cond, block)
+func (tk Tk) createSwitchArm(ctx Context, cond Node, block Node) Node {
+return tk.createNode(ctx, NODE_SWITCH_ARM, cond, block)
 }
 
 
@@ -577,8 +577,8 @@ func (n Node) setForChildren(vardecl Node, rng Node, block Node) {
   n.setChildren(vardecl, rng, block)
 }
 
-func (tk Tk) createFor(scope Scope, vardecl Node, rng Node, block Node) Node {
-return tk.createNode(scope, NODE_FOR, vardecl, rng, block)
+func (tk Tk) createFor(ctx Context, vardecl Node, rng Node, block Node) Node {
+return tk.createNode(ctx, NODE_FOR, vardecl, rng, block)
 }
 
 
@@ -590,8 +590,8 @@ func (n Node) setWhileChildren(cond Node, block Node) {
   n.setChildren(cond, block)
 }
 
-func (tk Tk) createWhile(scope Scope, cond Node, block Node) Node {
-return tk.createNode(scope, NODE_WHILE, cond, block)
+func (tk Tk) createWhile(ctx Context, cond Node, block Node) Node {
+return tk.createNode(ctx, NODE_WHILE, cond, block)
 }
 
 
@@ -603,8 +603,8 @@ func (n Node) setImportChildren(module Node, id Node, exp Node) {
   n.setChildren(module, id, exp)
 }
 
-func (tk Tk) createImport(scope Scope, module Node, id Node, exp Node) Node {
-return tk.createNode(scope, NODE_IMPORT, module, id, exp)
+func (tk Tk) createImport(ctx Context, module Node, id Node, exp Node) Node {
+return tk.createNode(ctx, NODE_IMPORT, module, id, exp)
 }
 
 
@@ -616,8 +616,8 @@ func (n Node) setImplementChildren(id Node, block Node) {
   n.setChildren(id, block)
 }
 
-func (tk Tk) createImplement(scope Scope, id Node, block Node) Node {
-return tk.createNode(scope, NODE_IMPLEMENT, id, block)
+func (tk Tk) createImplement(ctx Context, id Node, block Node) Node {
+return tk.createNode(ctx, NODE_IMPLEMENT, id, block)
 }
 
 
@@ -629,8 +629,8 @@ func (n Node) setUnaNotChildren(exp Node) {
   n.setChildren(exp)
 }
 
-func (tk Tk) createUnaNot(scope Scope, exp Node) Node {
-return tk.createNode(scope, NODE_UNA_NOT, exp)
+func (tk Tk) createUnaNot(ctx Context, exp Node) Node {
+return tk.createNode(ctx, NODE_UNA_NOT, exp)
 }
 
 
@@ -642,8 +642,8 @@ func (n Node) setUnaDerefChildren(pointed Node) {
   n.setChildren(pointed)
 }
 
-func (tk Tk) createUnaDeref(scope Scope, pointed Node) Node {
-return tk.createNode(scope, NODE_UNA_DEREF, pointed)
+func (tk Tk) createUnaDeref(ctx Context, pointed Node) Node {
+return tk.createNode(ctx, NODE_UNA_DEREF, pointed)
 }
 
 
@@ -655,8 +655,8 @@ func (n Node) setUnaRefChildren(variable Node) {
   n.setChildren(variable)
 }
 
-func (tk Tk) createUnaRef(scope Scope, variable Node) Node {
-return tk.createNode(scope, NODE_UNA_REF, variable)
+func (tk Tk) createUnaRef(ctx Context, variable Node) Node {
+return tk.createNode(ctx, NODE_UNA_REF, variable)
 }
 
 
