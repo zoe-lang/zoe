@@ -1,21 +1,17 @@
-package main
+package zoe
 
 import (
 	"fmt"
 	"log"
 	"os"
-
-	zoe "github.com/ceymard/zoe/compiler"
-	"github.com/fatih/color"
+	"path/filepath"
+	"strings"
+	"testing"
 )
 
-// https://github.com/sourcegraph/go-lsp
-var blue = color.New(color.FgHiBlue).SprintFunc()
-var yel = color.New(color.FgHiYellow).SprintFunc()
-
-func handleFile(fname string) *zoe.File {
+func handleFile(fname string) *File {
 	_, _ = fmt.Print("\nHandling ", yel(fname), "\n")
-	file, err := zoe.NewFile(fname)
+	file, err := NewFile(fname)
 	if err != nil {
 		log.Printf("-- %v", err)
 		// if ctx != nil && ctx.Start != nil {
@@ -44,9 +40,19 @@ func handleFile(fname string) *zoe.File {
 	return file
 }
 
-func main() {
-
-	for _, fname := range os.Args[1:] {
-		handleFile(fname)
-	}
+func TestFiles(t *testing.T) {
+	var total = 0
+	_ = filepath.Walk("../tests", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(path, ".zo") {
+			var file = handleFile(path)
+			if file != nil {
+				total += len(file.Errors)
+			}
+		}
+		return nil
+	})
+	log.Print("  --> total errors : ", total)
 }

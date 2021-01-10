@@ -9,6 +9,9 @@ zoelsp: lsp/*.go compiler/*.go
 zoe: cmd/*.go compiler/*.go
 	cd ./cmd && go build && mv ./cmd ../zoe
 
+test: all
+	cd compiler && make test
+
 lexer:
 	cd compiler && make
 

@@ -1,5 +1,5 @@
 
-import "io" as io
+import 'io' as io
 
 fn some_fn(arg: Something) -> Opt[Something] {
   # var res = arg?.prop('something').toto or 3

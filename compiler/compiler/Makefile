@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
-generated.go: genaccessors.js nodes.go
-	node genaccessors.js > generated.go
+generated.go: genaccessors.ts nodes.go
+	tsc --inlineSourceMap --outFile /dev/stdout genaccessors.ts --lib es2017 --target es2017 | node --enable-source-maps > generated.go
 
 lexer.go: lexer.go_
 	re2go -c -r --input-encoding utf8 -c -W lexer.go_ -o lexer.go
@@ -12,5 +12,8 @@ lexer.go: lexer.go_
 	echo "var tokstr = [...]string{" >> lexer.go
 	grep -oP 'addToken\(\K[^\)]+' lexer.go_ | sort | uniq | sed -E 's/(.*)/\1: "\1",/' >> lexer.go
 	echo "}" >> lexer.go
+
+test:
+	go test -cpuprofile ~/cpu.prof -memprofile ~/mem.prof -bench .
 
 all: lexer.go generated.go

@@ -1,9 +1,6 @@
 package zoe
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"log"
 	"regexp"
 	"strings"
@@ -16,13 +13,13 @@ var reBeforeSpace = regexp.MustCompilePOSIX(` (\}|\)|\])`)
 var reAfterSpace = regexp.MustCompilePOSIX(`(\{|\(|\[) `)
 var reAstComments = regexp.MustCompilePOSIX(`--[^\n]*`)
 
-func (n Node) Debug() string {
-	// rng := n.ref().Range
-	color.NoColor = true
-	var res = fmt.Sprintf("(%v: pos %v[%v] rng %v-%v)", n.DebugName(), n.pos, n.Repr(), n.ref().Range.Start, n.ref().Range.End)
-	color.NoColor = false
-	return res
-}
+// func (n Node) Debug() string {
+// 	// rng := n.ref().Range
+// 	color.NoColor = true
+// 	// var res = fmt.Sprintf("(%v)", n.DebugName(), n.Repr(), n.ref().Range.Start, n.ref().Range.End)
+// 	color.NoColor = false
+// 	return "node?"
+// }
 
 func cleanup(str []byte) []byte {
 	s := reAstComments.ReplaceAllLiteral(str, []byte{})
@@ -38,65 +35,11 @@ func cleanup(str []byte) []byte {
 	return s
 }
 
-func (f *File) PrintNode(w io.Writer, iter Node) {
-	// n := &f.Nodes[iter]
-	if iter.Is(NODE_BLOCK) {
-		f.PrintNodeList(w, iter.GetArg(0), [2]byte{'{', '}'})
-		return
-	}
-
-	al := iter.ArgLen()
-	if al > 0 {
-		_, _ = w.Write([]byte{'('})
-	}
-	_, _ = w.Write([]byte(iter.Repr()))
-	for i := 0; i < al; i++ {
-		f.PrintNodeArg(w, iter.GetArg(i))
-	}
-	if al > 0 {
-		_, _ = w.Write([]byte{')'})
-	}
-}
-
-func (f *File) PrintNodeArg(w io.Writer, iter Node) {
-	if iter.IsEmpty() {
-		_, _ = w.Write([]byte{' ', '~'})
-		return
-	}
-	_, _ = w.Write([]byte{' '})
-	if !iter.Next().IsEmpty() {
-		f.PrintNodeList(w, iter, [2]byte{'[', ']'})
-	} else {
-		f.PrintNode(w, iter)
-	}
-}
-
-func (f *File) PrintNodeList(w io.Writer, iter Node, pair [2]byte) {
-	_, _ = w.Write([]byte{pair[0]})
-	first := true
-	for !iter.IsEmpty() {
-		if !first {
-			_, _ = w.Write([]byte(" "))
-		} else {
-			first = false
-		}
-		f.PrintNode(w, iter)
-		iter = iter.Next()
-	}
-	_, _ = w.Write([]byte{pair[1]})
-}
-
-func (f *File) PrintNodeString(n Node) string {
-	var buf bytes.Buffer
-	f.PrintNode(&buf, n)
-	return buf.String()
-}
-
 // For every node at the root of the file, we're going to try
 // and find a matching doc comment containing an AST dump.
 // We'll then parse it, dump it, and compare the dump to the dump of the corresponding AST.
 func (f *File) TestFileAst() {
-	for n, cmt := range f.DocCommentMap {
+	for node, cmt := range f.DocCommentMap {
 		// found it !
 		str := []byte(f.GetTokenText(cmt))
 		if str[1] == '?' {
@@ -109,16 +52,18 @@ func (f *File) TestFileAst() {
 		p := color.NoColor
 		color.NoColor = true
 
-		test := cleanup([]byte(f.PrintNodeString(n.Node(f))))
+		// log.Printf("%#v", node)
+		var node_text = node.GetText()
+		test := cleanup([]byte(node_text))
 
 		color.NoColor = p
 
 		if string(test) != string(str) {
-			log.Print("src: ", grey(f.GetNodeText(n)), "\n")
+			log.Print("src: ", grey(node_text), "\n")
 			log.Print("expected: ", yel(string(str)))
 			log.Print("result:   ", red(string(test)))
 		} else {
-			log.Print("src: ", grey(f.GetNodeText(n)), "\n")
+			log.Print("src: ", grey(node_text), "\n")
 			log.Print("ok: ", green(string(str)), "\n")
 		}
 	}

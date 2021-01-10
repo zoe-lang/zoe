@@ -1,2 +1,2 @@
 #? (var tup ~ (tuple [c d]))
-var tup = (c, d)
+const tup = (c, d)

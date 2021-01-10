@@ -4,660 +4,403 @@ package zoe
 
 
 
-func (n Node) Repr() string {
-  switch n.Kind() {
-
-  case NODE_EMPTY: return grey("~")
-
-  case NODE_FILE: return "file"
-
-  case NODE_BLOCK: return "block"
-
-  case NODE_TUPLE: return "tuple"
-
-  case NODE_FN: return bblue("fn")
-
-  case NODE_METHOD: return bblue("method")
-
-  case NODE_NAMESPACE: return bblue("namespace")
-
-  case NODE_TYPE: return bblue("type")
-
-  case NODE_ENUM: return bblue("enum")
-
-  case NODE_STRUCT: return bblue("struct")
-
-  case NODE_TRAIT: return bblue("trait")
-
-  case NODE_VAR: return bblue("var")
-
-  case NODE_SIGNATURE: return "signature"
-
-  case NODE_RETURN: return "return"
-
-  case NODE_TAKE: return "take"
-
-  case NODE_UNION: return "union"
-
-  case NODE_ISO_BLOCK: return "iso"
-
-  case NODE_ISO_TYPE: return "iso-type"
-
-  case NODE_STRING: return "str"
-
-  case NODE_ARRAY_LITERAL: return "array"
-
-  case NODE_IF: return "if"
-
-  case NODE_SWITCH: return "switch"
-
-  case NODE_SWITCH_ARM: return "arm"
-
-  case NODE_FOR: return "for"
-
-  case NODE_WHILE: return "while"
-
-  case NODE_IMPORT: return bblue("import")
-
-  case NODE_IMPLEMENT: return bblue("implement")
-
-  case NODE_UNA_ELLIPSIS: return "..."
-
-  case NODE_UNA_NOT: return "!"
-
-  case NODE_UNA_DEREF: return "deref"
-
-  case NODE_UNA_REF: return "ref"
-
-  case NODE_BIN_ASSIGN: return "="
-
-  case NODE_BIN_PLUS: return "+"
-
-  case NODE_BIN_MIN: return "-"
-
-  case NODE_BIN_DIV: return "/"
-
-  case NODE_BIN_MUL: return "*"
-
-  case NODE_BIN_MOD: return "%"
-
-  case NODE_BIN_EQ: return "=="
-
-  case NODE_BIN_NEQ: return "!="
-
-  case NODE_BIN_GTEQ: return ">="
-
-  case NODE_BIN_GT: return ">"
-
-  case NODE_BIN_LTEQ: return "<="
-
-  case NODE_BIN_LT: return "<"
-
-  case NODE_BIN_LSHIFT: return "<<"
-
-  case NODE_BIN_RSHIFT: return ">>"
-
-  case NODE_BIN_BITAND: return "&"
-
-  case NODE_BIN_BITOR: return "|"
-
-  case NODE_BIN_BITXOR: return "^"
-
-  case NODE_BIN_OR: return "||"
-
-  case NODE_BIN_AND: return "&&"
-
-  case NODE_BIN_IS: return "is"
-
-  case NODE_BIN_IS_NOT: return "isnot"
-
-  case NODE_BIN_CAST: return "cast"
-
-  case NODE_BIN_CALL: return "call"
-
-  case NODE_BIN_INDEX: return "index"
-
-  case NODE_BIN_DOT: return "."
-
-  case NODE_LIT_NONE: return mag("null")
-
-  case NODE_LIT_THIS: return mag("null")
-
-  case NODE_LIT_VOID: return mag("void")
-
-  case NODE_LIT_FALSE: return mag("false")
-
-  case NODE_LIT_TRUE: return mag("true")
-
-  case NODE_LIT_CHAR: return green(n.GetText())
-
-  case NODE_LIT_RAWSTR: return green("'",n.GetText(),"'")
-
-  case NODE_LIT_NUMBER: return mag(n.GetText())
-
-  case NODE_INTEGER: return mag(n.GetValue())
-
-  case NODE_ID: return cyan(GetInternedString(n.InternedString()))
-
-  }
-  return "<!!!>"
-}
-
-func (n Node) DebugName() string {
-  switch n.Kind() {
-
-    case NODE_EMPTY: return "NODE_EMPTY"
-
-    case NODE_FILE: return "NODE_FILE"
-
-    case NODE_BLOCK: return "NODE_BLOCK"
-
-    case NODE_TUPLE: return "NODE_TUPLE"
-
-    case NODE_FN: return "NODE_FN"
-
-    case NODE_METHOD: return "NODE_METHOD"
-
-    case NODE_NAMESPACE: return "NODE_NAMESPACE"
-
-    case NODE_TYPE: return "NODE_TYPE"
-
-    case NODE_ENUM: return "NODE_ENUM"
-
-    case NODE_STRUCT: return "NODE_STRUCT"
-
-    case NODE_TRAIT: return "NODE_TRAIT"
-
-    case NODE_VAR: return "NODE_VAR"
-
-    case NODE_SIGNATURE: return "NODE_SIGNATURE"
-
-    case NODE_RETURN: return "NODE_RETURN"
-
-    case NODE_TAKE: return "NODE_TAKE"
-
-    case NODE_UNION: return "NODE_UNION"
-
-    case NODE_ISO_BLOCK: return "NODE_ISO_BLOCK"
-
-    case NODE_ISO_TYPE: return "NODE_ISO_TYPE"
-
-    case NODE_STRING: return "NODE_STRING"
-
-    case NODE_ARRAY_LITERAL: return "NODE_ARRAY_LITERAL"
-
-    case NODE_IF: return "NODE_IF"
-
-    case NODE_SWITCH: return "NODE_SWITCH"
-
-    case NODE_SWITCH_ARM: return "NODE_SWITCH_ARM"
-
-    case NODE_FOR: return "NODE_FOR"
-
-    case NODE_WHILE: return "NODE_WHILE"
-
-    case NODE_IMPORT: return "NODE_IMPORT"
-
-    case NODE_IMPLEMENT: return "NODE_IMPLEMENT"
-
-    case NODE_UNA_ELLIPSIS: return "NODE_UNA_ELLIPSIS"
-
-    case NODE_UNA_NOT: return "NODE_UNA_NOT"
-
-    case NODE_UNA_DEREF: return "NODE_UNA_DEREF"
-
-    case NODE_UNA_REF: return "NODE_UNA_REF"
-
-    case NODE_BIN_ASSIGN: return "NODE_BIN_ASSIGN"
-
-    case NODE_BIN_PLUS: return "NODE_BIN_PLUS"
-
-    case NODE_BIN_MIN: return "NODE_BIN_MIN"
-
-    case NODE_BIN_DIV: return "NODE_BIN_DIV"
-
-    case NODE_BIN_MUL: return "NODE_BIN_MUL"
-
-    case NODE_BIN_MOD: return "NODE_BIN_MOD"
-
-    case NODE_BIN_EQ: return "NODE_BIN_EQ"
-
-    case NODE_BIN_NEQ: return "NODE_BIN_NEQ"
-
-    case NODE_BIN_GTEQ: return "NODE_BIN_GTEQ"
-
-    case NODE_BIN_GT: return "NODE_BIN_GT"
-
-    case NODE_BIN_LTEQ: return "NODE_BIN_LTEQ"
-
-    case NODE_BIN_LT: return "NODE_BIN_LT"
-
-    case NODE_BIN_LSHIFT: return "NODE_BIN_LSHIFT"
-
-    case NODE_BIN_RSHIFT: return "NODE_BIN_RSHIFT"
-
-    case NODE_BIN_BITAND: return "NODE_BIN_BITAND"
-
-    case NODE_BIN_BITOR: return "NODE_BIN_BITOR"
-
-    case NODE_BIN_BITXOR: return "NODE_BIN_BITXOR"
-
-    case NODE_BIN_OR: return "NODE_BIN_OR"
-
-    case NODE_BIN_AND: return "NODE_BIN_AND"
-
-    case NODE_BIN_IS: return "NODE_BIN_IS"
-
-    case NODE_BIN_IS_NOT: return "NODE_BIN_IS_NOT"
-
-    case NODE_BIN_CAST: return "NODE_BIN_CAST"
-
-    case NODE_BIN_CALL: return "NODE_BIN_CALL"
-
-    case NODE_BIN_INDEX: return "NODE_BIN_INDEX"
-
-    case NODE_BIN_DOT: return "NODE_BIN_DOT"
-
-    case NODE_LIT_NONE: return "NODE_LIT_NONE"
-
-    case NODE_LIT_THIS: return "NODE_LIT_THIS"
-
-    case NODE_LIT_VOID: return "NODE_LIT_VOID"
-
-    case NODE_LIT_FALSE: return "NODE_LIT_FALSE"
-
-    case NODE_LIT_TRUE: return "NODE_LIT_TRUE"
-
-    case NODE_LIT_CHAR: return "NODE_LIT_CHAR"
-
-    case NODE_LIT_RAWSTR: return "NODE_LIT_RAWSTR"
-
-    case NODE_LIT_NUMBER: return "NODE_LIT_NUMBER"
-
-    case NODE_INTEGER: return "NODE_INTEGER"
-
-    case NODE_ID: return "NODE_ID"
-
-  }
-  return "<!!!>"
+func (parser *Parser) createAstFile() *AstFile {
+  var res = &AstFile{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setFileChildren(contents Node) {
 
-  if n.Kind() != NODE_FILE {
-    panic("!!")
-  }
-  n.setChildren(contents)
-}
-
-func (tk Tk) createFile(ctx Context, contents Node) Node {
-return tk.createNode(ctx, NODE_FILE, contents)
+func (parser *Parser) createAstImport() *AstImport {
+  var res = &AstImport{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setBlockChildren(contents Node) {
 
-  if n.Kind() != NODE_BLOCK {
-    panic("!!")
-  }
-  n.setChildren(contents)
-}
-
-func (tk Tk) createBlock(ctx Context, contents Node) Node {
-return tk.createNode(ctx, NODE_BLOCK, contents)
+func (n *AstImport) GetName() *AstIdentifier {
+  return n.named.GetName()
 }
 
 
-func (n Node) setTupleChildren(contents Node) {
-
-  if n.Kind() != NODE_TUPLE {
-    panic("!!")
-  }
-  n.setChildren(contents)
-}
-
-func (tk Tk) createTuple(ctx Context, contents Node) Node {
-return tk.createNode(ctx, NODE_TUPLE, contents)
+func (parser *Parser) createAstImportModuleName() *AstImportModuleName {
+  var res = &AstImportModuleName{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setFnChildren(name Node, signature Node, definition Node) {
 
-  if n.Kind() != NODE_FN {
-    panic("!!")
-  }
-  n.setChildren(name, signature, definition)
-}
-
-func (tk Tk) createFn(ctx Context, name Node, signature Node, definition Node) Node {
-return tk.createNode(ctx, NODE_FN, name, signature, definition)
+func (parser *Parser) createAstVarDecl() *AstVarDecl {
+  var res = &AstVarDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setMethodChildren(name Node, signature Node, definition Node) {
 
-  if n.Kind() != NODE_METHOD {
-    panic("!!")
-  }
-  n.setChildren(name, signature, definition)
-}
-
-func (tk Tk) createMethod(ctx Context, name Node, signature Node, definition Node) Node {
-return tk.createNode(ctx, NODE_METHOD, name, signature, definition)
+func (n *AstVarDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
 }
 
 
-func (n Node) setNamespaceChildren(name Node, block Node) {
-
-  if n.Kind() != NODE_NAMESPACE {
-    panic("!!")
-  }
-  n.setChildren(name, block)
-}
-
-func (tk Tk) createNamespace(ctx Context, name Node, block Node) Node {
-return tk.createNode(ctx, NODE_NAMESPACE, name, block)
+func (parser *Parser) createAstNamespaceDecl() *AstNamespaceDecl {
+  var res = &AstNamespaceDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setTypeChildren(name Node, template Node, typeexp Node, block Node) {
 
-  if n.Kind() != NODE_TYPE {
-    panic("!!")
-  }
-  n.setChildren(name, template, typeexp, block)
-}
-
-func (tk Tk) createType(ctx Context, name Node, template Node, typeexp Node, block Node) Node {
-return tk.createNode(ctx, NODE_TYPE, name, template, typeexp, block)
+func (n *AstNamespaceDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
 }
 
 
-func (n Node) setEnumChildren(name Node, template Node, varlist Node, block Node) {
-
-  if n.Kind() != NODE_ENUM {
-    panic("!!")
-  }
-  n.setChildren(name, template, varlist, block)
-}
-
-func (tk Tk) createEnum(ctx Context, name Node, template Node, varlist Node, block Node) Node {
-return tk.createNode(ctx, NODE_ENUM, name, template, varlist, block)
+func (parser *Parser) createAstImplement() *AstImplement {
+  var res = &AstImplement{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setStructChildren(name Node, template Node, varlist Node, block Node) {
 
-  if n.Kind() != NODE_STRUCT {
-    panic("!!")
-  }
-  n.setChildren(name, template, varlist, block)
-}
-
-func (tk Tk) createStruct(ctx Context, name Node, template Node, varlist Node, block Node) Node {
-return tk.createNode(ctx, NODE_STRUCT, name, template, varlist, block)
+func (parser *Parser) createAstTemplateParam() *AstTemplateParam {
+  var res = &AstTemplateParam{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setTraitChildren(name Node, template Node, empty Node, block Node) {
 
-  if n.Kind() != NODE_TRAIT {
-    panic("!!")
-  }
-  n.setChildren(name, template, empty, block)
-}
-
-func (tk Tk) createTrait(ctx Context, name Node, template Node, empty Node, block Node) Node {
-return tk.createNode(ctx, NODE_TRAIT, name, template, empty, block)
+func (n *AstTemplateParam) GetName() *AstIdentifier {
+  return n.named.GetName()
 }
 
 
-func (n Node) setVarChildren(name Node, typeexp Node, assign Node) {
-
-  if n.Kind() != NODE_VAR {
-    panic("!!")
-  }
-  n.setChildren(name, typeexp, assign)
-}
-
-func (tk Tk) createVar(ctx Context, name Node, typeexp Node, assign Node) Node {
-return tk.createNode(ctx, NODE_VAR, name, typeexp, assign)
+func (parser *Parser) createAstEnumDecl() *AstEnumDecl {
+  var res = &AstEnumDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setSignatureChildren(template Node, args Node, rettype Node) {
 
-  if n.Kind() != NODE_SIGNATURE {
-    panic("!!")
-  }
-  n.setChildren(template, args, rettype)
-}
-
-func (tk Tk) createSignature(ctx Context, template Node, args Node, rettype Node) Node {
-return tk.createNode(ctx, NODE_SIGNATURE, template, args, rettype)
+func (parser *Parser) createAstUnionDecl() *AstUnionDecl {
+  var res = &AstUnionDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setReturnChildren(exp Node) {
 
-  if n.Kind() != NODE_RETURN {
-    panic("!!")
-  }
-  n.setChildren(exp)
-}
-
-func (tk Tk) createReturn(ctx Context, exp Node) Node {
-return tk.createNode(ctx, NODE_RETURN, exp)
+func (parser *Parser) createAstStructDecl() *AstStructDecl {
+  var res = &AstStructDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setTakeChildren(exp Node) {
 
-  if n.Kind() != NODE_TAKE {
-    panic("!!")
-  }
-  n.setChildren(exp)
-}
-
-func (tk Tk) createTake(ctx Context, exp Node) Node {
-return tk.createNode(ctx, NODE_TAKE, exp)
+func (parser *Parser) createAstFn() *AstFn {
+  var res = &AstFn{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setUnionChildren(members Node) {
 
-  if n.Kind() != NODE_UNION {
-    panic("!!")
-  }
-  n.setChildren(members)
-}
-
-func (tk Tk) createUnion(ctx Context, members Node) Node {
-return tk.createNode(ctx, NODE_UNION, members)
+func (n *AstFn) GetName() *AstIdentifier {
+  return n.named.GetName()
 }
 
 
-func (n Node) setIsoBlockChildren(block Node) {
-
-  if n.Kind() != NODE_ISO_BLOCK {
-    panic("!!")
-  }
-  n.setChildren(block)
-}
-
-func (tk Tk) createIsoBlock(ctx Context, block Node) Node {
-return tk.createNode(ctx, NODE_ISO_BLOCK, block)
+func (parser *Parser) createAstBlock() *AstBlock {
+  var res = &AstBlock{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setIsoTypeChildren(type_expr Node) {
 
-  if n.Kind() != NODE_ISO_TYPE {
-    panic("!!")
-  }
-  n.setChildren(type_expr)
-}
-
-func (tk Tk) createIsoType(ctx Context, type_expr Node) Node {
-return tk.createNode(ctx, NODE_ISO_TYPE, type_expr)
+func (parser *Parser) createAstFnCall() *AstFnCall {
+  var res = &AstFnCall{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setStringChildren(contents Node) {
 
-  if n.Kind() != NODE_STRING {
-    panic("!!")
-  }
-  n.setChildren(contents)
-}
-
-func (tk Tk) createString(ctx Context, contents Node) Node {
-return tk.createNode(ctx, NODE_STRING, contents)
+func (parser *Parser) createAstIndexCall() *AstIndexCall {
+  var res = &AstIndexCall{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setArrayLiteralChildren(contents Node) {
 
-  if n.Kind() != NODE_ARRAY_LITERAL {
-    panic("!!")
-  }
-  n.setChildren(contents)
-}
-
-func (tk Tk) createArrayLiteral(ctx Context, contents Node) Node {
-return tk.createNode(ctx, NODE_ARRAY_LITERAL, contents)
+func (parser *Parser) createAstDerefOp() *AstDerefOp {
+  var res = &AstDerefOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setIfChildren(cond Node, thenarm Node, elsearm Node) {
 
-  if n.Kind() != NODE_IF {
-    panic("!!")
-  }
-  n.setChildren(cond, thenarm, elsearm)
-}
-
-func (tk Tk) createIf(ctx Context, cond Node, thenarm Node, elsearm Node) Node {
-return tk.createNode(ctx, NODE_IF, cond, thenarm, elsearm)
+func (parser *Parser) createAstPointerOp() *AstPointerOp {
+  var res = &AstPointerOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setSwitchChildren(exp Node, arms Node) {
 
-  if n.Kind() != NODE_SWITCH {
-    panic("!!")
-  }
-  n.setChildren(exp, arms)
-}
-
-func (tk Tk) createSwitch(ctx Context, exp Node, arms Node) Node {
-return tk.createNode(ctx, NODE_SWITCH, exp, arms)
+func (parser *Parser) createAstReturnOp() *AstReturnOp {
+  var res = &AstReturnOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setSwitchArmChildren(cond Node, block Node) {
 
-  if n.Kind() != NODE_SWITCH_ARM {
-    panic("!!")
-  }
-  n.setChildren(cond, block)
-}
-
-func (tk Tk) createSwitchArm(ctx Context, cond Node, block Node) Node {
-return tk.createNode(ctx, NODE_SWITCH_ARM, cond, block)
+func (parser *Parser) createAstTakeOp() *AstTakeOp {
+  var res = &AstTakeOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setForChildren(vardecl Node, rng Node, block Node) {
 
-  if n.Kind() != NODE_FOR {
-    panic("!!")
-  }
-  n.setChildren(vardecl, rng, block)
-}
-
-func (tk Tk) createFor(ctx Context, vardecl Node, rng Node, block Node) Node {
-return tk.createNode(ctx, NODE_FOR, vardecl, rng, block)
+func (parser *Parser) createAstMulBinOp() *AstMulBinOp {
+  var res = &AstMulBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setWhileChildren(cond Node, block Node) {
 
-  if n.Kind() != NODE_WHILE {
-    panic("!!")
-  }
-  n.setChildren(cond, block)
-}
-
-func (tk Tk) createWhile(ctx Context, cond Node, block Node) Node {
-return tk.createNode(ctx, NODE_WHILE, cond, block)
+func (parser *Parser) createAstDivBinOp() *AstDivBinOp {
+  var res = &AstDivBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setImportChildren(module Node, id Node, exp Node) {
 
-  if n.Kind() != NODE_IMPORT {
-    panic("!!")
-  }
-  n.setChildren(module, id, exp)
-}
-
-func (tk Tk) createImport(ctx Context, module Node, id Node, exp Node) Node {
-return tk.createNode(ctx, NODE_IMPORT, module, id, exp)
+func (parser *Parser) createAstAddBinOp() *AstAddBinOp {
+  var res = &AstAddBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setImplementChildren(id Node, block Node) {
 
-  if n.Kind() != NODE_IMPLEMENT {
-    panic("!!")
-  }
-  n.setChildren(id, block)
-}
-
-func (tk Tk) createImplement(ctx Context, id Node, block Node) Node {
-return tk.createNode(ctx, NODE_IMPLEMENT, id, block)
+func (parser *Parser) createAstSubBinOp() *AstSubBinOp {
+  var res = &AstSubBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setUnaNotChildren(exp Node) {
 
-  if n.Kind() != NODE_UNA_NOT {
-    panic("!!")
-  }
-  n.setChildren(exp)
-}
-
-func (tk Tk) createUnaNot(ctx Context, exp Node) Node {
-return tk.createNode(ctx, NODE_UNA_NOT, exp)
+func (parser *Parser) createAstModBinOp() *AstModBinOp {
+  var res = &AstModBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setUnaDerefChildren(pointed Node) {
 
-  if n.Kind() != NODE_UNA_DEREF {
-    panic("!!")
-  }
-  n.setChildren(pointed)
-}
-
-func (tk Tk) createUnaDeref(ctx Context, pointed Node) Node {
-return tk.createNode(ctx, NODE_UNA_DEREF, pointed)
+func (parser *Parser) createAstPipeBinOp() *AstPipeBinOp {
+  var res = &AstPipeBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
 
-func (n Node) setUnaRefChildren(variable Node) {
 
-  if n.Kind() != NODE_UNA_REF {
-    panic("!!")
-  }
-  n.setChildren(variable)
+func (parser *Parser) createAstAmpBinOp() *AstAmpBinOp {
+  var res = &AstAmpBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
-func (tk Tk) createUnaRef(ctx Context, variable Node) Node {
-return tk.createNode(ctx, NODE_UNA_REF, variable)
+
+
+func (parser *Parser) createAstLShiftBinOp() *AstLShiftBinOp {
+  var res = &AstLShiftBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
 }
 
+
+
+func (parser *Parser) createAstRShiftBinOp() *AstRShiftBinOp {
+  var res = &AstRShiftBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstAndBinOp() *AstAndBinOp {
+  var res = &AstAndBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstOrBinOp() *AstOrBinOp {
+  var res = &AstOrBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstGtBinOp() *AstGtBinOp {
+  var res = &AstGtBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstGteBinOp() *AstGteBinOp {
+  var res = &AstGteBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstLtBinOp() *AstLtBinOp {
+  var res = &AstLtBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstLteBinOp() *AstLteBinOp {
+  var res = &AstLteBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstEqBinOp() *AstEqBinOp {
+  var res = &AstEqBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstNeqBinOp() *AstNeqBinOp {
+  var res = &AstNeqBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstIsBinOp() *AstIsBinOp {
+  var res = &AstIsBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstIsNotBinOp() *AstIsNotBinOp {
+  var res = &AstIsNotBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstDotBinOp() *AstDotBinOp {
+  var res = &AstDotBinOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstNone() *AstNone {
+  var res = &AstNone{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstTrue() *AstTrue {
+  var res = &AstTrue{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstFalse() *AstFalse {
+  var res = &AstFalse{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstIntLiteral() *AstIntLiteral {
+  var res = &AstIntLiteral{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstStringLiteral() *AstStringLiteral {
+  var res = &AstStringLiteral{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstIdentifier() *AstIdentifier {
+  var res = &AstIdentifier{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstStringExp() *AstStringExp {
+  var res = &AstStringExp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstIf() *AstIf {
+  var res = &AstIf{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstWhile() *AstWhile {
+  var res = &AstWhile{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
 
 

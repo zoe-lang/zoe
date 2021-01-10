@@ -54,7 +54,6 @@ func (s *Solution) AddFile(uri string, contents string, version int) (*File, err
 	}
 
 	f.Parse()
-	f.RootNode.Check()
 	return f, nil
 }
 

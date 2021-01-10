@@ -208,18 +208,23 @@ var some_slice = Slice[Dog | Cat].new()
 ############ The rest of the types are built upon the base types.
 
 # Slices are not "special" ?
-type Toto is Slice[Int]
-type Toto2 is []Slice
-type Toto3 is [3]Slice # an array of 3 elements.
+type Toto (Slice[Int])
+type Toto2 ([]Slice)
+type Toto3 ([3]Slice) # an array of 3 elements.
 
 
 
+# It is possible to turn a struct into a trait
+# How ?
+# This should be baseline
 
 # All type expressions (type, enum, trait, struct) may have method blocks
-struct Pouet[$T] {
-  field: String
-  another_field: String
+struct Pouet[$T] (
+  field: String,
+  another_field: String,
   field2: $T
+) {
+
 
   fn new() -> this {
 
@@ -232,22 +237,22 @@ struct Pouet[$T] {
 
 #####################################################
 
-trait Reader[$T] {
+trait Reader[$T]() {
   method read(buffer: Slice[$T]) -> Int | error
   method isClosed() -> Boolean
 }
 
-trait Writer[$T] {
+trait Writer[$T]() {
   method write(buffer: Slice[$T]) -> Int | error
 }
 
-trait Closer {
+trait Closer() {
   method close() -> null | error
 }
 
-trait LineReader {
+trait LineReader() {
   # Pouet
-  implement Reader[Char]
+  # implement Reader[Char]
 
   #(?
     Adds a readLine method
@@ -255,7 +260,7 @@ trait LineReader {
   method readLine() -> String | error
 }
 
-trait ReadCloser[$T] {
+trait ReadCloser[$T]() {
   # A trait does not have to give an actual implementation to another, required trait
   implement Reader[$T]
   implement Closer

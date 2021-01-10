@@ -129,6 +129,7 @@ func (z *File) Lex() error {
 
 			<top> "typeof"    => top { addToken(KW_TYPEOF); goto yyc_top }
 			<top> "is"        => top { addToken(KW_IS); goto yyc_top }
+			<top> "is" [\t \n]+ "not"  => top { addToken(KW_ISNOT); goto yyc_top }
 			<top> "not"				=> top { addToken(KW_NOT); goto yyc_top }
 			<top> "return"    => top { addToken(KW_RETURN); goto yyc_top }
 			<top> "yield"     => top { addToken(KW_YIELD); goto yyc_top }
@@ -168,10 +169,15 @@ func (z *File) Lex() error {
 			}
 			<top> "!"   { addToken(TK_EXCLAM); goto yyc_top }
 			<top> "<="   { addToken(TK_LTE); goto yyc_top }
+			<top> "<<"   { addToken(TK_LSHIFT); goto yyc_top }
+			<top> "<<="   { addToken(TK_LSHIFTEQ); goto yyc_top }
 			<top> "<"   { addToken(TK_LT); goto yyc_top }
 			<top> ">="   { addToken(TK_GTE); goto yyc_top }
 			<top> ">"   { addToken(TK_GT); goto yyc_top }
+			<top> ">>"   { addToken(TK_RSHIFT); goto yyc_top }
+			<top> ">>="   { addToken(TK_RSHIFTEQ); goto yyc_top }
 			<top> "|"   { addToken(TK_PIPE); goto yyc_top }
+			<top> "|="   { addToken(TK_PIPEEQ); goto yyc_top }
 			<top> "||"   { addToken(TK_PIPEPIPE); goto yyc_top }
 			<top> "/"   { addToken(TK_DIV); goto yyc_top }
 			<top> "/="  { addToken(TK_DIVEQ); goto yyc_top }

@@ -1,995 +1,654 @@
 package zoe
 
-func (f *File) Parse() {
-	_, f.RootNode = f.parseFile()
-	// control that we got to the last token ???
+type nudNode interface {
+	Node
+	nud(iter *Parser, scope *Scope)
 }
 
-// At the top level, just parse everything we can
-func (f *File) parseFile() (Tk, Node) {
-	// var module = TypeModule{}
-	var scope = f.RootScope()
-	var fdef = &NamespaceDef{}
-	var ctx = Context{scope: scope, currentType: fdef}
+type ledNode interface {
+	Node
+	led(iter *Parser, scope *Scope, left Node)
+}
 
-	tk := Tk{
+/*
+	Parse parses the file.
+*/
+func (f *File) Parse() {
+	var file = AstFileNew(f)
+	f.RootNode = file
+
+	var scope = &Scope{Names: make(Names), Context: scopeFile}
+	f.RootScope = scope
+
+	var parser = Parser{
 		pos:  0,
+		prev: 0,
 		file: f,
 	}
-	if tk.isSkippable() {
-		tk = tk.Next()
-	}
-	file := f.createNode(tk, NODE_FILE, ctx)
 
-	app := newList()
-	tk.whileNotEof(func(iter Tk) Tk {
-		var node Node
-		iter, node = Expression(ctx, iter, 0)
-		if !node.IsEmpty() {
-			file.ExtendRangeFromNode(node)
-			app.append(node)
-		}
-		return iter
+	if parser.isSkippable() {
+		parser.Advance()
+		parser.prev = parser.pos
+	}
+
+	parser.whileNotEof(func() {
+		var node = parser.Expression(scope, 0)
+		file.Register(node, scope)
 	})
-
-	if !app.first.IsEmpty() {
-		file.SetArgs(app.first)
-	}
-
-	return tk, file
 }
 
-var lbp_equal = 0
-var lbp_commas = 0
-var lbp_semicolon = 0
+type bindingPower struct {
+	left  int
+	right int
+}
 
-// var rbp_arrow = 0
-var lbp_gt = 0
-var lbp = 2
+var rbps [TK__MAX]bindingPower
+var rbp = 2 // the base rbp
 
+func prefix(tk TokenKind) {
+	rbps[tk] = bindingPower{right: rbp}
+}
+
+func suffix(tk TokenKind) {
+	rbps[tk] = bindingPower{left: rbp}
+}
+
+func leftAssoc(tk TokenKind) {
+	rbps[tk] = bindingPower{left: rbp, right: rbp}
+}
+
+func rightAssoc(tk TokenKind) {
+	rbps[tk] = bindingPower{left: rbp, right: rbp - 1}
+}
+
+// __ augments the priority
+func __() {
+	rbp = rbp + 2
+}
+
+/*
+	Set up the operator precedence.
+*/
 func init() {
-	for i := range syms {
-		syms[i].nud = nudError
-		syms[i].led = ledError
-	}
 
-	//
-	// Parse a parenthesized expression.
-	//
-	nud(TK_LPAREN, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		// We are going to check if we have several components to the paren, or just
-		// one, in which case we just send it back.
-		// an empty () parenthesis block is an error as it doesn't mean anything.
-
-		iter, exp := Expression(ctx, tk.Next(), 0)
-		// check if we end with a parenthesis
-		if next, ok := iter.consume(TK_RPAREN); ok {
-			exp.Extend(tk)
-			return next, exp
-		}
-
-		// If we didn't encounter ), we want a comma
-		iter, _ = iter.expect(TK_COMMA)
-
-		app := newList()
-		app.append(exp)
-
-		iter = iter.whileNotClosing(func(iter Tk) Tk {
-			iter, exp = Expression(ctx, iter, 0)
-			if !iter.Is(TK_RPAREN) {
-				iter, _ = iter.expect(TK_COMMA) // there can be a comma
-			}
-			app.append(exp)
-			return iter
-		})
-
-		tup := tk.createTuple(ctx, app.first)
-		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) { tup.Extend(tk) })
-
-		return iter, tup
-	})
-
-	//
-	// Namespace declaration (might go away)
-	//
-	nud(KW_NAMESPACE, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		var iter = tk.Next()
-		// res.Block = res.CreateBlock()
-		var nmsp = &NamespaceDef{}
-
-		var name Node
-		if iter.Is(TK_ID) {
-			name = iter.createIdNode(ctx)
-			iter = iter.Next()
-		}
-
-		var nmsp_scope = ctx.CreateNamespaceContext(nmsp)
-		// iter, name = Expression(ctx, iter, 0)
-
-		var block Node
-
-		if _, ok := iter.expect(TK_LBRACKET); ok {
-			iter, block = parseBlock(nmsp_scope, iter, 0)
-		}
-
-		var nmsp_node = tk.createNamespace(nmsp_scope, name, block)
-		nmsp.node = nmsp_node
-
-		return iter, nmsp_node
-	})
-
-	// { , a block
-	nud(TK_LBRACKET, parseBlock)
-
-	nud(TK_LBRACE, func(ctx Context, tk Tk, _ int) (Tk, Node) {
-		// function call !
-		var iter = tk.Next()
-
-		fragment := newList()
-		iter = iter.whileNotClosing(func(iter Tk) Tk {
-			var exp Node
-			iter, exp = Expression(ctx, iter, 0)
-			fragment.append(exp)
-			if !iter.Is(TK_RBRACE) {
-				iter, _ = iter.consume(TK_COMMA)
-			}
-			return iter
-		})
-
-		array := tk.createArrayLiteral(ctx, fragment.first)
-
-		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
-			array.Extend(tk)
-		})
-
-		return iter, array
-	})
-
-	// The doc comment forwards the results but sets itself first on the node that resulted
-	// Doc comments whose next meaningful token are other doc comments or the end of the file
-	// are added at the module level
-	nud(TK_DOCCOMMENT, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		// tkpos := b.current - 1           // the parsed token position
-		next, node := Expression(ctx, tk.Next(), lbp) // forward the current lbp to the expression
-		tk.file.DocCommentMap[node.pos] = tk.pos
-		return next, node
-	})
-
-	nud(KW_FOR, parseFor)
-	nud(KW_WHILE, parseWhile)
-	nud(KW_IF, parseIf)
-	nud(KW_SWITCH, parseSwitch)
-
-	nud(KW_LOCAL, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		next, v := Expression(ctx, tk.Next(), lbp)
-		if v.expect(NODE_VAR) {
-			v.Extend(tk)
-		} else {
-			tk.reportError("expected a variable declaration")
-		}
-		return next, v
-	})
-
-	nud(KW_VAR, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		next, v := parseVar(ctx, tk.Next(), lbp)
-		return next, v
-	})
-
-	nud(KW_CONST, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		next, va := parseVar(ctx, tk.Next(), lbp)
-		return next, va
-	})
-
-	nud(KW_IMPORT, parseImport)
-
-	nud(KW_IMPLEMENT, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		var iter = tk.Next()
-		var namexp Node
-		iter, namexp = Expression(ctx, iter, 0)
-
-		var blk Node
-		if iter.Is(TK_LBRACKET) {
-			iter, blk = parseBlock(ctx, iter, 0)
-		}
-
-		return iter, tk.createImplement(ctx, namexp, blk)
-	})
-
-	lbp += 2
-
-	nud(KW_TAKE, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		var res Node
-		iter := tk
-		// do not try to get next expression is return is immediately followed
-		// by } or ]
-		if tk.Peek(TK_RPAREN, TK_RBRACKET) {
-			// return can only return nothing if it is at the end of a block or expression
-			res = EmptyNode
-		} else {
-			iter, res = Expression(ctx, tk.Next(), lbp)
-		}
-
-		return iter, tk.createTake(ctx, res)
-	})
-
-	// return ...
-	// will return an empty node if
-	nud(KW_RETURN, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		var res Node
-		iter := tk
-		// do not try to get next expression is return is immediately followed
-		// by } or ]
-		if tk.Peek(TK_RPAREN, TK_RBRACKET) {
-			// return can only return nothing if it is at the end of a block or expression
-			res = EmptyNode
-		} else {
-			iter, res = Expression(ctx, tk.Next(), lbp)
-		}
-
-		return iter, tk.createReturn(ctx, res)
-	})
-
-	nud(KW_TYPE, parseType)
-	nud(KW_STRUCT, parseType)
-	nud(KW_TRAIT, parseType)
-	nud(KW_ENUM, parseType)
-
-	lbp += 2
-	lbp_equal = lbp
-
-	// =
-	binary(TK_EQ, NODE_BIN_ASSIGN)
-	lbp_is := lbp
-	led(KW_IS, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-		var iter = tk.Next()
-		var right Node
-
-		if iter.Is(KW_NOT) {
-			iter, right = Expression(ctx, iter.Next(), lbp_is+1)
-			return iter, tk.createNode(ctx, NODE_BIN_IS_NOT, left, right)
-		}
-		iter, right = Expression(ctx, iter, lbp_is+1)
-		return iter, tk.createNode(ctx, NODE_BIN_IS, left, right)
-	})
-
-	// fn eats up the expression right next to it
-	nud(KW_FN, parseFn)
-	nud(KW_METHOD, parseFn)
-
-	lbp += 2
-
-	// unary(KW_LOCAL)
-	// unary(KW_CONST)
-	binary(TK_EQEQ, NODE_BIN_EQ)
-	binary(TK_NOTEQ, NODE_BIN_NEQ)
-
-	lbp_eq := lbp
-	nud(TK_EXCLAM, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		next, exp := Expression(ctx, tk.Next(), lbp_eq)
-		node := tk.createUnaNot(ctx, exp)
-		return next, node
-	})
-
-	lbp += 2
-	binary(TK_PIPEPIPE, NODE_BIN_AND)
-	binary(TK_AMPAMP, NODE_BIN_AND)
-
-	lbp += 2
-
-	binary(TK_LT, NODE_BIN_LT)
-	binary(TK_LTE, NODE_BIN_LTEQ)
-	lbp_gt = lbp
-	binary(TK_GT, NODE_BIN_GT)
-	binary(TK_GTE, NODE_BIN_GTEQ)
-	// unary(TK_ELLIPSIS) // ???
-
-	lbp += 2
-
-	binary(TK_PIPE, NODE_BIN_BITOR)
-	// conflict with bitwise or !
-	// how the hell am I supposed to tell the difference between the two ?
-	// led(TK_PIPE, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-	// 	right := c.Expression(ctx, lbp)
-	// 	if v, ok := left.(*Union); ok {
-	// 		return v.AddTypeExprs(right)
-	// 	}
-	// 	return tk.CreateUnion().AddTypeExprs(left, right)
-	// })
-
-	lbp += 2
-
-	lbp_addition := lbp
-	// The + prefix operator, which is essentially a noop
-	nud(TK_PLUS, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		return Expression(ctx, tk.Next(), lbp_addition)
-	})
-
-	// The - prefix operator, which gets converted as a multiplication by -1
-	nud(TK_MIN, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		var next, exp = Expression(ctx, tk.Next(), lbp_addition)
-		// create a node for -1
-		var min_one = tk.file.createNode(tk, NODE_INTEGER, ctx)
-		min_one.SetValue(-1) // a forced integer
-		bin := tk.createBinOp(ctx, NODE_BIN_MUL, min_one, exp)
-		return next, bin
-	})
-
-	binary(TK_MIN, NODE_BIN_MIN)
-	binary(TK_PLUS, NODE_BIN_PLUS)
-
-	lbp += 2
-
-	binary(TK_STAR, NODE_BIN_MUL)
-	binary(TK_DIV, NODE_BIN_DIV)
-	binary(TK_MOD, NODE_BIN_MOD)
-
-	lbp += 2
-
-	unary(TK_ELLIPSIS, NODE_UNA_ELLIPSIS)
-
-	lbp += 2
-
-	// parseParens()
-	// When used right next to an expression, then paren is a function call
-	// handleParens(NODE_LIST, NODE_FNCALL, TK_LPAREN, TK_RPAREN, true)
-
-	led(TK_PLUSPLUS, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-		var next = tk.Next()
-		var one = tk.createNode(ctx, NODE_INTEGER)
-		one.SetValue(1)
-		var addition = tk.createNode(ctx, NODE_BIN_PLUS, one, left)
-		var assign = tk.createNode(ctx, NODE_BIN_ASSIGN, left, addition)
-		return next, assign
-	})
-
-	led(TK_MINMIN, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-		var next = tk.Next()
-		var one = tk.createNode(ctx, NODE_INTEGER)
-		one.SetValue(-1)
-		var addition = tk.createNode(ctx, NODE_BIN_PLUS, one, left)
-		var assign = tk.createNode(ctx, NODE_BIN_ASSIGN, left, addition)
-		return next, assign
-	})
-
-	lbp += 2
-
-	// Dereference expression
-	led(TK_AT, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-		return tk.Next(), tk.createUnaDeref(ctx, left)
-	})
-
-	// Reference expression, takes an address or defines a pointer type.
-	nud(TK_AT, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		iter := tk.Next()
-		iter, expr := Expression(ctx, iter, syms[TK_MINMIN].lbp+1)
-		if expr.IsEmpty() {
-			tk.reportError("expected @ to be followed by an expression")
-		}
-		return iter, tk.createUnaRef(ctx, expr)
-	})
-
-	lbp += 2
-
-	// led(TK_FATARROW, parseFnFatArrow)
-	// binary(NODE_FNDEF, TK_FATARROW)
-
-	led(TK_LBRACE, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-		var iter = tk.Next()
-		var fragment = newList()
-
-		iter = iter.whileNotClosing(func(iter Tk) Tk {
-			var exp Node
-			iter, exp = Expression(ctx, iter, 0)
-			fragment.append(exp)
-			iter = iter.expectCommaIfNot(TK_RBRACE)
-			return iter
-		})
-
-		var index = tk.createBinOp(ctx, NODE_BIN_INDEX, left, fragment.first)
-		iter, _ = iter.expect(TK_RBRACE, func(tk Tk) {
-			index.Extend(tk)
-		})
-
-		return iter, index
-	})
-
-	lbp += 2
-
-	led(TK_LPAREN, func(ctx Context, tk Tk, left Node) (Tk, Node) {
-		// function call !
-		var iter = tk.Next()
-		var fragment = newList()
-
-		iter = iter.whileNotClosing(func(iter Tk) Tk {
-			var exp Node
-			iter, exp = Expression(ctx, iter, 0)
-
-			fragment.append(exp)
-			iter = iter.expectCommaIfNot(TK_RPAREN)
-			return iter
-		})
-
-		var call = tk.createBinOp(ctx, NODE_BIN_CALL, left, fragment.first)
-
-		iter, _ = iter.expect(TK_RPAREN, func(tk Tk) {
-			call.Extend(tk)
-		})
-
-		return iter, call
-	})
-
-	lbp += 2
-
-	binary(TK_DOT, NODE_BIN_DOT)
-	// binary(KW_AS)
-
-	lbp += 2
-	binary(TK_COLCOL, NODE_BIN_CAST)
-	lbp += 2
-
-	nud(TK_QUOTE, parseQuote)
-	nud(KW_ISO, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		next := tk.Next()
-		if next.Is(TK_LBRACKET) {
-			var blk Node
-			next, blk = parseBlock(ctx, next, 0)
-			block := tk.createIsoBlock(ctx, blk)
-			return next, block
-		}
-		if next.Is(TK_LBRACE) {
-			var exp Node
-			next, exp = parseBlock(ctx, next, 0)
-			iso_expr := tk.createIsoType(ctx, exp)
-			return next, iso_expr
-		}
-
-		next.reportError(`iso expects either a {block} or a [type] expression`)
-		// We still advance the parser to make sure that we don't get stuck in a loop
-		return next, EmptyNode
-	})
-
-	literal(KW_TRUE, NODE_LIT_TRUE)
-	literal(KW_FALSE, NODE_LIT_FALSE)
-	literal(KW_NONE, NODE_LIT_NONE)
-	literal(KW_VOID, NODE_LIT_VOID)
-	literal(KW_THIS, NODE_LIT_THIS)
-	literal(TK_CHAR, NODE_LIT_CHAR)
-	literal(TK_NUMBER, NODE_LIT_NUMBER)
-	literal(TK_RAWSTR, NODE_LIT_RAWSTR)
-
-	nud(TK_ID, func(ctx Context, tk Tk, lbp int) (Tk, Node) {
-		var node = tk.createIdNode(ctx)
-		var data = node.GetBytes()
-		var pos = 0
-		if data[pos] == '$' {
-			pos++
-			node.SetFlag(FLAG_IS_COMPTIME)
-		}
-		if len(data) > pos {
-			if data[pos] >= 'a' && data[pos] <= 'z' {
-				node.SetFlag(FLAG_IS_SYMBOL)
-			} else {
-				node.SetFlag(FLAG_IS_TYPENAME)
-			}
-		}
-		return tk.Next(), node
-	})
-
+	leftAssoc(TK_EQ)          //   =
+	leftAssoc(TK_PLUSEQ)      //   +=
+	leftAssoc(TK_STAREQ)      //   *=
+	leftAssoc(TK_MINEQ)       //   -=
+	leftAssoc(TK_DIVEQ)       //   /=
+	leftAssoc(TK_MODEQ)       //   %=
+	leftAssoc(TK_PIPEEQ)      //   |=
+	leftAssoc(TK_AMPEQ)       //   &=
+	leftAssoc(TK_QUESTIONEQ)  //   ?=
+	__()                      //
+	leftAssoc(KW_IS)          //   is
+	leftAssoc(KW_ISNOT)       //   is not
+	__()                      //
+	leftAssoc(TK_EQEQ)        //   ==
+	leftAssoc(TK_NOTEQ)       //   !=
+	__()                      //
+	leftAssoc(TK_EXCLAM)      //   !
+	__()                      //
+	leftAssoc(TK_PIPEPIPE)    //   ||
+	leftAssoc(TK_AMPAMP)      //   &&
+	__()                      //
+	leftAssoc(TK_LT)          //   <
+	leftAssoc(TK_LTE)         //   <=
+	leftAssoc(TK_GT)          //   >
+	leftAssoc(TK_GTE)         //   >=
+	__()                      //
+	leftAssoc(TK_PIPE)        //   |
+	__()                      //
+	leftAssoc(TK_RSHIFT)      //   >>
+	leftAssoc(TK_LSHIFT)      //   <<
+	__()                      //
+	leftAssoc(TK_PLUS)        //   +
+	leftAssoc(TK_MIN)         //   -
+	__()                      //
+	leftAssoc(TK_STAR)        //   *
+	leftAssoc(TK_DIV)         //   /
+	leftAssoc(TK_MOD)         //   %
+	__()                      //
+	suffix(TK_PLUSPLUS)       //   ++
+	suffix(TK_MINMIN)         //   --
+	__()                      //
+	leftAssoc(TK_AT)          //   @    // it is not really left assoc, it's just to set it at that prio
+	__()                      //
+	suffix(TK_LPAREN)         //   function call, only suffix since nud is parenthesized
+	__()                      //
+	leftAssoc(TK_COLCOL)      //   ::
+	__()                      //
+	suffix(TK_LBRACE)         //   index expression, only suffix since nud is array litteral
+	__()                      //
+	leftAssoc(TK_DOT)         //   .
+	leftAssoc(TK_QUESTIONDOT) //   ?.
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
+/*
+	Expression is the Pratt parser expression function.
+	It implements a very simple algorithm for operator precedence resolution
+	based on the concept of right and left "binding power".
+*/
+func (parser *Parser) Expression(scope *Scope, rbp int) Node {
 
-var syms = make([]prattTk, TK__MAX) // Far more than necessary
-
-func nudError(ctx Context, tk Tk, rbp int) (Tk, Node) {
-	tk.reportError(`unexpected '`, tk.GetText(), `'`)
-	if tk.IsClosing() {
-		return tk, EmptyNode
-	}
-	return Expression(ctx, tk.Next(), rbp)
-}
-
-func ledError(_ Context, tk Tk, left Node) (Tk, Node) {
-	tk.reportError(`unexpected '`, tk.GetText(), `'`)
-	return tk.Next(), left
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
-
-func parseImport(ctx Context, tk Tk, _ int) (Tk, Node) {
-	// import is always (imp module subexp name)
-	// module is either a string or a path expression
-	var iter = tk.Next()
-	var mod Node
-	var ok bool
-
-	if iter.Is(TK_RAWSTR) {
-		mod = iter.createNode(ctx, NODE_LIT_RAWSTR)
-		iter = iter.Next()
-	} else {
-		iter, mod = Expression(ctx, iter, syms[TK_DOT].lbp-1)
+	if parser.IsEof() {
+		parser.reportError("unexpected end of file")
+		return nil
 	}
 
-	if iter, ok = iter.consume(KW_AS); ok {
-		var name Node
-		if iter.Is(TK_ID) {
-			name = iter.createIdNode(ctx)
-			iter = iter.Next()
-		}
+	var left = parser.Nud(scope, rbp)
 
-		var imp = tk.createImport(ctx, mod, name, EmptyNode)
-
-		if !name.IsEmpty() {
-			var is = &Import{symbolBase{name: name.InternedString(), node: imp}}
-			// Add the import to the current scope.
-			ctx.RegisterSymbol(is)
-		}
-
-		return iter, imp
+	// nud might have advanced without us knowing...
+	if parser.IsEof() {
+		return left
 	}
 
-	if iter, ok = iter.consume(TK_LPAREN); !ok {
-		iter.reportError("malformed import expression, expected '(' or 'as'")
-		return iter, EmptyNode
-	}
+	// var next_sym = tk.sym()
 
-	fragment := newList()
-	iter = iter.whileNotClosing(func(iter Tk) Tk {
+	for rbp < parser.Lbp() {
+		// log.Print(c.Current.KindStr(), c.Current.Value(c.data))
+		left = parser.Led(scope, left)
 
-		mod2 := mod.Clone()
-
-		var path Node
-		iter, path = Expression(ctx, iter, syms[TK_DOT].lbp-1) // we want the tk_dots
-
-		if iter, ok = iter.consume(KW_AS); ok {
-			var as Node
-			var prev = iter
-
-			if iter.Is(TK_ID) {
-				as = iter.createIdNode(ctx)
-				iter = iter.Next()
-			}
-
-			var imp = prev.createImport(ctx, mod2, as, path)
-			if !as.IsEmpty() {
-				var is = &Import{symbolBase{name: as.InternedString(), node: imp}}
-				ctx.RegisterSymbol(is)
-			}
-
-			fragment.append(imp)
-		} else {
-			var id2 = path.Clone()
-			var imp = iter.createImport(ctx, mod2, id2, path)
-
-			if !id2.IsEmpty() {
-				ctx.RegisterSymbol(&Import{symbolBase{name: id2.InternedString(), node: imp}})
-			}
-			fragment.append(imp)
-		}
-		iter = iter.expectCommaIfNot(TK_RPAREN)
-		return iter
-	})
-
-	iter, _ = iter.expect(TK_RPAREN)
-
-	return iter, fragment.first
-}
-
-///////////////////////////////////////////////////////
-// "
-func parseQuote(ctx Context, tk Tk, _ int) (Tk, Node) {
-	iter := tk.Next()
-	fragment := newList()
-	iter = iter.whileNot(TK_QUOTE, func(iter Tk) Tk {
-		var exp Node
-		iter, exp = Expression(ctx, iter, 0)
-		fragment.append(exp)
-		return iter
-	})
-
-	str := tk.createString(ctx, fragment.first)
-	iter, _ = iter.expect(TK_QUOTE, func(tk Tk) {
-		str.Extend(tk)
-	})
-
-	// this should transform the result to a string
-	return iter, str
-}
-
-/////////////////////////////////////////////////////
-// Special handling for if block
-func parseIf(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var ok bool
-	var has_else bool
-	iter := tk.Next()
-
-	// Inside the if condition, we want to know if there were some is operators associated
-	// to some identifiers, so that we can build unions for them.
-	// How to do that, through the scope ?
-	iter, cond := Expression(ctx, iter, 0) // can be a block. this could be confusing.
-
-	iter.expect(TK_LBRACKET)
-
-	var thenscope = ctx.SubScope()
-	var elsescope = ctx.SubScope()
-
-	// We need to check in the then block if it gives back control once it is done
-	// or if it stops execution in the current scope. If it does, and there is no else
-	// block, then the rest of the parent block is in fact the else condition.
-	iter, then := Expression(thenscope, iter, 0) // most likely, a block.
-
-	var els Node
-	iter, has_else = iter.consume(KW_ELSE)
-
-	if has_else {
-		iter.expect(TK_LBRACKET)
-	}
-
-	if iter, ok = iter.consume(KW_ELSE); ok {
-		iter.expect(TK_LBRACKET)
-		iter, els = Expression(elsescope, iter, 0)
-	}
-
-	return iter, tk.createIf(ctx, cond, then, els)
-}
-
-//
-func parseSwitch(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-
-	// 1. Get the expression we're switching on.
-	var switchexp Node
-	iter, switchexp = Expression(ctx, iter, 0)
-
-	// 2. Parse all the matching arms
-	iter, _ = iter.expect(TK_LBRACKET)
-
-	var list = newList()
-	iter = iter.whileNotClosing(func(iter Tk) Tk {
-		var first = iter
-		// iter, _ = iter.expect(TK_PIPE)
-
-		var armexp Node
-		var iselse bool
-		if !iter.Is(KW_ELSE) {
-			iter, armexp = Expression(ctx, iter, 0)
-		} else {
-			iselse = true
-			iter = iter.Next()
-		}
-
-		iter, _ = iter.expect(TK_ARROW)
-
-		var thenexp Node
-		iter, thenexp = Expression(ctx, iter, 0)
-
-		if iselse {
-			iter, _ = iter.consume(TK_COMMA)
-		} else {
-			iter, _ = iter.expect(TK_COMMA)
-		}
-
-		var arm = first.createSwitchArm(ctx, armexp, thenexp)
-		list.append(arm)
-		return iter
-	})
-
-	var sw = tk.createSwitch(ctx, switchexp, list.first)
-
-	if iter.shouldBe(TK_RBRACKET) {
-		// extend the range of the switch
-		sw.Extend(iter)
-		iter = iter.Next()
-	}
-	return iter, sw
-}
-
-/////////////////////////////////////////////////////
-// Special handling for fn
-func parseFn(ctx Context, tk Tk, _ int) (Tk, Node) {
-
-	var fnscope = ctx.SubScope()
-
-	var iter = tk.Next()
-
-	// Function name, may not exist
-	var name Node
-	iter, _ = iter.consume(TK_ID, func(tk Tk) {
-		name = tk.createIdNode(ctx)
-	})
-
-	// Template arguments, may not exist
-	var tpl Node
-	if iter.Is(TK_LBRACE) {
-		iter, tpl = parseTemplate(fnscope, iter, 0)
-	}
-
-	// Function arguments, mandatory
-	var args = newList()
-	iter, _ = iter.expect(TK_LPAREN)
-	iter = iter.whileNotClosing(func(iter Tk) Tk {
-
-		var arg Node
-		iter, arg = parseVar(fnscope, iter, 0)
-		if !arg.IsEmpty() {
-			args.append(arg)
-		} else {
-			iter = iter.Next()
-		}
-
-		// test for comma presence if not the end of the arguments
-		if !iter.Is(TK_RPAREN) {
-			iter, _ = iter.expect(TK_COMMA)
-		}
-		return iter
-	})
-
-	iter, _ = iter.expect(TK_RPAREN)
-
-	// Return type, may not exist
-	var rettype Node
-	if iter.Is(TK_ARROW) {
-		iter = iter.Next()
-		iter, rettype = Expression(fnscope, iter, 0)
-	}
-
-	// The signature node
-	signature := tk.createSignature(fnscope, tpl, args.first, rettype)
-
-	var result = signature
-
-	// Function definition
-	var blk Node
-	if iter.Is(TK_LBRACKET) {
-		iter, blk = parseBlock(fnscope, iter, 0)
-		// should register the function somewhere in scope, no ?
-		result = tk.createFn(fnscope, name, signature, blk)
-		result.Extend(iter)
-	}
-
-	if name != EmptyNode {
-		// var is_method = tk.Is(KW_METHOD)
-		if !blk.IsEmpty() {
-
+		if parser.IsEof() {
+			return left
 		}
 	}
 
-	return iter, result
+	return left
 }
 
-func parseUntilClosing(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var iter = tk
-	var fragment = newList()
-	iter = iter.whileNotClosing(func(iter Tk) Tk {
-		for iter.Is(TK_SEMICOLON) {
-			iter = iter.Next()
-		}
+/*
+	Nud chooses the right method depending on the token
+*/
+func (parser *Parser) Nud(scope *Scope, rbp int) Node {
+	var (
+		node  nudNode
+		start = parser.pos
+	)
+	parser.binding = rbps[int(parser.Kind())]
 
-		if iter.IsEof() {
-			return iter
-		}
+	// log.Print(parser.pos)
+	// log.Printf(parser.GetText())
+	switch parser.Kind() {
 
-		var exp Node
-		iter, exp = Expression(ctx, iter, 0)
-		fragment.append(exp)
-		return iter
-	})
-	return iter, fragment.first
-}
+	case TK_QUOTE:
+		node = parser.createAstStringExp()
 
-// parseBlock parses a block of code
-func parseBlock(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-	var subscope = ctx.SubScope()
+	case TK_RAWSTR:
+		node = parser.createAstStringLiteral()
 
-	var first Node
-	iter, first = parseUntilClosing(ctx, iter, 0)
+	case KW_IF:
+		node = parser.createAstIf()
 
-	block := tk.createBlock(subscope, first)
+	case KW_WHILE:
+		node = parser.createAstWhile()
 
-	iter = iter.expectClosing(tk, func(tk Tk) {
-		block.Extend(tk)
-	})
+	case KW_IMPORT:
+		node = parser.createAstImport()
 
-	return iter, block
-}
+	case TK_DOCCOMMENT:
+		var cmtpos = parser.pos
+		parser.Advance()
+		var nnode = parser.Expression(scope, rbp)
+		parser.file.SetComment(nnode, cmtpos)
+		return nnode
 
-// parseTemplate parses a template declaration, which is enclosed between [ ]
-// it is expected that '[' has been consumed, and that tk is '['
-func parseTemplate(ctx Context, tk Tk, _ int) (Tk, Node) {
-	// tpl := b.createNodeFromToken(tk, NODE_TEMPLATE)
-	var iter = tk.Next()
-	var fragment = newList()
+	case TK_LBRACE:
+		// Array lparseral
+		// unused for now
+		parser.reportError("array literals are not implemented for now")
+		parser.Advance()
+		return nil
 
-	iter = iter.whileNotClosing(func(iter Tk) Tk {
-		iter, node := Expression(ctx, iter, 0)
-		if node.expect(NODE_VAR, NODE_ID) {
-			fragment.append(node)
-		}
+	case KW_FN, KW_METHOD:
+		node = parser.createAstFn()
 
-		iter = iter.expectCommaIfNot(TK_RBRACE)
-		return iter
-	})
-	iter, _ = iter.expect(TK_RBRACE)
-	return iter, fragment.first
-}
+	case KW_VAR, KW_CONST:
+		node = parser.createAstVarDecl()
 
-func parseFor(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-	var forscope = ctx.SubScope()
+	case TK_LPAREN:
+		// parenthesized expression has to be handled differently since the node it returns
 
-	// the "var ..." part of the for loop
-	var decl Node
-	iter, decl = Expression(forscope, iter, 0)
+	case KW_NAMESPACE:
+		node = parser.createAstNamespaceDecl()
 
-	iter, _ = iter.expect(KW_IN)
+	case KW_RETURN:
+		node = parser.createAstReturnOp()
+	case KW_TAKE:
+		node = parser.createAstTakeOp()
 
-	var inexp Node
-	iter, inexp = Expression(ctx, iter, 0)
+	case KW_NONE:
+		node = parser.createAstNone()
+	case KW_FALSE:
+		node = parser.createAstFalse()
+	case KW_TRUE:
+		node = parser.createAstTrue()
 
-	iter.expect(TK_LBRACKET)
+	case TK_NUMBER:
+		node = parser.createAstIntLiteral()
 
-	var block Node
-	iter, block = Expression(forscope, iter, 0)
+	case TK_ID:
+		node = parser.createAstIdentifier()
 
-	var fornode = tk.createFor(ctx, decl, inexp, block)
-	// I should add the subscope to the for node !
-	return iter, fornode
-}
+	case TK_LBRACKET:
+		node = parser.createAstBlock()
 
-func parseWhile(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var whilescope = ctx.SubScope()
-	var iter = tk.Next()
+	case TK_AT:
+		node = parser.createAstPointerOp()
 
-	var cond Node
-	iter, cond = Expression(whilescope, iter, 0)
-
-	iter.expect(TK_LBRACKET)
-
-	var block Node
-	iter, block = Expression(whilescope, iter, 0)
-
-	var whilenode = tk.createWhile(ctx, cond, block)
-	// FIXME add the subscope to the while node
-	return iter, whilenode
-}
-
-// parse a variable statement, but also a variable declaration inside
-// an argument list of a function signature
-func parseVar(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var iter = tk
-	var ok bool
-
-	// first, try to scan the ident
-	// this may fail, for dubious reasons
-	var ident Node
-
-	if iter.should(TK_ID) {
-		ident = iter.createIdNode(ctx)
-		iter = iter.Next()
-	}
-
-	// An optional type definition
-	var typenode Node
-	if iter, ok = iter.consume(TK_COLON); ok {
-		// there is a type expression
-		iter, typenode = Expression(ctx, iter, syms[TK_EQ].lbp+1)
-	}
-
-	// An optional default value
-	var expnode Node
-	if iter, ok = iter.consume(TK_EQ); ok {
-		iter, expnode = Expression(ctx, iter, 0)
-	}
-
-	if iter.pos == tk.pos {
-		// no variable was found since all of the above expression may fail
-		// so we still advance the parser in the hopes of not failing
-
-		return iter.Next(), EmptyNode
-	}
-
-	var varnode = tk.createVar(ctx, ident, typenode, expnode)
-	if !ident.IsEmpty() {
-		// scope.addSymbolFromIdNode(ident, varnode)
-	}
-
-	return iter, varnode
-	// Try to parse VAR ourselves
-}
-
-func parseType(ctx Context, tk Tk, _ int) (Tk, Node) {
-	var iter = tk.Next()
-
-	var ident Node
-	if iter.should(TK_ID) {
-		ident = iter.createIdNode(ctx)
-		iter = iter.Next()
-	}
-
-	var typenode Node
-	switch tk.Kind() {
-	case KW_TYPE:
-		typenode = tk.createNode(ctx, NODE_TYPE)
-	case KW_STRUCT:
-		typenode = tk.createNode(ctx, NODE_STRUCT)
-	case KW_ENUM:
-		typenode = tk.createNode(ctx, NODE_ENUM)
-	case KW_TRAIT:
-		typenode = tk.createNode(ctx, NODE_TRAIT)
 	default:
-		panic("should never get here, this is a compiler bug")
-	}
-	typenode.SetFlag(FLAG_IS_TYPEDEF)
-
-	//
-	var typescope = ctx.SubScope()
-	typescope.scope.setOwner(typenode)
-	if !ident.IsEmpty() {
-		// scope.addSymbolFromIdNode(ident, typenode)
+		parser.reportError("unexpected token '", parser.GetText(), "'")
+		// Do not stay on the error and give a chance to the parser to advance.
+		parser.Advance()
+		return nil
 	}
 
-	var template Node
-	if iter.Is(TK_LBRACE) {
-		iter, template = tryParseList(typescope, iter, TK_LBRACE, TK_RBRACE, TK_COMMA, true, func(ctx Context, iter Tk) (Tk, Node) {
-			return Expression(ctx, iter, 0)
+	if node == nil {
+		return node
+	}
+
+	// Should extend position of the node !
+	node.ExtendPos(start)
+	// Advance before nud, so that calls to expression et. al will work.
+	node.nud(parser, scope)
+
+	// Assume the parser advanced
+	if parser.prev > start {
+		node.ExtendPos(parser.prev)
+	}
+	return node
+}
+
+func (parser *Parser) Led(scope *Scope, left Node) Node {
+	var (
+		node  ledNode
+		start = parser.pos
+	)
+
+	switch parser.Kind() {
+
+	case TK_AT:
+		node = parser.createAstDerefOp()
+
+	case TK_DOT:
+		node = parser.createAstDotBinOp()
+
+	case TK_LBRACE:
+		node = parser.createAstIndexCall()
+
+	case TK_LPAREN:
+		node = parser.createAstFnCall()
+
+	case TK_EQ, TK_AMPEQ, TK_PIPEEQ, TK_RSHIFTEQ, TK_LSHIFTEQ, TK_DIVEQ, TK_PLUSEQ, TK_STAREQ, TK_MINEQ, TK_MODEQ:
+		node = parser.createAstEqBinOp()
+
+	case TK_AMP:
+		node = parser.createAstAmpBinOp()
+	case TK_PIPE:
+		node = parser.createAstPipeBinOp()
+	case TK_RSHIFT:
+		node = parser.createAstRShiftBinOp()
+	case TK_LSHIFT:
+		node = parser.createAstLShiftBinOp()
+
+	case TK_DIV:
+		node = parser.createAstDivBinOp()
+	case TK_PLUS:
+		node = parser.createAstAddBinOp()
+	case TK_STAR:
+		node = parser.createAstMulBinOp()
+	case TK_MIN:
+		node = parser.createAstSubBinOp()
+	case TK_MOD:
+		node = parser.createAstModBinOp()
+
+	case TK_AMPAMP:
+		node = parser.createAstAndBinOp()
+	case TK_PIPEPIPE:
+		node = parser.createAstOrBinOp()
+
+	case KW_IS:
+		node = parser.createAstIsBinOp()
+	case KW_ISNOT:
+		node = parser.createAstIsNotBinOp()
+
+	default:
+		parser.reportError("unexpected token '", parser.GetText(), "'")
+		parser.Advance()
+		return left
+	}
+
+	node.ExtendPos(start)
+
+	node.led(parser, scope, left)
+
+	if parser.pos > start {
+		node.ExtendPos(parser.pos)
+	}
+	return left
+}
+
+func (parser *Parser) Lbp() int {
+	parser.binding = rbps[int(parser.Kind())]
+	return parser.binding.left
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+//
+//                       NUD CASES
+//
+
+/*
+	nud for components that don't have to do processing because they're lparserals.
+*/
+func (n *noopNud) nud(parser *Parser, _ *Scope) {
+	parser.Advance()
+}
+
+/*
+	Identifier
+*/
+func (id *AstIdentifier) nud(parser *Parser, _ *Scope) {
+	id.Name = SaveInternedString(parser.GetText())
+	parser.Advance()
+}
+
+/*
+	Return statement
+*/
+func (ret *AstReturnOp) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	if !parser.IsClosing() {
+		ret.Operand = parser.Expression(scope, 0)
+	}
+}
+
+/*
+	All prefix unary operators
+*/
+func (una *unaryOperation) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	una.Operand = parser.Expression(scope, parser.binding.right)
+}
+
+/*
+  Parse a block { } when it comes as nud.
+*/
+func (blk *AstBlock) nud(parser *Parser, scope *Scope) {
+	// ???
+	var blkscope = scope.subScope(scopeInstructions)
+	parser.parseEnclosed(func() {
+		var exp = parser.Expression(blkscope, 0)
+		blk.Register(exp, blkscope)
+	})
+}
+
+/*
+	Parse a namespace declaration
+*/
+func (nm *AstNamespaceDecl) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	// A parent scope should be set...
+	var nmscope = scope.subScope(scopeType)
+
+	// Try to parse the identifier
+	parser.expect(TK_ID, func() {
+		nm.Name = parser.createAstIdentifier()
+	})
+
+	parser.consume(TK_LBRACKET)
+	parser.whileNotClosing(func() {
+		var xp = parser.Expression(nmscope, 0)
+		nm.Register(xp, scope)
+	})
+
+	parser.consume(TK_RBRACKET)
+}
+
+/*
+	Parse something that looks like a variable declaration.
+*/
+func (vl *varLike) nud(parser *Parser, scope *Scope) {
+	var start = parser.pos
+
+	if parser.Is(KW_CONST) {
+		vl.IsConst = true
+		parser.Advance()
+	} else if parser.Is(KW_VAR) {
+		parser.Advance()
+	}
+
+	if parser.advanceIf(TK_ELLIPSIS) {
+		if !scope.isFunctionArguments() {
+			parser.reportError("ellipsis is only in function arguments")
+		}
+		vl.IsEllipsis = true
+	}
+
+	parser.expect(TK_ID, func() {
+		vl.Name = parser.createAstIdentifier()
+	})
+
+	if parser.advanceIf(TK_COLON) {
+		vl.TypeExp = parser.Expression(scope, rbps[TK_EQ].right+1)
+	}
+
+	if parser.advanceIf(TK_EQ) {
+		vl.DefaultExp = parser.Expression(scope, 0)
+	}
+
+	if parser.pos == start {
+		parser.Advance()
+	}
+}
+
+/*
+	Parse a function prototype
+*/
+func (fn *AstFn) nud(parser *Parser, scope *Scope) {
+
+	if parser.Is(KW_METHOD) {
+		if scope.isInstructions() {
+			fn.ReportError("methods can only be defined inside of types")
+		}
+		// This should not happen inside a regular block...
+		// Should the error be set here ?
+		fn.IsMethod = true
+	}
+	parser.Advance()
+
+	if parser.Is(TK_ID) {
+		if scope.isInstructions() {
+			parser.reportError("functions cannot be named in function bodies")
+		}
+		fn.Name = parser.createAstIdentifier()
+		parser.Advance()
+	}
+	// Check the name of the function, if it is given
+
+	var argscope = scope.subScope(scopeArguments)
+
+	if parser.Is(TK_LBRACE) {
+		// parse template params
+		parser.parseEnclosedSeparatedByComma(func() {
+			var tpl = parser.createAstTemplateParam()
+			tpl.nud(parser, argscope)
+			argscope.Add(tpl)
 		})
 	}
 
-	var def Node
-	iter.should(TK_LPAREN)
-	switch tk.Kind() {
-	case KW_TYPE:
-		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_PIPE, true, func(ctx Context, iter Tk) (Tk, Node) {
-			return Expression(ctx, iter, syms[TK_PIPE].lbp+1)
-		})
-	case KW_STRUCT, KW_ENUM, KW_TRAIT:
-		iter, def = tryParseList(typescope, iter, TK_LPAREN, TK_RPAREN, TK_COMMA, true, func(ctx Context, iter Tk) (Tk, Node) {
-			return parseVar(ctx, iter, 0)
+	if parser.should(TK_LPAREN) {
+		parser.parseEnclosedSeparatedByComma(func() {
+			var arg = parser.createAstVarDecl()
+			arg.nud(parser, argscope)
+			argscope.Add(arg)
+			fn.Args = append(fn.Args, arg)
 		})
 	}
 
-	// The block section is optional
-	var block Node
-	if iter.Is(TK_LBRACKET) {
-		iter, block = parseBlock(typescope, iter, 0)
+	if parser.advanceIf(TK_ARROW) {
+		fn.ReturnType = parser.Expression(scope, 0)
 	}
 
-	typenode.setChildren(ident, template, def, block)
-	return iter, typenode
+	if parser.Is(TK_LBRACKET) {
+		// this is a block
+		fn.Definition = parser.Expression(argscope, 0)
+	}
 }
 
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-
-// A list of nodes
-type list struct {
-	first Node
-	last  Node
+func (tpl *AstTemplateParam) nud(parser *Parser, _ *Scope) {
+	if parser.Is(TK_ID) {
+		tpl.Name = parser.createAstIdentifier()
+	}
+	parser.Advance()
 }
 
-func newList() list {
-	return list{}
+/*
+	Parse an import statement
+*/
+func (fn *AstImport) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+
+	if parser.Is(TK_RAWSTR) {
+		var name = parser.createAstImportModuleName()
+		name.ModuleName = parser.GetText() // FIXME we may need to remove quotes !
+		fn.Resolver = name
+		parser.Advance()
+	} else {
+		fn.Resolver = parser.Expression(scope, 0)
+	}
+
+	if parser.advanceIf(KW_AS) {
+		// import 'whatever' as name
+		parser.expect(TK_ID, func() {
+			fn.Name = parser.createAstIdentifier()
+		})
+	} else {
+		// import 'whatever' ( symbol, exp as name )
+		if !parser.should(TK_LPAREN) {
+			return
+		}
+	}
 }
 
-func (f *list) append(node Node) {
-
-	if node.IsEmpty() {
-		return
+func (aif *AstIf) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	aif.ConditionExp = parser.Expression(scope, 0)
+	if parser.should(TK_LBRACKET) {
+		var blk = parser.createAstBlock()
+		blk.nud(parser, scope)
+		aif.ThenArm = blk
 	}
 
-	if f.first.IsEmpty() {
-		f.first = node
-		f.last = node
-		return
+	if parser.advanceIf(KW_ELSE) {
+		if parser.should(TK_LBRACKET) {
+			var blk = parser.createAstBlock()
+			blk.nud(parser, scope)
+			aif.ThenArm = blk
+		}
+	}
+}
+
+func (wh *AstWhile) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	wh.ConditionExp = parser.Expression(scope, 0)
+	if parser.should(TK_LBRACKET) {
+		var blk = parser.createAstBlock()
+		blk.nud(parser, scope)
+		wh.Body = blk
+	}
+}
+
+func (str *AstStringExp) nud(parser *Parser, scope *Scope) {
+	parser.parseEnclosed(func() {
+		str.Components = append(str.Components, parser.Expression(scope, 0))
+	})
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//                     LED ITEMS
+//
+
+/*
+	We get here on '('
+*/
+func (fn *AstFnCall) led(parser *Parser, scope *Scope, left Node) {
+
+	fn.FnExp = left
+	parser.parseEnclosedSeparatedByComma(func() {
+		fn.Args = append(fn.Args, parser.Expression(scope, 0))
+	})
+}
+
+/*
+  Parse a binary operator
+*/
+func (bn *binaryOperation) led(parser *Parser, scope *Scope, left Node) {
+	parser.Advance()
+	bn.Left = left
+	bn.Right = parser.Expression(scope, parser.binding.right)
+}
+
+/*
+	Parse all =, &=, ... assignement nodes, where we don't bother
+	creating ast nodes for each of them.
+*/
+func (eq *AstEqBinOp) led(parser *Parser, scope *Scope, left Node) {
+	var kind = parser.Kind()
+	var rbp = parser.binding.right
+	var rnode binOpNode
+
+	switch kind {
+	case TK_AMPEQ:
+		rnode = parser.createAstAmpBinOp()
+	case TK_PIPEEQ:
+		rnode = parser.createAstPipeBinOp()
+	case TK_RSHIFTEQ:
+		rnode = parser.createAstRShiftBinOp()
+	case TK_LSHIFTEQ:
+		rnode = parser.createAstLShiftBinOp()
+
+	case TK_DIVEQ:
+		rnode = parser.createAstDivBinOp()
+	case TK_PLUSEQ:
+		rnode = parser.createAstAddBinOp()
+	case TK_STAREQ:
+		rnode = parser.createAstMulBinOp()
+	case TK_MINEQ:
+		rnode = parser.createAstSubBinOp()
+	case TK_MODEQ:
+		rnode = parser.createAstModBinOp()
+
+	default:
+		// no rnode !
+	}
+	parser.Advance()
+
+	var right = parser.Expression(scope, rbp)
+	eq.Left = left
+
+	if rnode != nil {
+		rnode.SetLeft(left)
+		rnode.SetRight(right)
+		right = rnode
 	}
 
-	f.last.SetNext(node)
-	for node.HasNext() {
-		node = node.Next()
-	}
+	eq.Right = right
+}
 
-	f.last = node
+/*
+	Suffix operation in led position
+*/
+func (una *unaryOperation) led(parser *Parser, scope *Scope, left Node) {
+	parser.Advance()
+	una.Operand = left
+}
+
+func (idx *AstIndexCall) led(parser *Parser, scope *Scope, left Node) {
+	idx.Indexed = left
+	parser.parseEnclosedSeparatedByComma(func() {
+		var exp = parser.Expression(scope, 0)
+		idx.Indices = append(idx.Indices, exp)
+	})
 }

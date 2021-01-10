@@ -1,257 +1,106 @@
 package zoe
 
-import (
-	"github.com/sourcegraph/go-lsp"
-)
+import "github.com/sourcegraph/go-lsp"
 
-// Nodes are loaded into one big array to avoid too much work for the gc.
-// An AST is not guaranteed to be correct.
-// The type checker validates the AST as it type checks, and marks the IsError
-// field of the nodes it traverses if it encounters errors.
+type Node interface {
+	Extend(n Node)
+	ExtendTk(tk *Parser)
+	ExtendPos(pos TokenPos)
 
-type NodePosition int
+	// Get the text
+	GetName() *AstIdentifier
+	GetChildren() []Node
+	GetLspRange() lsp.Range
+	GetTkRange() TkRange
+	GetBytes() []byte
+	GetText() string
 
-func (n NodePosition) Node(file *File) Node {
-	return Node{
-		pos:  n,
-		file: file,
+	GetScope() *Scope
+
+	// Register another node to this node.
+	// This is where a node might decide to send a node to a scope or to its members
+	Register(n Node, scope *Scope)
+
+	ReportError(msg ...string)
+}
+
+type Names map[Name]Node
+
+type noopNud struct{}
+
+/////////////////////////////////////////////////////////
+// Node location within the file
+
+/*
+	The base node type
+*/
+type nodeBase struct {
+	File      *File
+	Scope     *Scope
+	HasErrors bool
+	TkRange   TkRange
+}
+
+func (l *nodeBase) GetScope() *Scope {
+	return l.Scope
+}
+
+func (l *nodeBase) GetName() *AstIdentifier {
+	return nil
+}
+
+func (l *nodeBase) GetChildren() []Node {
+	return nil
+}
+
+func (l *nodeBase) Extend(n Node) {
+	if n == nil {
+		return
 	}
+	l.TkRange.ExtendRange(n.GetTkRange())
 }
 
-type AstNodeKind int
-type Flag int
-
-var EmptyNode = Node{}
-
-const (
-	FLAG_LOCAL Flag = 1 << iota
-
-	FLAG_IS_TYPENAME // if the expression resolves to a type
-	FLAG_IS_SYMBOL   // if the expression resolves to a symbol
-	FLAG_IS_COMPTIME
-	FLAG_IS_TYPEDEF
-
-	FLAG_CONST
-	FLAG_BLOCK_ENDS_EXECUTION // set when return is the last instruction of a block
-	// used to know if an if when it has no else block sets the rest of the block as its else condition
-)
-
-// Identifiers are interned for faster lookup in a concurrent-safe interning store
-// so that we can have namespaces that are maps of int32 (string id) => int32 (node position)
-
-const (
-	NODE_EMPTY AstNodeKind = iota // grey("~")
-
-	// node used for declaration blocks such as namespaces, files, and implement blocks
-	NODE_FILE // "file" ::: contents
-	// block contains code blocks
-	NODE_BLOCK // "block" ::: contents
-	NODE_TUPLE // "tuple" ::: contents
-
-	NODE_FN            // bblue("fn") 				::: name signature definition
-	NODE_METHOD        // bblue("method")     ::: name signature definition
-	NODE_NAMESPACE     // bblue("namespace")  ::: name block
-	NODE_TYPE          // bblue("type") 			::: name template typeexp block
-	NODE_ENUM          // bblue("enum")       ::: name template varlist block
-	NODE_STRUCT        // bblue("struct")     ::: name template varlist block
-	NODE_TRAIT         // bblue("trait")      ::: name template empty block
-	NODE_VAR           // bblue("var")        ::: name typeexp assign
-	NODE_SIGNATURE     // "signature"         ::: template args rettype
-	NODE_RETURN        // "return" 						::: exp
-	NODE_TAKE          // "take"              ::: exp
-	NODE_UNION         // "union"							::: members
-	NODE_ISO_BLOCK     // "iso"               ::: block
-	NODE_ISO_TYPE      // "iso-type"          ::: type_expr
-	NODE_STRING        // "str" ::: contents
-	NODE_ARRAY_LITERAL // "array" ::: contents
-	NODE_IF            // "if"                      ::: cond thenarm elsearm
-	NODE_SWITCH        // "switch" ::: exp arms
-	NODE_SWITCH_ARM    // "arm" ::: cond block
-	NODE_FOR           // "for"   ::: vardecl rng block
-	NODE_WHILE         // "while" ::: cond block
-	NODE_IMPORT        // bblue("import") ::: module id exp
-	NODE_IMPLEMENT     // bblue("implement") ::: id block
-
-	NODE_UNA_ELLIPSIS // "..."
-	NODE_UNA_NOT      // "!" ::: exp
-	NODE_UNA_DEREF    // "deref" ::: pointed
-	NODE_UNA_REF      // "ref" ::: variable
-
-	NODE_BIN_ASSIGN // "="
-	NODE_BIN_PLUS   // "+"
-	NODE_BIN_MIN    // "-"
-	NODE_BIN_DIV    // "/"
-	NODE_BIN_MUL    // "*"
-	NODE_BIN_MOD    // "%"
-	NODE_BIN_EQ     // "=="
-	NODE_BIN_NEQ    // "!="
-	NODE_BIN_GTEQ   // ">="
-	NODE_BIN_GT     // ">"
-	NODE_BIN_LTEQ   // "<="
-	NODE_BIN_LT     // "<"
-	NODE_BIN_LSHIFT // "<<"
-	NODE_BIN_RSHIFT // ">>"
-	NODE_BIN_BITAND // "&"
-	NODE_BIN_BITOR  // "|"
-	NODE_BIN_BITXOR // "^"
-	NODE_BIN_OR     // "||"
-	NODE_BIN_AND    // "&&"
-	NODE_BIN_IS     // "is"
-	NODE_BIN_IS_NOT // "isnot"
-	NODE_BIN_CAST   // "cast"
-	NODE_BIN_CALL   // "call"
-	NODE_BIN_INDEX  // "index"
-	NODE_BIN_DOT    // "."
-
-	NODE_LIT_NONE   // mag("null")
-	NODE_LIT_THIS   // mag("null")
-	NODE_LIT_VOID   // mag("void")
-	NODE_LIT_FALSE  // mag("false")
-	NODE_LIT_TRUE   // mag("true")
-	NODE_LIT_CHAR   // green(n.GetText())
-	NODE_LIT_RAWSTR // green("'",n.GetText(),"'")
-	NODE_LIT_NUMBER // mag(n.GetText())
-	NODE_INTEGER    // mag(n.GetValue())
-	NODE_ID         // cyan(GetInternedString(n.InternedString()))
-
-	NODE__SIZE
-)
-
-type AstNode struct {
-	Kind        AstNodeKind
-	Range       TkRange // the range inside the source file. an enclosing node updates its range according to its internal nodes
-	Scope       ScopePosition
-	IsIncorrect bool // true if the node was tagged as being incorrect and thus should not be type checked
-	Flag        int
-	Value       int // can represent either a boolean (1 or 0), a node position, or a string id
-	ArgLen      int8
-	Args        [4]NodePosition // probably unused
-	Next        NodePosition    // The next node position as defined by its parent node when inside a list (tuples, template params or blocks)
+func (l *nodeBase) ExtendTk(tk *Parser) {
+	l.TkRange.ExtendTk(tk)
 }
 
-type Node struct {
-	pos  NodePosition
-	file *File
+func (l *nodeBase) ExtendPos(pos TokenPos) {
+	l.TkRange.ExtendPos(pos)
 }
 
-func (n Node) DocComment() (Tk, bool) {
-	if d, ok := n.file.DocCommentMap[n.pos]; ok {
-		return Tk{pos: d, file: n.file}, true
-	}
-	return Tk{}, false
+func (l *nodeBase) GetTkRange() TkRange {
+	return l.TkRange
 }
 
-// op: Node(NODE_BINOP_PLUS, value: idx:FIRST) first(TYPE_IDENT, next: second) second(NODE_LIT_INT, next: 0)
+func (l *nodeBase) Register(_ Node, _ *Scope) {
 
-func (n Node) ref() *AstNode {
-	return &n.file.Nodes[n.pos]
 }
 
-func (n Node) IsEmpty() bool {
-	return n.pos == 0
+/*
+	ReportError reports an error on this node.
+	Warning : this is not safe as long as the node is not yet "mounted".
+	ReportError should thus be used mostly during typechecking or during
+	the Ast creation.
+*/
+func (l *nodeBase) ReportError(msg ...string) {
+	var file = l.GetFile()
+	file.reportError(l.GetLspRange(), msg...)
 }
 
-// SetIncorrect marks the node as being incorrect. The type checker should ignore these as this flag
-// is set if the underlying node representation makes no sense.
-func (n Node) SetIncorrect() {
-	n.ref().IsIncorrect = true
+/*
+  GetFile returns the file this node is associated to
+*/
+func (l *nodeBase) GetFile() *File {
+	return l.File
 }
 
-// Gets the scope the node resides in
-func (n Node) Scope() Scope {
-	return Scope{
-		pos:  n.ref().Scope,
-		file: n.file,
-	}
-}
-
-func (n Node) File() *File {
-	return n.file
-}
-
-func (n Node) SetFlag(flg Flag) {
-	n.ref().Flag |= int(flg)
-}
-
-func (n Node) HasFlag(flg Flag) bool {
-	return n.ref().Flag&int(flg) != 0
-}
-
-func (n Node) SetNext(other Node) {
-	n.ref().Next = other.pos
-}
-
-func (n Node) HasNext() bool {
-	return !n.Next().IsEmpty()
-}
-
-func (n Node) Next() Node {
-	return Node{
-		pos:  n.ref().Next,
-		file: n.file,
-	}
-}
-
-func (n Node) Clone() Node {
-	orig := n.ref()
-	respos := NodePosition(len(n.file.Nodes))
-	n.file.Nodes = append(n.file.Nodes, *orig)
-	n.file.Nodes[respos].Next = 0
-	res := Node{
-		pos:  respos,
-		file: n.file,
-	}
-	return res
-}
-
-func (n Node) setChildren(children ...Node) {
-	cl := len(children)
-	if cl > 0 {
-		node := &n.file.Nodes[n.pos]
-		node.ArgLen = int8(cl)
-
-		for i, chld := range children {
-			node.Args[i] = chld.pos
-			if !chld.IsEmpty() {
-				node.Range.ExtendNode(chld)
-			}
-		}
-	}
-}
-
-///////////////////////////////////
-// func (n Node) Range() Range {
-// 	var ref = n.ref()
-// 	var tks = n.file.Tokens[ref.Range.Start]
-// 	var tke = n.file.Tokens[ref.Range.End]
-// 	return Range{
-// 		Start:     tks.Offset,
-// 		End:       tke.Offset,
-// 		Line:      tks.Line,
-// 		LineEnd:   tke.Line,
-// 		Column:    tks.Column,
-// 		ColumnEnd: tke.Column,
-// 	}
-// }
-
-func PositionInRange(pos lsp.Position, rng lsp.Range) bool {
-	var st = rng.Start
-	var ed = rng.End
-	var res = pos.Line >= st.Line && pos.Line <= ed.Line &&
-		(pos.Line != st.Line || pos.Character >= st.Character) &&
-		(pos.Line != ed.Line || pos.Character <= ed.Character)
-	// log.Print(pos, rng, res)
-	return res
-}
-
-func (n Node) HasPosition(lsppos lsp.Position) bool {
-	var rng = n.Range()
-	return PositionInRange(lsppos, rng)
-}
-
-func (n Node) Range() lsp.Range {
-	var t = n.ref().Range
-	var tks = n.file.Tokens
+/*
+	GetLspRange returns a range as defined by the Language Server Protocol that corresponds to this node.
+*/
+func (l *nodeBase) GetLspRange() lsp.Range {
+	var file = l.GetFile()
+	var t = l.GetTkRange()
+	var tks = file.Tokens
 	var st = tks[int(t.Start)]
 	var ed = tks[int(t.End)]
 	return lsp.Range{
@@ -266,113 +115,255 @@ func (n Node) Range() lsp.Range {
 	}
 }
 
-func (n Node) ReportError(msg ...string) {
-	n.file.reportError(n.Range(), msg...)
+/*
+	GetBytes returns a []byte containing the text portion of this node in the source file.
+*/
+func (l *nodeBase) GetBytes() []byte {
+	var file = l.GetFile()
+	return file.GetTkRangeBytes(l.TkRange)
 }
 
-func (n Node) SetValue(v int) {
-	n.ref().Value = v
+/*
+	GetText returns the string corresponding to this node's text portion in the source file.
+*/
+func (l *nodeBase) GetText() string {
+	var file = l.GetFile()
+	return file.GetTkRangeString(l.TkRange)
 }
 
-func (n Node) GetValue() int {
-	return n.ref().Value
+/////////////////////////////////////////////////////////
+// Declaration
+
+type declaration struct {
+	IsLocal  bool
+	IsExtern bool
 }
 
-func (n Node) SetArgs(args ...Node) {
-	node := n.ref()
-	node.ArgLen = int8(len(args))
-	for i, a := range args {
-		node.Args[i] = a.pos
-		n.ExtendRangeFromNode(a)
-	}
+//////////////////////////////////////////////////////////
+
+type varLike struct {
+	named
+	IsConst    bool
+	IsEllipsis bool
+	TypeExp    Node
+	DefaultExp Node
 }
 
-func (n Node) ArgLen() int {
-	return int(n.ref().ArgLen)
+type named struct {
+	Name *AstIdentifier
 }
 
-func (n Node) GetArg(nb int) Node {
-	return n.ref().Args[nb].Node(n.file)
+func (n *named) GetName() *AstIdentifier {
+	return n.Name
 }
 
-func (n Node) Is(nk AstNodeKind) bool {
-	if n == EmptyNode {
-		return false
-	}
-	return n.ref().Kind == nk
+type membered struct {
+	Members Names
 }
 
-func (n Node) IsAnyOf(nk ...AstNodeKind) bool {
-	for _, nk := range nk {
-		if n.Is(nk) {
-			return true
-		}
-	}
-	return false
+///////////////////////////////////////////////////////////
+
+type AstFile struct {
+	nodeBase
+	membered
+	File *File
 }
 
-func (n Node) expect(nk ...AstNodeKind) bool {
-	if !n.IsAnyOf(nk...) {
-		return false
-	}
-	return true
+///////////////////////////////////////////////////////////
+
+type AstImport struct {
+	nodeBase
+	named
+	Resolver      Node // Resolver is either a string, which will resolve to a module or a node containing an expression
+	SubExpression Node
 }
 
-func (n Node) Kind() AstNodeKind {
-	return n.ref().Kind
+type AstImportModuleName struct {
+	nodeBase
+	ModuleName string
 }
 
-func (n Node) GetBytes() []byte {
-	return n.file.GetNodeBytes(n.pos)
+type AstVarDecl struct {
+	// Symbol
+	nodeBase
+	varLike
+	declaration
+	Type       Node
+	Expression Node
 }
 
-func (n Node) GetText() string {
-	return n.file.GetNodeText(n.pos)
+//////////////////////////////////////
+// NAMESPACE
+
+type AstNamespaceDecl struct {
+	nodeBase
+	named
+	membered
 }
 
-func (n Node) InternedString() InternedString {
-	// FIXME: should we check to make sure we're holding an interned Id ?
-	return InternedString(n.ref().Value)
+///////////////////////////////////////
+///////////////////////////////////////
+
+type AstImplement struct {
+	nodeBase
+	membered
+	Name Node // a path
 }
 
-func (n Node) SetInternedString(val InternedString) {
-	n.ref().Value = int(val)
+type AstTemplateParam struct {
+	nodeBase
+	named
 }
 
-func (n Node) Extend(other Tk) {
-	if n == EmptyNode {
-		return
-	}
-	var ref = n.ref()
-	if ref.Range.End < other.pos {
-		ref.Range.End = other.pos
-	}
-	if ref.Range.Start > other.pos {
-		ref.Range.Start = other.pos
-	}
+type AstTypeDecl struct {
+	nodeBase
+	Members        Names
+	TemplateParams []*AstTemplateParam
 }
 
-func (n Node) ExtendRangeFromNode(other Node) {
-	if !other.IsEmpty() {
-		var oref = other.ref()
-		n.Extend(Tk{pos: oref.Range.Start})
-		n.Extend(Tk{pos: oref.Range.End})
-	}
+type AstEnumDecl struct {
+	AstTypeDecl
 }
 
-// For a given expression, find the symbol it is referencing. This could
-// be a variable, a type, or a member.
-// This is generally a prelude to type finding.
-// It crosses files boundaries when on an import.
-func (n Node) FindDefinition() (Node, bool) {
-	if !n.Is(NODE_ID) {
-		panic("compiler error, the node should be an Id node")
-	}
-	var is = n.InternedString()
-	// log.Print(is, " -> ", GetInternedString(is))
-	if found, ok := n.Scope().FindRecursive(is); ok {
-		// This is where we should check whether found is actually an import.
-		return found, true
-	}
-	return Node{}, false
+type AstUnionDecl struct {
+	AstTypeDecl
+	Types []Node
+}
+
+type AstStructDecl struct {
+	AstTypeDecl
+	Fields Names
+}
+
+///////////// Functions
+
+type AstFn struct {
+	nodeBase
+	named
+	IsMethod   bool
+	Templates  []*AstTemplateParam
+	Args       []*AstVarDecl
+	ReturnType Node
+	Definition Node
+}
+
+//////////////
+type AstBlock struct {
+	nodeBase
+	Statements []Node // Is a Vardecl an expression ?
+}
+
+type AstFnCall struct {
+	nodeBase
+	FnExp Node
+	Args  []Node
+}
+
+type AstIndexCall struct {
+	nodeBase
+	Indexed Node
+	Indices []Node
+}
+
+/////////////////////////////
+
+type unaryOperation struct {
+	nodeBase
+	Operand Node
+}
+
+type AstDerefOp struct{ unaryOperation }
+type AstPointerOp struct{ unaryOperation }
+type AstReturnOp struct{ unaryOperation }
+type AstTakeOp struct{ unaryOperation }
+
+//////////////////////////////
+
+type binaryOperation struct {
+	nodeBase
+	Left  Node
+	Right Node
+}
+
+func (b *binaryOperation) SetLeft(left Node) {
+	b.Left = left
+}
+
+func (b *binaryOperation) SetRight(right Node) {
+	b.Right = right
+}
+
+type binOpNode interface {
+	Node
+	SetLeft(left Node)
+	SetRight(right Node)
+}
+
+type AstMulBinOp struct{ binaryOperation }
+type AstDivBinOp struct{ binaryOperation }
+type AstAddBinOp struct{ binaryOperation }
+type AstSubBinOp struct{ binaryOperation }
+type AstModBinOp struct{ binaryOperation }
+
+type AstPipeBinOp struct{ binaryOperation }
+type AstAmpBinOp struct{ binaryOperation }
+type AstLShiftBinOp struct{ binaryOperation }
+type AstRShiftBinOp struct{ binaryOperation }
+
+type AstAndBinOp struct{ binaryOperation }
+type AstOrBinOp struct{ binaryOperation }
+type AstGtBinOp struct{ binaryOperation }
+type AstGteBinOp struct{ binaryOperation }
+type AstLtBinOp struct{ binaryOperation }
+type AstLteBinOp struct{ binaryOperation }
+type AstEqBinOp struct{ binaryOperation }
+type AstNeqBinOp struct{ binaryOperation }
+
+type AstIsBinOp struct{ binaryOperation }
+type AstIsNotBinOp struct{ binaryOperation }
+
+type AstDotBinOp struct{ binaryOperation }
+
+/////////////////////////////////////////////////////////////////////////
+//  IDENTIFIER
+
+type Literal struct {
+	nodeBase
+	noopNud
+}
+
+type AstNone struct{ Literal }
+type AstTrue struct{ Literal }
+type AstFalse struct{ Literal }
+type AstIntLiteral struct{ Literal }
+type AstStringLiteral struct{ Literal }
+
+type AstIdentifier struct {
+	nodeBase
+	Name Name
+}
+
+func (id *AstIdentifier) GetName() *AstIdentifier {
+	return id
+}
+
+type AstStringExp struct {
+	nodeBase
+	Components []Node
+}
+
+////////////////////////////////////////////////////////////////////////////
+// CONTROL STRUCTURES
+
+type AstIf struct {
+	nodeBase
+	ConditionExp Node
+	ThenArm      Node
+	ElseArm      Node
+}
+
+type AstWhile struct {
+	nodeBase
+	ConditionExp Node
+	Body         Node
 }

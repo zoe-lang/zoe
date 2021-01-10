@@ -5,10 +5,59 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/go-lsp"
 )
+
+////////////////////////////////////////////////////
+// FLOODGATE
+////////////////////////////////////////////////////
+
+/*
+	FloodGate is a sync primitive whose purpose is to make sure
+	a file does not read the contents of another while
+	it is being processed.
+*/
+type FloodGate struct {
+	isOpen bool
+	cond   *sync.Cond
+}
+
+func NewFloodGate() *FloodGate {
+	var m = sync.Mutex{}
+	return &FloodGate{
+		cond: sync.NewCond(&m),
+	}
+}
+
+func (fg *FloodGate) Wait() {
+	fg.cond.L.Lock()
+	for !fg.isOpen {
+		fg.cond.Wait()
+	}
+	fg.cond.L.Unlock()
+}
+
+func (fg *FloodGate) Open() {
+	fg.cond.L.Lock()
+	if !fg.isOpen {
+		fg.isOpen = true
+		fg.cond.Broadcast()
+	}
+	fg.cond.L.Unlock()
+}
+
+func (fg *FloodGate) Close() {
+	fg.cond.L.Lock()
+	fg.isOpen = false
+	fg.cond.L.Unlock()
+}
+
+////////////////////////////////////////////////////
+// COMPILER ERRORS
+////////////////////////////////////////////////////
 
 type ZoeError struct {
 	File    *File
@@ -29,6 +78,10 @@ func (err ZoeError) ToLspDiagnostic() lsp.Diagnostic {
 	return d
 }
 
+////////////////////////////////////////////////////
+// FILE
+////////////////////////////////////////////////////
+
 // File holds the current parsing context
 // A File instance may become obsolete as the editor sends new informations about it.
 // Since type checking happens in its own goroutine, its result might not be needed anymore.
@@ -36,16 +89,17 @@ type File struct {
 	Filename string
 
 	Tokens []Token
-	scopes []concreteScope
-	Nodes  []AstNode
 
-	RootNode Node
-	Version  int
+	RootNode  Node
+	RootScope *Scope
+	Version   int
+
+	DoneParsing *FloodGate
 
 	Errors []ZoeError
 	data   []byte
 
-	DocCommentMap map[NodePosition]TokenPos // node position => token position
+	DocCommentMap map[Node]TokenPos // node position => token position
 }
 
 // GetData returns the bytes of the file without the artifical null byte added
@@ -120,12 +174,10 @@ func NewFileFromContents(filename string, contents []byte) (*File, error) {
 		Filename:      filename,
 		Errors:        make([]ZoeError, 0),
 		data:          append(data, '\x00'),
-		DocCommentMap: make(map[NodePosition]TokenPos),
-		scopes:        make([]concreteScope, 0),
+		DocCommentMap: make(map[Node]TokenPos),
+		DoneParsing:   NewFloodGate(),
 		// RootDocComments: make([]*Token, 0),
 	}
-	// create the root scope.
-	ctx.newScope()
 
 	lxerr := ctx.Lex()
 	if lxerr != nil {
@@ -151,8 +203,16 @@ func NewFile(filename string) (*File, error) {
 	return NewFileFromContents(filename, data)
 }
 
+func (f *File) SetComment(node Node, cmt TokenPos) {
+	if node == nil {
+		// This can happen for unrelated reasons
+		return
+	}
+	f.DocCommentMap[node] = cmt
+}
+
 func (f *File) GetTokenText(tk TokenPos) string {
-	var t = Tk{pos: tk, file: f}
+	var t = Parser{pos: tk, file: f}
 	if t.IsEof() {
 		return "<EOF>"
 	}
@@ -161,14 +221,12 @@ func (f *File) GetTokenText(tk TokenPos) string {
 	return string(f.data[int(tt.Offset) : int(tt.Offset)+int(tt.Length)])
 }
 
-func (f *File) GetNodeBytes(np NodePosition) []byte {
-	var n = np.Node(f)
-	var rng = n.ref().Range
+func (f *File) GetTkRangeBytes(rng TkRange) []byte {
 	return f.data[int(f.Tokens[rng.Start].Offset):int(f.Tokens[int(rng.End)].Offset)]
 }
 
-func (f *File) GetNodeText(np NodePosition) string {
-	return string(f.GetNodeBytes(np))
+func (f *File) GetTkRangeString(rng TkRange) string {
+	return string(f.GetTkRangeBytes(rng))
 }
 
 func (f *File) reportError(rng lsp.Range, message ...string) {
@@ -178,72 +236,4 @@ func (f *File) reportError(rng lsp.Range, message ...string) {
 		Message: strings.Join(message, ""),
 	})
 	// f.Errors[len(f.Errors)-1].Print(os.Stderr)
-}
-
-func (f *File) createNode(tk Tk, kind AstNodeKind, ctx Context, children ...Node) Node {
-	// maybe we should handle here the capacity of the node arrays ?
-	l := NodePosition(len(f.Nodes))
-	f.Nodes = append(f.Nodes, AstNode{Kind: kind, Range: TkRange{Start: tk.pos, End: tk.pos + 1}, Scope: ctx.scope.pos})
-
-	cl := len(children)
-	if cl > 0 {
-		node := &f.Nodes[l]
-		node.ArgLen = int8(cl)
-
-		for i, chld := range children {
-			node.Args[i] = chld.pos
-			if !chld.IsEmpty() {
-				node.Range.ExtendNode(chld)
-			}
-		}
-	}
-
-	return Node{
-		file: f,
-		pos:  l,
-	}
-}
-
-// Find a node that matches a given range
-func (f *File) FindNodePosition(lsppos lsp.Position) ([]Node, error) {
-	node := f.RootNode
-	var path = make([]Node, 0)
-	path = append(path, node)
-	// nodes := f.Nodes
-
-	// log.Print(lsppos.Line+1, ":", lsppos.Character+1)
-search:
-	for node.HasPosition(lsppos) {
-		// log.Print(node.Debug())
-		// check in the node's children
-		for _, chl := range node.ref().Args {
-			chld := chl.Node(f)
-			if chld.IsEmpty() {
-				continue
-			}
-			if chld.HasPosition(lsppos) {
-				// log.Print(f.NodeDebug(chld))
-				node = chld
-				path = append(path, node)
-				continue search
-			}
-
-			// Then check in its list
-			other := chld.Next()
-			for !other.IsEmpty() {
-				// log.Print(f.NodeDebug(other))
-				if other.HasPosition(lsppos) {
-					node = other
-					path = append(path, node)
-					continue search
-				}
-				other = other.Next()
-			}
-
-		}
-
-		break
-	}
-
-	return path, nil
 }

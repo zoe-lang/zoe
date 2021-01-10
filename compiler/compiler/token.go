@@ -33,24 +33,13 @@ func (t *TkRange) ExtendPos(p TokenPos) {
 	}
 }
 
-func (t *TkRange) ExtendTk(tk Tk) {
+func (t *TkRange) ExtendTk(tk *Parser) {
 	t.ExtendPos(tk.pos)
 }
 
 func (t *TkRange) ExtendRange(rng TkRange) {
 	t.ExtendPos(rng.Start)
 	t.ExtendPos(rng.End)
-}
-
-func (t *TkRange) ExtendNode(node Node) {
-	// var i = 0
-	for !node.IsEmpty() {
-		// log.Print("adding ", i)
-		// i++
-		var ref = node.ref()
-		t.ExtendRange(ref.Range)
-		node = node.Next()
-	}
 }
 
 ///////////////////////////////////
@@ -138,85 +127,70 @@ type Token struct {
 	Column uint32
 }
 
-type Tk struct {
-	pos  TokenPos
-	file *File
+type Parser struct {
+	pos     TokenPos
+	prev    TokenPos
+	file    *File
+	binding bindingPower
 }
 
-func (tk Tk) Kind() TokenKind {
-	return tk.ref().Kind
+func (parser *Parser) AsRange() TkRange {
+	if parser.IsEof() {
+		return TkRange{Start: parser.pos, End: parser.pos}
+	}
+	return TkRange{Start: parser.pos, End: parser.pos + 1}
 }
 
-func (tk Tk) Line() int {
-	return int(tk.ref().Line)
+func (parser *Parser) Kind() TokenKind {
+	return parser.ref().Kind
 }
 
-func (tk Tk) Column() int {
-	return int(tk.ref().Column)
+func (parser *Parser) Line() int {
+	return int(parser.ref().Line)
 }
 
-func (tk Tk) Offset() int {
-	return int(tk.ref().Offset)
+func (parser *Parser) Column() int {
+	return int(parser.ref().Column)
 }
 
-func (tk Tk) Length() int {
-	return int(tk.ref().Length)
+func (parser *Parser) Offset() int {
+	return int(parser.ref().Offset)
 }
 
-func (tk Tk) Range() lsp.Range {
+func (parser *Parser) Length() int {
+	return int(parser.ref().Length)
+}
+
+func (parser *Parser) Range() lsp.Range {
 	return lsp.Range{
 		Start: lsp.Position{
-			Line:      tk.Line(),
-			Character: tk.Column(),
+			Line:      parser.Line(),
+			Character: parser.Column(),
 		},
 		End: lsp.Position{
-			Line:      tk.Line(),
-			Character: tk.Column() + tk.Length(),
+			Line:      parser.Line(),
+			Character: parser.Column() + parser.Length(),
 		},
 	}
 }
 
-func (tk Tk) ref() *Token {
-	return &tk.file.Tokens[tk.pos]
+func (parser *Parser) ref() *Token {
+	return &parser.file.Tokens[parser.pos]
 }
 
-func (tk Tk) IsEof() bool {
-	return tk.ref().Kind == TK_EOF
+func (parser *Parser) IsEof() bool {
+	return parser.ref().Kind == TK_EOF
 	// return int(tk.pos) >= len(tk.file.Tokens)
 }
 
-func (tk Tk) Is(tkind TokenKind) bool {
-	if tk.IsEof() {
+func (parser *Parser) Is(tkind TokenKind) bool {
+	if parser.IsEof() {
 		return false
 	}
-	return tk.file.Tokens[tk.pos].Kind == tkind
+	return parser.file.Tokens[parser.pos].Kind == tkind
 }
 
-func (tk Tk) Peek(kind ...TokenKind) bool {
-	n := tk.Next()
-	if n.IsEof() {
-		return false
-	}
-	for _, k := range kind {
-		if n.Is(k) {
-			return true
-		}
-	}
-	return false
-}
-
-func (tk Tk) consume(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
-	if !tk.Is(kind) {
-		return tk, false
-	}
-	next := tk.Next()
-	for _, f := range fn {
-		f(tk)
-	}
-	return next, true
-}
-
-func (tk Tk) expectClosing(opening Tk, fn ...func(tk Tk)) Tk {
+func (parser *Parser) expectClosing(opening Parser, fn ...func()) {
 	var okind = opening.ref().Kind
 	var ckind TokenKind
 	switch okind {
@@ -229,111 +203,115 @@ func (tk Tk) expectClosing(opening Tk, fn ...func(tk Tk)) Tk {
 	default:
 		panic(tokstr[okind] + " has no corresponding closing token, this is a compiler bug")
 	}
-	if !tk.Is(ckind) {
+	if !parser.Is(ckind) {
 		opening.reportError("missing closing token")
-		tk.reportError("missing closing token for '" + opening.GetText() + "'")
-		return tk
+		parser.reportError("missing closing token for '" + opening.GetText() + "'")
 	}
 	for _, f := range fn {
-		f(tk)
+		f()
 	}
-	return tk.Next()
+	parser.Advance()
 }
 
-func (tk Tk) shouldBe(kind TokenKind) bool {
-	if !tk.Is(kind) {
-		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
+func (parser *Parser) shouldBe(kind TokenKind) bool {
+	if !parser.Is(kind) {
+		parser.reportError("expected " + tokstr[kind] + " but got '" + parser.GetText() + "'")
 		return false
 	}
 	return true
 }
 
-func (tk Tk) should(kind TokenKind) bool {
-	if !tk.Is(kind) {
-		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
+func (parser *Parser) should(kind TokenKind) bool {
+	if !parser.Is(kind) {
+		parser.reportError("expected " + tokstr[kind] + " but got '" + parser.GetText() + "'")
 		return false
 	}
 	return true
 }
 
-func (tk Tk) expect(kind TokenKind, fn ...func(tk Tk)) (Tk, bool) {
-	if !tk.Is(kind) {
-		tk.reportError("expected " + tokstr[kind] + " but got '" + tk.GetText() + "'")
-		return tk, false
+/*
+	expect expects the provided token at the current position and
+	calls fn on itself if found, and will advance the parser if
+	the callback did not do so.
+*/
+func (parser *Parser) expect(kind TokenKind, fn func()) bool {
+	if !parser.should(kind) {
+		return false
 	}
-	next := tk.Next()
-	for _, f := range fn {
-		f(tk)
+	var curpos = parser.pos
+	fn()
+	if curpos == parser.pos {
+		parser.Advance()
 	}
-	return next, true
+	return true
 }
 
-func (tk Tk) expectCommaIfNot(kind ...TokenKind) Tk {
-	var kd = tk.ref().Kind
+func (parser *Parser) consume(kind TokenKind) bool {
+	return parser.expect(kind, func() {})
+}
+
+func (parser *Parser) ifToken(kind TokenKind, fn func()) bool {
+	if !parser.Is(kind) {
+		return false
+	}
+	fn()
+	return true
+}
+
+func (parser *Parser) expectCommaIfNot(kind ...TokenKind) bool {
+	var kd = parser.ref().Kind
 	for _, k := range kind {
 		if kd == k {
-			return tk // we don't move
+			return false
 		}
 	}
-	tk, _ = tk.expect(TK_COMMA)
-	return tk
+	parser.expect(TK_COMMA, func() {})
+	return true
 }
 
-// func (tk Tk) Range() Range {
-// 	var next Tk
-// 	if tk.IsEof() {
-// 		next = tk
-// 	} else {
-// 		next = tk.Next()
-// 	}
-
-// 	var ref = tk.ref()
-// 	var nextref = next.ref()
-// 	return Range{
-// 		Start:     ref.Offset,
-// 		End:       nextref.Offset,
-// 		Line:      ref.Line,
-// 		Column:    ref.Column,
-// 		LineEnd:   nextref.Line,
-// 		ColumnEnd: nextref.Column,
-// 	}
-// }
-
-func (tk Tk) GetText() string {
-	if tk.IsEof() {
+func (parser *Parser) GetText() string {
+	if parser.IsEof() {
 		return "<EOF>"
 	}
-	var tokens = tk.file.Tokens
-	var t = tokens[tk.pos]
-
-	return string(tk.file.data[int(t.Offset) : int(t.Offset)+int(t.Length)])
+	return parser.file.GetTokenText(parser.pos)
 }
 
-func (tk Tk) isSkippable() bool {
-	var kind = tk.file.Tokens[tk.pos].Kind
+func (parser *Parser) isSkippable() bool {
+	var kind = parser.file.Tokens[parser.pos].Kind
 	return kind == TK_WHITESPACE || kind == TK_COMMENT
 }
 
-func (tk Tk) Next() Tk {
-	if tk.IsEof() {
-		return tk
+func (parser *Parser) Advance() {
+	if parser.IsEof() {
+		return
 	}
-	var iter = Tk{
-		pos:  tk.pos + 1,
-		file: tk.file,
+	parser.prev = parser.pos
+	parser.pos++
+	for parser.isSkippable() {
+		parser.pos++
 	}
-	for iter.isSkippable() {
-		iter.pos++
+}
+
+func (parser *Parser) advanceIf(kind TokenKind) bool {
+	if parser.Is(kind) {
+		parser.Advance()
+		return true
 	}
-	return iter
+	return false
 }
 
 /////////////////////////////////////////////
 ////
 
 var closingTokens = [TK__MAX]bool{}
+var closerTokens = [TK__MAX]TokenKind{}
 
 func init() {
+	closerTokens[int(TK_LBRACE)] = TK_RBRACE
+	closerTokens[int(TK_LBRACKET)] = TK_RBRACKET
+	closerTokens[int(TK_LPAREN)] = TK_RPAREN
+	closerTokens[int(TK_QUOTE)] = TK_QUOTE
+
 	closingTokens[TK_RBRACE] = true
 	closingTokens[TK_RPAREN] = true
 	closingTokens[TK_RBRACKET] = true
@@ -341,89 +319,106 @@ func init() {
 
 // IsClosing is true if the current token is a closing token
 // such as ), ] or }
-func (tk Tk) IsClosing() bool {
-	if tk.IsEof() {
+func (parser *Parser) IsClosing() bool {
+	if parser.IsEof() {
 		return true // EOF closes, but it's usually an error
 	}
-	kind := tk.ref().Kind
+	kind := parser.ref().Kind
 	return closingTokens[kind]
 }
 
-func (tk Tk) while(cond func(iter Tk) bool, fn func(iter Tk) Tk) Tk {
-	var iter = tk
-	for cond(iter) {
-		var res = fn(iter)
-		if res.pos == iter.pos {
+func (parser *Parser) while(cond func() bool, fn func()) {
+	var current = parser.pos
+	for cond() {
+		fn()
+		if parser.pos == current {
 			// We can't allow the parser to stay on the same token,
 			// so we advance it. Most like, this is due to an error that
 			// happened in `fn` so it already should have been reported.
-			iter = iter.Next()
-		} else {
-			iter = res
+			parser.Advance()
 		}
 	}
-	return iter
 }
 
 // Execute a function as long as the current token is not a closing token.
-func (tk Tk) whileNotClosing(fn func(iter Tk) Tk) Tk {
-	return tk.while(
-		func(iter Tk) bool { return !iter.IsClosing() },
+func (parser *Parser) whileNotClosing(fn func()) {
+	parser.while(
+		func() bool { return !parser.IsClosing() },
 		fn,
 	)
 }
 
-func (tk Tk) whileNotEof(fn func(iter Tk) Tk) Tk {
-	return tk.while(
-		func(iter Tk) bool { return !iter.IsEof() },
+func (parser *Parser) parseEnclosedSeparatedByComma(fn func()) {
+	var open = parser.Kind()
+	var close = closerTokens[open]
+	if close == 0 {
+		// if we get here it means the compiler sent us here on another token than (, [ or {
+		panic("this should not happen")
+	}
+
+	parser.Advance()
+	parser.whileNotClosing(func() {
+		fn()
+		if !parser.Is(close) {
+			parser.consume(TK_COMMA)
+		}
+	})
+
+	parser.consume(close)
+}
+
+func (parser *Parser) parseEnclosed(fn func()) {
+	var open = parser.Kind()
+	var close = closerTokens[open]
+	if close == 0 {
+		// if we get here it means the compiler sent us here on another token than (, [ or {
+		panic("this should not happen")
+	}
+
+	parser.Advance()
+
+	parser.whileNotClosing(func() {
+		fn()
+	})
+
+	parser.consume(close)
+}
+
+func (parser *Parser) whileNotEof(fn func()) {
+	parser.while(
+		func() bool { return !parser.IsEof() },
 		fn,
 	)
 }
 
-func (tk Tk) whileNot(kind TokenKind, fn func(iter Tk) Tk) Tk {
-	return tk.while(
-		func(iter Tk) bool { return !iter.IsEof() && !iter.Is(kind) },
+func (parser *Parser) whileNot(kind TokenKind, fn func()) {
+	parser.while(
+		func() bool { return !parser.IsEof() && !parser.Is(kind) },
 		fn,
 	)
 }
 
-func (tk Tk) sym() *prattTk {
-	return &syms[tk.ref().Kind]
+// func (tk Tk) sym() *prattTk {
+// 	return &syms[tk.ref().Kind]
+// }
+
+//////////////////////////////////////////////
+//
+
+func (parser *Parser) reportError(msg ...string) {
+	parser.file.reportError(parser.Range(), msg...)
 }
 
 //////////////////////////////////////////////
 //
 
-func (tk Tk) reportError(msg ...string) {
-	tk.file.reportError(tk.Range(), msg...)
-}
-
-//////////////////////////////////////////////
-//
-
-func (tk Tk) createNode(ctx Context, nk AstNodeKind, args ...Node) Node {
-	return tk.file.createNode(tk, nk, ctx, args...) // ????
-}
-
-func (tk Tk) createIdNode(ctx Context) Node {
-	idstr := SaveInternedString(tk.GetText())
-	idnode := tk.createNode(ctx, NODE_ID)
-	idnode.SetInternedString(idstr)
-	// b.file.Nodes[idnode].Value = idstr
-	return idnode
-}
-
-func (tk Tk) createBinOp(ctx Context, kind AstNodeKind, left Node, right Node) Node {
-	return tk.createNode(ctx, kind, left, right)
-}
-
-func (tk Tk) createUnaryOp(ctx Context, kind AstNodeKind, left Node) Node {
-	return tk.createNode(ctx, kind, left)
-}
-
-func (tk Tk) Debug() string {
-	if tk.IsEof() {
+func (parser *Parser) Debug() string {
+	if parser.IsEof() {
 		return "T[EOF]"
 	}
-	return fmt.Sprintf(`T[%s '%s' @%v:%v]`, tokstr[tk.ref().Kind], tk.GetText(), tk.Line()+1, tk.Column()+1)
+	return fmt.Sprintf(`T[%s '%s' @%v:%v]`, tokstr[parser.ref().Kind], parser.GetText(), parser.Line()+1, parser.Column()+1)
+}
+
+func (parser *Parser) CreateIdentifier() *AstIdentifier {
+	return parser.createAstIdentifier()
 }
