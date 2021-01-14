@@ -395,3 +395,16 @@ type AstWhile struct {
 	ConditionExp Node
 	Body         Node
 }
+
+type AstSwitch struct {
+	nodeBase
+	ConditionExp Node
+	Arms         []AstSwitchArm
+	ElseArm      Node
+}
+
+type AstSwitchArm struct {
+	nodeBase
+	ConditionExp Node
+	Body         Node
+}

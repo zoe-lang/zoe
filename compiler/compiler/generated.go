@@ -448,3 +448,19 @@ func (parser *Parser) createAstWhile() *AstWhile {
 }
 
 
+
+func (parser *Parser) createAstSwitch() *AstSwitch {
+  var res = &AstSwitch{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstSwitchArm() *AstSwitchArm {
+  var res = &AstSwitchArm{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+

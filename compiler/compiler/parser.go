@@ -188,6 +188,9 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_TYPE:
 		node = parser.createAstTypeAliasDecl()
 
+	case KW_SWITCH:
+		node = parser.createAstSwitch()
+
 	case KW_WHILE:
 		node = parser.createAstWhile()
 
@@ -476,7 +479,10 @@ func (fn *AstFn) nud(parser *Parser, scope *Scope) {
 	}
 	parser.Advance()
 
-	fn.parseName(parser, scope)
+	if parser.Is(TK_ID) {
+		fn.parseName(parser, scope)
+	}
+
 	if fn.Name != nil && scope.isInstructions() {
 		fn.Name.ReportError("functions cannot be named in function bodies")
 	}
@@ -637,6 +643,29 @@ func (wh *AstWhile) nud(parser *Parser, scope *Scope) {
 		var blk = parser.createAstBlock()
 		blk.nud(parser, scope)
 		wh.Body = blk
+	}
+}
+
+func (swi *AstSwitch) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	var sc = scope.subScope(scopeInstructions)
+	swi.ConditionExp = parser.Expression(scope, 0)
+	if parser.should(TK_LBRACKET) {
+		parser.parseEnclosedSeparatedByComma(func() {
+			if parser.Is(KW_ELSE) {
+				if swi.ElseArm != nil {
+					parser.reportError("redefinition of else statement")
+				}
+				parser.Advance()
+				parser.consume(TK_ARROW)
+				swi.ElseArm = parser.Expression(sc, 0)
+			} else {
+				var arm = parser.createAstSwitchArm()
+				arm.ConditionExp = parser.Expression(sc, 0)
+				parser.consume(TK_ARROW)
+				arm.Body = parser.Expression(sc, 0)
+			}
+		})
 	}
 }
 
