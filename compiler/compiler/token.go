@@ -364,6 +364,28 @@ func (parser *Parser) parseEnclosedSeparatedByComma(fn func()) {
 	parser.consume(close)
 }
 
+func (parser *Parser) parseEnclosedSeparatedByPipe(fn func()) {
+	var open = parser.Kind()
+	var close = closerTokens[open]
+	if close == 0 {
+		// if we get here it means the compiler sent us here on another token than (, [ or {
+		panic("this should not happen")
+	}
+
+	parser.Advance()
+
+	for !parser.Is(close) && !parser.IsEof() {
+		fn()
+		if !parser.Is(close) {
+			parser.consume(TK_PIPE)
+		} else {
+			parser.advanceIf(TK_PIPE)
+		}
+	}
+
+	parser.consume(close)
+}
+
 func (parser *Parser) parseEnclosed(fn func()) {
 	var open = parser.Kind()
 	var close = closerTokens[open]

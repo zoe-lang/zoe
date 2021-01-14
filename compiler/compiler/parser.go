@@ -185,6 +185,9 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_STRUCT:
 		node = parser.createAstStructDecl()
 
+	case KW_TYPE:
+		node = parser.createAstTypeAliasDecl()
+
 	case KW_WHILE:
 		node = parser.createAstWhile()
 
@@ -566,6 +569,26 @@ func (nam *named) parseName(parser *Parser, _ *Scope) {
 	if parser.should(TK_ID) {
 		nam.Name = parser.createAstIdentifier()
 		parser.Advance()
+	}
+}
+
+/*
+	Type statement
+*/
+func (typ *AstTypeAliasDecl) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	typ.parseName(parser, scope)
+	typ.parseTemplate(parser, scope)
+
+	if parser.Is(TK_LPAREN) {
+		parser.parseEnclosedSeparatedByPipe(func() {
+			var xp = parser.Expression(scope, 0)
+			typ.TypeExps = append(typ.TypeExps, xp)
+		})
+	}
+
+	if parser.Is(TK_RBRACKET) {
+		typ.parseTypeDecl(parser, scope)
 	}
 }
 

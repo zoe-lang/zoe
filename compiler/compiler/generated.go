@@ -119,6 +119,19 @@ func (n *AstStructDecl) GetName() *AstIdentifier {
 }
 
 
+func (parser *Parser) createAstTypeAliasDecl() *AstTypeAliasDecl {
+  var res = &AstTypeAliasDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (n *AstTypeAliasDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
+}
+
+
 func (parser *Parser) createAstFn() *AstFn {
   var res = &AstFn{}
   res.nodeBase = parser.createNodeBase()

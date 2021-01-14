@@ -256,6 +256,11 @@ type AstStructDecl struct {
 	membered
 }
 
+type AstTypeAliasDecl struct {
+	AstTypeDecl
+	TypeExps []Node
+}
+
 ///////////// Functions
 
 type AstFn struct {
