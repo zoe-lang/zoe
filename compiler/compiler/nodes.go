@@ -358,6 +358,8 @@ type AstTrue struct{ Literal }
 type AstFalse struct{ Literal }
 type AstIntLiteral struct{ Literal }
 type AstStringLiteral struct{ Literal }
+type AstThisLiteral struct{ Literal }
+type AstNoneLiteral struct{ Literal }
 
 type AstIdentifier struct {
 	nodeBase

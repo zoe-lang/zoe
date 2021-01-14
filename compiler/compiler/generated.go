@@ -388,6 +388,22 @@ func (parser *Parser) createAstStringLiteral() *AstStringLiteral {
 
 
 
+func (parser *Parser) createAstThisLiteral() *AstThisLiteral {
+  var res = &AstThisLiteral{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstNoneLiteral() *AstNoneLiteral {
+  var res = &AstNoneLiteral{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
 func (parser *Parser) createAstIdentifier() *AstIdentifier {
   var res = &AstIdentifier{}
   res.nodeBase = parser.createNodeBase()

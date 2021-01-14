@@ -2,6 +2,7 @@ package zoe
 
 import (
 	"fmt"
+	"log"
 	"math"
 
 	"github.com/sourcegraph/go-lsp"
@@ -247,7 +248,11 @@ func (parser *Parser) expect(kind TokenKind, fn func()) bool {
 }
 
 func (parser *Parser) consume(kind TokenKind) bool {
-	return parser.expect(kind, func() {})
+	if parser.should(kind) {
+		parser.Advance()
+		return true
+	}
+	return false
 }
 
 func (parser *Parser) ifToken(kind TokenKind, fn func()) bool {
@@ -347,7 +352,7 @@ func (parser *Parser) parseEnclosedSeparatedByComma(fn func()) {
 
 	parser.Advance()
 
-	for !parser.Is(close) {
+	for !parser.Is(close) && !parser.IsEof() {
 		fn()
 		if !parser.Is(close) {
 			parser.consume(TK_COMMA)
@@ -363,13 +368,14 @@ func (parser *Parser) parseEnclosed(fn func()) {
 	var open = parser.Kind()
 	var close = closerTokens[open]
 	if close == 0 {
+		log.Print(parser.GetText())
 		// if we get here it means the compiler sent us here on another token than (, [ or {
 		panic("this should not happen")
 	}
 
 	parser.Advance()
 
-	for !parser.Is(close) {
+	for !parser.Is(close) && !parser.IsEof() {
 		var cur = parser.pos
 		fn()
 		if parser.pos == cur {

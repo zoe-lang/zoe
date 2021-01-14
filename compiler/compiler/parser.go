@@ -168,9 +168,10 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	)
 	parser.binding = rbps[int(parser.Kind())]
 
-	// log.Print(parser.pos)
-	// log.Printf(parser.GetText())
 	switch parser.Kind() {
+
+	case KW_THIS:
+		node = parser.createAstThisLiteral()
 
 	case TK_QUOTE:
 		node = parser.createAstStringExp()
@@ -321,14 +322,14 @@ func (parser *Parser) Led(scope *Scope, left Node) Node {
 		return left
 	}
 
-	node.ExtendPos(start)
+	node.Extend(left)
 
 	node.led(parser, scope, left)
 
 	if parser.pos > start {
 		node.ExtendPos(parser.pos)
 	}
-	return left
+	return node
 }
 
 func (parser *Parser) Lbp() int {
@@ -386,6 +387,13 @@ func (blk *AstBlock) nud(parser *Parser, scope *Scope) {
 	})
 }
 
+func (parser *Parser) parseBlock(scope *Scope) *AstBlock {
+	var blk = parser.createAstBlock()
+	blk.nud(parser, scope)
+	blk.ExtendPos(parser.pos)
+	return blk
+}
+
 /*
 	Parse a namespace declaration
 */
@@ -399,10 +407,12 @@ func (nm *AstNamespaceDecl) nud(parser *Parser, scope *Scope) {
 		nm.Name = parser.createAstIdentifier()
 	})
 
-	parser.parseEnclosed(func() {
-		var xp = parser.Expression(nmscope, 0)
-		nm.Register(xp, scope)
-	})
+	if parser.should(TK_LBRACKET) {
+		parser.parseEnclosed(func() {
+			var xp = parser.Expression(nmscope, 0)
+			nm.Register(xp, scope)
+		})
+	}
 
 }
 
@@ -545,7 +555,7 @@ func (as *AstTypeDecl) parseTypeDecl(parser *Parser, scope *Scope) {
 
 	// Will parse everything inside the type.
 	parser.parseEnclosed(func() {
-
+		_ = parser.Expression(scope, 0)
 	})
 }
 
@@ -583,18 +593,16 @@ func (st *AstStructDecl) nud(parser *Parser, scope *Scope) {
 */
 func (aif *AstIf) nud(parser *Parser, scope *Scope) {
 	parser.Advance()
-	aif.ConditionExp = parser.Expression(scope, 0)
+	var thenscope = scope.subScope(scopeInstructions)
+	aif.ConditionExp = parser.Expression(thenscope, 0)
+
 	if parser.should(TK_LBRACKET) {
-		var blk = parser.createAstBlock()
-		blk.nud(parser, scope)
-		aif.ThenArm = blk
+		aif.ThenArm = parser.parseBlock(thenscope)
 	}
 
 	if parser.advanceIf(KW_ELSE) {
 		if parser.should(TK_LBRACKET) {
-			var blk = parser.createAstBlock()
-			blk.nud(parser, scope)
-			aif.ThenArm = blk
+			aif.ElseArm = parser.parseBlock(scope)
 		}
 	}
 }
