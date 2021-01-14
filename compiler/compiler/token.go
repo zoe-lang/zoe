@@ -327,25 +327,14 @@ func (parser *Parser) IsClosing() bool {
 	return closingTokens[kind]
 }
 
-func (parser *Parser) while(cond func() bool, fn func()) {
-	var current = parser.pos
-	for cond() {
+func (parser *Parser) parseUntilEof(fn func()) {
+	for !parser.IsEof() {
+		var cur = parser.pos
 		fn()
-		if parser.pos == current {
-			// We can't allow the parser to stay on the same token,
-			// so we advance it. Most like, this is due to an error that
-			// happened in `fn` so it already should have been reported.
+		if cur == parser.pos {
 			parser.Advance()
 		}
 	}
-}
-
-// Execute a function as long as the current token is not a closing token.
-func (parser *Parser) whileNotClosing(fn func()) {
-	parser.while(
-		func() bool { return !parser.IsClosing() },
-		fn,
-	)
 }
 
 func (parser *Parser) parseEnclosedSeparatedByComma(fn func()) {
@@ -357,14 +346,15 @@ func (parser *Parser) parseEnclosedSeparatedByComma(fn func()) {
 	}
 
 	parser.Advance()
-	parser.while(
-		func() bool { return !parser.Is(close) },
-		func() {
-			fn()
-			if !parser.Is(close) {
-				parser.consume(TK_COMMA)
-			}
-		})
+
+	for !parser.Is(close) {
+		fn()
+		if !parser.Is(close) {
+			parser.consume(TK_COMMA)
+		} else {
+			parser.advanceIf(TK_COMMA)
+		}
+	}
 
 	parser.consume(close)
 }
@@ -379,30 +369,16 @@ func (parser *Parser) parseEnclosed(fn func()) {
 
 	parser.Advance()
 
-	parser.whileNotClosing(func() {
+	for !parser.Is(close) {
+		var cur = parser.pos
 		fn()
-	})
+		if parser.pos == cur {
+			parser.Advance()
+		}
+	}
 
 	parser.consume(close)
 }
-
-func (parser *Parser) whileNotEof(fn func()) {
-	parser.while(
-		func() bool { return !parser.IsEof() },
-		fn,
-	)
-}
-
-func (parser *Parser) whileNot(kind TokenKind, fn func()) {
-	parser.while(
-		func() bool { return !parser.IsEof() && !parser.Is(kind) },
-		fn,
-	)
-}
-
-// func (tk Tk) sym() *prattTk {
-// 	return &syms[tk.ref().Kind]
-// }
 
 //////////////////////////////////////////////
 //

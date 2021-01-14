@@ -31,12 +31,12 @@ fn some_fn(arg: Something) -> Opt[Something] {
 struct OpenError(
   Error,
   file: String,
-  perm: Access
+  perm: Access,
 )
 
 struct Toto(
   toto: Int,
-  doudou: Yes
+  doudou: Yes,
 ) {
 
   method doStuff() -> Int {

@@ -1,6 +1,8 @@
 package zoe
 
-import "github.com/sourcegraph/go-lsp"
+import (
+	"github.com/sourcegraph/go-lsp"
+)
 
 type Node interface {
 	Extend(n Node)
@@ -157,8 +159,26 @@ func (n *named) GetName() *AstIdentifier {
 	return n.Name
 }
 
+type templated struct {
+	TemplateParams []*AstTemplateParam
+}
+
 type membered struct {
 	Members Names
+}
+
+func (m *membered) AddMember(n Node) {
+	if n == nil {
+		// ??
+		return // ???
+	}
+	var name = n.GetName().Name
+	if _, ok := m.Members[name]; ok {
+		n.ReportError("member '" + name.GetText() + "' is already defined")
+		return
+	}
+	m.Members[name] = n
+
 }
 
 ///////////////////////////////////////////////////////////
@@ -217,8 +237,9 @@ type AstTemplateParam struct {
 
 type AstTypeDecl struct {
 	nodeBase
-	Members        Names
-	TemplateParams []*AstTemplateParam
+	named
+	templated
+	Members Names
 }
 
 type AstEnumDecl struct {
@@ -232,7 +253,7 @@ type AstUnionDecl struct {
 
 type AstStructDecl struct {
 	AstTypeDecl
-	Fields Names
+	membered
 }
 
 ///////////// Functions
@@ -240,8 +261,8 @@ type AstStructDecl struct {
 type AstFn struct {
 	nodeBase
 	named
+	templated
 	IsMethod   bool
-	Templates  []*AstTemplateParam
 	Args       []*AstVarDecl
 	ReturnType Node
 	Definition Node

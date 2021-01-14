@@ -88,6 +88,11 @@ func (parser *Parser) createAstEnumDecl() *AstEnumDecl {
 
 
 
+func (n *AstEnumDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
+}
+
+
 func (parser *Parser) createAstUnionDecl() *AstUnionDecl {
   var res = &AstUnionDecl{}
   res.nodeBase = parser.createNodeBase()
@@ -96,12 +101,22 @@ func (parser *Parser) createAstUnionDecl() *AstUnionDecl {
 
 
 
+func (n *AstUnionDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
+}
+
+
 func (parser *Parser) createAstStructDecl() *AstStructDecl {
   var res = &AstStructDecl{}
   res.nodeBase = parser.createNodeBase()
   return res
 }
 
+
+
+func (n *AstStructDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
+}
 
 
 func (parser *Parser) createAstFn() *AstFn {

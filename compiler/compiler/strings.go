@@ -7,6 +7,10 @@ import (
 type InternedString int
 type Name = InternedString
 
+func (i InternedString) GetText() string {
+	return GetInternedString(i)
+}
+
 func SaveInternedString(str string) InternedString {
 	val := InternedIds.Save(str)
 	// log.Print("saved ", str, " -> ", val)

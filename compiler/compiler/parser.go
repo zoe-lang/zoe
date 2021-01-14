@@ -31,10 +31,11 @@ func (f *File) Parse() {
 		parser.prev = parser.pos
 	}
 
-	parser.whileNotEof(func() {
+	parser.parseUntilEof(func() {
 		var node = parser.Expression(scope, 0)
 		file.Register(node, scope)
 	})
+
 }
 
 type bindingPower struct {
@@ -180,6 +181,9 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_IF:
 		node = parser.createAstIf()
 
+	case KW_STRUCT:
+		node = parser.createAstStructDecl()
+
 	case KW_WHILE:
 		node = parser.createAstWhile()
 
@@ -253,9 +257,8 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	node.nud(parser, scope)
 
 	// Assume the parser advanced
-	if parser.prev > start {
-		node.ExtendPos(parser.prev)
-	}
+
+	node.ExtendPos(parser.pos)
 	return node
 }
 
@@ -396,28 +399,15 @@ func (nm *AstNamespaceDecl) nud(parser *Parser, scope *Scope) {
 		nm.Name = parser.createAstIdentifier()
 	})
 
-	parser.consume(TK_LBRACKET)
-	parser.whileNotClosing(func() {
+	parser.parseEnclosed(func() {
 		var xp = parser.Expression(nmscope, 0)
 		nm.Register(xp, scope)
 	})
 
-	parser.consume(TK_RBRACKET)
 }
 
-/*
-	Parse something that looks like a variable declaration.
-*/
-func (vl *varLike) nud(parser *Parser, scope *Scope) {
+func (vl *varLike) parseAfterKeyworkd(parser *Parser, scope *Scope) {
 	var start = parser.pos
-
-	if parser.Is(KW_CONST) {
-		vl.IsConst = true
-		parser.Advance()
-	} else if parser.Is(KW_VAR) {
-		parser.Advance()
-	}
-
 	if parser.advanceIf(TK_ELLIPSIS) {
 		if !scope.isFunctionArguments() {
 			parser.reportError("ellipsis is only in function arguments")
@@ -443,6 +433,22 @@ func (vl *varLike) nud(parser *Parser, scope *Scope) {
 }
 
 /*
+	Parse something that looks like a variable declaration.
+*/
+func (vl *varLike) nud(parser *Parser, scope *Scope) {
+
+	if parser.Is(KW_CONST) {
+		vl.IsConst = true
+		parser.Advance()
+	} else if parser.Is(KW_VAR) {
+		parser.Advance()
+	}
+
+	vl.parseAfterKeyworkd(parser, scope)
+
+}
+
+/*
 	Parse a function prototype
 */
 func (fn *AstFn) nud(parser *Parser, scope *Scope) {
@@ -457,25 +463,14 @@ func (fn *AstFn) nud(parser *Parser, scope *Scope) {
 	}
 	parser.Advance()
 
-	if parser.Is(TK_ID) {
-		if scope.isInstructions() {
-			parser.reportError("functions cannot be named in function bodies")
-		}
-		fn.Name = parser.createAstIdentifier()
-		parser.Advance()
+	fn.parseName(parser, scope)
+	if fn.Name != nil && scope.isInstructions() {
+		fn.Name.ReportError("functions cannot be named in function bodies")
 	}
-	// Check the name of the function, if it is given
 
 	var argscope = scope.subScope(scopeArguments)
 
-	if parser.Is(TK_LBRACE) {
-		// parse template params
-		parser.parseEnclosedSeparatedByComma(func() {
-			var tpl = parser.createAstTemplateParam()
-			tpl.nud(parser, argscope)
-			argscope.Add(tpl)
-		})
-	}
+	fn.parseTemplate(parser, argscope)
 
 	if parser.should(TK_LPAREN) {
 		parser.parseEnclosedSeparatedByComma(func() {
@@ -494,6 +489,18 @@ func (fn *AstFn) nud(parser *Parser, scope *Scope) {
 		// this is a block
 		fn.Definition = parser.Expression(argscope, 0)
 	}
+}
+
+func (tpl *templated) parseTemplate(parser *Parser, scope *Scope) {
+	if !parser.Is(TK_LBRACE) {
+		return
+	}
+
+	parser.parseEnclosedSeparatedByComma(func() {
+		var tpl = parser.createAstTemplateParam()
+		tpl.nud(parser, scope)
+		scope.Add(tpl)
+	})
 }
 
 func (tpl *AstTemplateParam) nud(parser *Parser, _ *Scope) {
@@ -531,6 +538,49 @@ func (fn *AstImport) nud(parser *Parser, scope *Scope) {
 	}
 }
 
+func (as *AstTypeDecl) parseTypeDecl(parser *Parser, scope *Scope) {
+	if !parser.Is(TK_LBRACKET) {
+		return
+	}
+
+	// Will parse everything inside the type.
+	parser.parseEnclosed(func() {
+
+	})
+}
+
+/*
+	Try to parse a name for a named component
+*/
+func (nam *named) parseName(parser *Parser, _ *Scope) {
+	if parser.should(TK_ID) {
+		nam.Name = parser.createAstIdentifier()
+		parser.Advance()
+	}
+}
+
+/*
+	Parse a struct statement
+*/
+func (st *AstStructDecl) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+
+	st.parseName(parser, scope)
+	st.parseTemplate(parser, scope)
+
+	if parser.Is(TK_LPAREN) {
+		parser.parseEnclosedSeparatedByComma(func() {
+			var v = parser.createAstVarDecl()
+			v.parseAfterKeyworkd(parser, scope)
+		})
+	}
+
+	st.parseTypeDecl(parser, scope)
+}
+
+/*
+	Parse the if statement
+*/
 func (aif *AstIf) nud(parser *Parser, scope *Scope) {
 	parser.Advance()
 	aif.ConditionExp = parser.Expression(scope, 0)
