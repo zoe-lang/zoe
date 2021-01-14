@@ -119,6 +119,19 @@ func (n *AstStructDecl) GetName() *AstIdentifier {
 }
 
 
+func (parser *Parser) createAstTraitDecl() *AstTraitDecl {
+  var res = &AstTraitDecl{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (n *AstTraitDecl) GetName() *AstIdentifier {
+  return n.named.GetName()
+}
+
+
 func (parser *Parser) createAstTypeAliasDecl() *AstTypeAliasDecl {
   var res = &AstTypeAliasDecl{}
   res.nodeBase = parser.createNodeBase()
@@ -195,6 +208,14 @@ func (parser *Parser) createAstReturnOp() *AstReturnOp {
 
 func (parser *Parser) createAstTakeOp() *AstTakeOp {
   var res = &AstTakeOp{}
+  res.nodeBase = parser.createNodeBase()
+  return res
+}
+
+
+
+func (parser *Parser) createAstIso() *AstIso {
+  var res = &AstIso{}
   res.nodeBase = parser.createNodeBase()
   return res
 }
@@ -409,8 +430,8 @@ func (parser *Parser) createAstThisLiteral() *AstThisLiteral {
 
 
 
-func (parser *Parser) createAstNoneLiteral() *AstNoneLiteral {
-  var res = &AstNoneLiteral{}
+func (parser *Parser) createAstVoidLiteral() *AstVoidLiteral {
+  var res = &AstVoidLiteral{}
   res.nodeBase = parser.createNodeBase()
   return res
 }

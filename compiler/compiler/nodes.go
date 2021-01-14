@@ -239,7 +239,7 @@ type AstTypeDecl struct {
 	nodeBase
 	named
 	templated
-	Members Names
+	membered
 }
 
 type AstEnumDecl struct {
@@ -253,7 +253,10 @@ type AstUnionDecl struct {
 
 type AstStructDecl struct {
 	AstTypeDecl
-	membered
+}
+
+type AstTraitDecl struct {
+	AstTypeDecl
 }
 
 type AstTypeAliasDecl struct {
@@ -302,6 +305,7 @@ type AstDerefOp struct{ unaryOperation }
 type AstPointerOp struct{ unaryOperation }
 type AstReturnOp struct{ unaryOperation }
 type AstTakeOp struct{ unaryOperation }
+type AstIso struct{ unaryOperation }
 
 //////////////////////////////
 
@@ -364,7 +368,7 @@ type AstFalse struct{ Literal }
 type AstIntLiteral struct{ Literal }
 type AstStringLiteral struct{ Literal }
 type AstThisLiteral struct{ Literal }
-type AstNoneLiteral struct{ Literal }
+type AstVoidLiteral struct{ Literal }
 
 type AstIdentifier struct {
 	nodeBase

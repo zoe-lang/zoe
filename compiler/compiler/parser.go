@@ -173,6 +173,9 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_THIS:
 		node = parser.createAstThisLiteral()
 
+	case KW_VOID:
+		node = parser.createAstVoidLiteral()
+
 	case TK_QUOTE:
 		node = parser.createAstStringExp()
 
