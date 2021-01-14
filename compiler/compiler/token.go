@@ -357,12 +357,14 @@ func (parser *Parser) parseEnclosedSeparatedByComma(fn func()) {
 	}
 
 	parser.Advance()
-	parser.whileNotClosing(func() {
-		fn()
-		if !parser.Is(close) {
-			parser.consume(TK_COMMA)
-		}
-	})
+	parser.while(
+		func() bool { return !parser.Is(close) },
+		func() {
+			fn()
+			if !parser.Is(close) {
+				parser.consume(TK_COMMA)
+			}
+		})
 
 	parser.consume(close)
 }
