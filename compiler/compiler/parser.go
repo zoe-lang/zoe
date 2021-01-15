@@ -211,6 +211,9 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_IMPORT:
 		node = parser.createAstImport(scope)
 
+	case KW_ISO:
+		node = parser.createAstIso(scope)
+
 	case TK_DOCCOMMENT:
 		var cmtpos = parser.pos
 		parser.Advance()
@@ -565,7 +568,7 @@ func (fn *AstImport) nud(parser *Parser, scope *Scope) {
 		fn.Resolver = name
 		parser.Advance()
 	} else {
-		fn.Resolver = parser.Expression(scope, 0)
+		fn.Resolver = parser.Expression(scope, rbps[int(TK_DOT)].right-1) // we don't want to consume parents
 	}
 
 	if parser.advanceIf(KW_AS) {
@@ -581,10 +584,11 @@ func (fn *AstImport) nud(parser *Parser, scope *Scope) {
 
 		parser.parseEnclosedSeparatedByComma(func() {
 			var _ = parser.Expression(scope, 0)
-			parser.consume(KW_AS)
-			if parser.should(TK_ID) {
-				var _ = parser.createAstIdentifier(scope)
-				parser.Advance()
+			if parser.advanceIf(KW_AS) {
+				if parser.should(TK_ID) {
+					var _ = parser.createAstIdentifier(scope)
+					parser.Advance()
+				}
 			}
 		})
 	}

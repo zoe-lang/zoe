@@ -8,7 +8,7 @@ import 'io' as io
     (import 'fmt' ok world)
   })
 #)
-namespace hello.world {
+namespace hello {
   import 'fmt' ( hello, world as ok )
 }
 

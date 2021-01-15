@@ -33,7 +33,7 @@ func handleFile(fname string) *File {
 	}
 
 	_, _ = os.Stderr.WriteString("\n")
-	file.TestFileAst()
+	// file.TestFileAst()
 	for _, err := range file.Errors {
 		err.Print(os.Stderr)
 	}
