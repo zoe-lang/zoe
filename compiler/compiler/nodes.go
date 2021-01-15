@@ -19,6 +19,11 @@ type Node interface {
 
 	GetScope() *Scope
 
+	IsLocal() bool
+	IsExtern() bool
+	SetLocal() bool
+	SetExtern() bool
+
 	// Register another node to this node.
 	// This is where a node might decide to send a node to a scope or to its members
 	Register(n Node, scope *Scope)
@@ -49,9 +54,21 @@ func (l *nodeBase) create(parser *Parser, scope *Scope) {
 	l.Scope = scope
 }
 
-// func (parser *Parser) createNodeBase() nodeBase {
-// 	return nodeBase{TkRange: parser.AsRange(), File: parser.file}
-// }
+func (l *nodeBase) IsLocal() bool {
+	return false
+}
+
+func (l *nodeBase) SetLocal() bool {
+	return false
+}
+
+func (l *nodeBase) IsExtern() bool {
+	return false
+}
+
+func (l *nodeBase) SetExtern() bool {
+	return false
+}
 
 func (l *nodeBase) GetScope() *Scope {
 	return l.Scope
@@ -153,20 +170,40 @@ type declaration struct {
 
 //////////////////////////////////////////////////////////
 
+type named struct {
+	Name     *AstIdentifier
+	isLocal  bool
+	isExtern bool
+}
+
+func (n *named) SetLocal() bool {
+	n.isLocal = true
+	return true
+}
+
+func (n *named) SetExtern() bool {
+	n.isExtern = true
+	return true
+}
+
+func (n *named) IsLocal() bool {
+	return n.isLocal
+}
+
+func (n *named) IsExtern() bool {
+	return n.isExtern
+}
+
+func (n *named) GetName() *AstIdentifier {
+	return n.Name
+}
+
 type varLike struct {
 	named
 	IsConst    bool
 	IsEllipsis bool
 	TypeExp    Node
 	DefaultExp Node
-}
-
-type named struct {
-	Name *AstIdentifier
-}
-
-func (n *named) GetName() *AstIdentifier {
-	return n.Name
 }
 
 type templated struct {
@@ -405,6 +442,11 @@ func (id *AstIdentifier) create(parser *Parser, _ *Scope) {
 
 func (id *AstIdentifier) GetName() *AstIdentifier {
 	return id
+}
+
+type AstArrayOrSlice struct {
+	nodeBase
+	Items []Node
 }
 
 type AstStringExp struct {

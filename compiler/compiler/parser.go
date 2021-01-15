@@ -214,6 +214,21 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_ISO:
 		node = parser.createAstIso(scope)
 
+	case KW_LOCAL:
+		parser.Advance()
+		var node = parser.Expression(scope, 0)
+		if node != nil && !node.SetLocal() {
+			node.ReportError("invalid local")
+		}
+		return node
+
+	case KW_EXTERN:
+		parser.Advance()
+		var node = parser.Expression(scope, 0)
+		if node != nil && !node.SetExtern() {
+			node.ReportError("invalid extern")
+		}
+
 	case TK_DOCCOMMENT:
 		var cmtpos = parser.pos
 		parser.Advance()
@@ -223,10 +238,7 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 
 	case TK_LBRACE:
 		// Array lparseral
-		// unused for now
-		parser.reportError("array literals are not implemented for now")
-		parser.Advance()
-		return nil
+		node = parser.createAstArrayOrSlice(scope)
 
 	case KW_FN, KW_METHOD:
 		node = parser.createAstFn(scope)
@@ -745,6 +757,13 @@ func (swi *AstSwitch) nud(parser *Parser, scope *Scope) {
 			}
 		})
 	}
+}
+
+func (arr *AstArrayOrSlice) nud(parser *Parser, scope *Scope) {
+	parser.parseEnclosedSeparatedByComma(func() {
+		var node = parser.Expression(scope, 0)
+		arr.Items = append(arr.Items, node)
+	})
 }
 
 func (str *AstStringExp) nud(parser *Parser, scope *Scope) {

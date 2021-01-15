@@ -10,7 +10,7 @@ import (
 )
 
 func handleFile(fname string) *File {
-	_, _ = fmt.Print("\nHandling ", yel(fname), "\n")
+	_, _ = fmt.Print("Handling ", yel(fname), "\n")
 	file, err := NewFile(fname)
 	if err != nil {
 		log.Printf("-- %v", err)

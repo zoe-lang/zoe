@@ -14,7 +14,7 @@ var blue = color.New(color.FgHiBlue).SprintFunc()
 var yel = color.New(color.FgHiYellow).SprintFunc()
 
 func handleFile(fname string) *zoe.File {
-	_, _ = fmt.Print("\nHandling ", yel(fname), "\n")
+	_, _ = fmt.Print("Handling ", yel(fname), "\n")
 	file, err := zoe.NewFile(fname)
 	if err != nil {
 		log.Printf("-- %v", err)

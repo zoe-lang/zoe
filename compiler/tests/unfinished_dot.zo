@@ -1,7 +1,7 @@
 
 import 'io' as io
 
-fn some_fn(arg: Something) -> Opt[Something] {
+local fn some_fn(arg: Something) -> Opt[Something] {
   # var res = arg?.prop('something').toto or 3
   var a = "hello !"
   arg is not none

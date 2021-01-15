@@ -1,31 +1,31 @@
 
-type Compiler is const struct (
+struct Compiler (
   os:         Compiler::Os,
   endianness: Compiler::Endian,
-) implements {
+) {
 
   #(?
     Tries to cast the given type. To be used in generics...
   #)
-  fn asTrait@$T(obj: any) -> $T | Error { builtin }
+  fn asTrait[$T](obj: any) -> $T | Error { builtin }
 
 }
+
 
 namespace Compiler {
 
-  type Os is
-    | Windows
-    | Linux
-    | Osx
-    | Android
-    | IOs
+  enum Os (
+    Windows,
+    Linux,
+    Osx,
+    Android,
+    IOs,
+  )
 
-  type Endian is Big | Little
+  enum Endian (Big, Little)
 
-  type Arch is
-    | Arm
-    | Intel
+  enum Arch (Arm, Intel)
 
 }
 
-var $: Compiler = builtin
+const $: Compiler = builtin

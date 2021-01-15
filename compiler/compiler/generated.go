@@ -21,6 +21,26 @@ func (parser *Parser) createAstImport(scope *Scope) *AstImport {
 
 
 
+func (n *AstImport) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstImport) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstImport) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstImport) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
 func (n *AstImport) GetName() *AstIdentifier {
   return n.named.GetName()
 }
@@ -42,6 +62,26 @@ func (parser *Parser) createAstVarDecl(scope *Scope) *AstVarDecl {
 
 
 
+func (n *AstVarDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstVarDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstVarDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstVarDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
 func (n *AstVarDecl) GetName() *AstIdentifier {
   return n.named.GetName()
 }
@@ -54,6 +94,26 @@ func (parser *Parser) createAstNamespaceDecl(scope *Scope) *AstNamespaceDecl {
   return res
 }
 
+
+
+func (n *AstNamespaceDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstNamespaceDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstNamespaceDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstNamespaceDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
 
 
 func (n *AstNamespaceDecl) GetName() *AstIdentifier {
@@ -78,6 +138,26 @@ func (parser *Parser) createAstTemplateParam(scope *Scope) *AstTemplateParam {
 
 
 
+func (n *AstTemplateParam) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstTemplateParam) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstTemplateParam) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstTemplateParam) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
 func (n *AstTemplateParam) GetName() *AstIdentifier {
   return n.named.GetName()
 }
@@ -90,6 +170,26 @@ func (parser *Parser) createAstEnumDecl(scope *Scope) *AstEnumDecl {
   return res
 }
 
+
+
+func (n *AstEnumDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstEnumDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstEnumDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstEnumDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
 
 
 func (n *AstEnumDecl) GetName() *AstIdentifier {
@@ -106,6 +206,26 @@ func (parser *Parser) createAstUnionDecl(scope *Scope) *AstUnionDecl {
 
 
 
+func (n *AstUnionDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstUnionDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstUnionDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstUnionDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
 func (n *AstUnionDecl) GetName() *AstIdentifier {
   return n.named.GetName()
 }
@@ -118,6 +238,26 @@ func (parser *Parser) createAstStructDecl(scope *Scope) *AstStructDecl {
   return res
 }
 
+
+
+func (n *AstStructDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstStructDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstStructDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstStructDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
 
 
 func (n *AstStructDecl) GetName() *AstIdentifier {
@@ -134,6 +274,26 @@ func (parser *Parser) createAstTraitDecl(scope *Scope) *AstTraitDecl {
 
 
 
+func (n *AstTraitDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstTraitDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstTraitDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstTraitDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
 func (n *AstTraitDecl) GetName() *AstIdentifier {
   return n.named.GetName()
 }
@@ -148,6 +308,26 @@ func (parser *Parser) createAstTypeAliasDecl(scope *Scope) *AstTypeAliasDecl {
 
 
 
+func (n *AstTypeAliasDecl) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstTypeAliasDecl) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstTypeAliasDecl) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstTypeAliasDecl) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
 func (n *AstTypeAliasDecl) GetName() *AstIdentifier {
   return n.named.GetName()
 }
@@ -159,6 +339,26 @@ func (parser *Parser) createAstFn(scope *Scope) *AstFn {
   return res
 }
 
+
+
+func (n *AstFn) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstFn) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstFn) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstFn) IsExtern() bool {
+  return n.named.IsExtern()
+}
 
 
 func (n *AstFn) GetName() *AstIdentifier {
@@ -465,6 +665,14 @@ func (parser *Parser) createAstCharLiteral(scope *Scope) *AstCharLiteral {
 func (parser *Parser) createAstIdentifier(scope *Scope) *AstIdentifier {
   var res = &AstIdentifier{}
   res.create(parser, scope)
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstArrayOrSlice(scope *Scope) *AstArrayOrSlice {
+  var res = &AstArrayOrSlice{}
   res.nodeBase.create(parser, scope)
   return res
 }

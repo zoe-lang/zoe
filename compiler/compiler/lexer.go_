@@ -109,6 +109,7 @@ func (z *File) Lex() error {
 			<top> "as"        => top { addToken(KW_AS); goto yyc_top }
 
 			<top> "local"     => top { addToken(KW_LOCAL); goto yyc_top }
+			<top> "extern"     => top { addToken(KW_EXTERN); goto yyc_top }
 
 	  	<top> "var"       => top { addToken(KW_VAR); goto yyc_top }
 			<top> "const"     => top { addToken(KW_CONST); goto yyc_top }
