@@ -1,8 +1,8 @@
 import 'net' as net
 
-type Server[$Ctx] is struct (
+struct Server[$Ctx] (
 
-) implements {
+) {
 
   #(?
     Instanciate a new Server.

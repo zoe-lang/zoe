@@ -32,7 +32,7 @@ func handleFile(fname string) *File {
 		// }
 	}
 
-	_, _ = os.Stderr.WriteString("\n")
+	// _, _ = os.Stderr.WriteString("\n")
 	// file.TestFileAst()
 	for _, err := range file.Errors {
 		err.Print(os.Stderr)
@@ -42,7 +42,7 @@ func handleFile(fname string) *File {
 
 func TestFiles(t *testing.T) {
 	var total = 0
-	_ = filepath.Walk("../tests", func(path string, info os.FileInfo, err error) error {
+	var handle = func(path string, err error) error {
 		if err != nil {
 			return err
 		}
@@ -53,6 +53,14 @@ func TestFiles(t *testing.T) {
 			}
 		}
 		return nil
-	})
+	}
+	var handleDir = func(path string) {
+		_ = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			return handle(path, err)
+		})
+	}
+	handleDir("../tests")
+	handleDir("../../std")
+
 	log.Print("  --> total errors : ", total)
 }

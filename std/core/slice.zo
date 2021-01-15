@@ -6,23 +6,27 @@ import './iterator' (
 #(?
   Slices are kinda like arrays.
 #)
-type Slice[$T] is struct (
-  length: Size
-  capacity: Size
-  ptr: *$T
-) implements Iterable[$T] (
+struct Slice[$T] (
+  length: Size,
+  capacity: Size,
+  ptr: @$T,
+) {
+
+  implement Iterable[$T] {
+    method getIterator() { SliceIterator(slc = this, pos = 0) }
+  }
 
   method bounds() -> Iterator[Int32] { iterate(0, this.length, 1) }
 
-  method getIterator@Iterable() { SliceIterator(slc = this, pos = 0) }
 
   #(?
     Iterate over a slide
   #)
-  type SliceIterator is struct (
-    slc: *Slice[$T]
-    pos: Size
-  ) implements Iterator[$T] {
+  struct SliceIterator (
+    slc: @Slice[$T],
+    pos: Size,
+  ) {
+    implement Iterator[$T]
 
     method size() { this.slc.length }
 
@@ -35,4 +39,4 @@ type Slice[$T] is struct (
     }
   }
 
-)
+}

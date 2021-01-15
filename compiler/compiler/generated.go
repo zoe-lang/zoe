@@ -130,6 +130,31 @@ func (parser *Parser) createAstImplement(scope *Scope) *AstImplement {
 
 
 
+func (n *AstImplement) SetLocal() bool {
+  return n.named.SetLocal()
+}
+
+
+func (n *AstImplement) SetExtern() bool {
+  return n.named.SetExtern()
+}
+
+
+func (n *AstImplement) IsLocal() bool {
+  return n.named.IsLocal()
+}
+
+
+func (n *AstImplement) IsExtern() bool {
+  return n.named.IsExtern()
+}
+
+
+func (n *AstImplement) GetName() *AstIdentifier {
+  return n.named.GetName()
+}
+
+
 func (parser *Parser) createAstTemplateParam(scope *Scope) *AstTemplateParam {
   var res = &AstTemplateParam{}
   res.nodeBase.create(parser, scope)

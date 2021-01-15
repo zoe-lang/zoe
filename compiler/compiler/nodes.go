@@ -283,9 +283,8 @@ type AstNamespaceDecl struct {
 ///////////////////////////////////////
 
 type AstImplement struct {
-	nodeBase
-	membered
-	Name Node // a path
+	AstTypeDecl
+	ImplementExp Node
 }
 
 type AstTemplateParam struct {

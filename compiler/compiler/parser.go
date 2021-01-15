@@ -199,6 +199,9 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	case KW_TRAIT:
 		node = parser.createAstTraitDecl(scope)
 
+	case KW_IMPLEMENT:
+		node = parser.createAstImplement(scope)
+
 	case KW_TYPE:
 		node = parser.createAstTypeAliasDecl(scope)
 
@@ -667,6 +670,17 @@ func (en *AstEnumDecl) nud(parser *Parser, scope *Scope) {
 	}
 
 	en.parseTypeDeclBody(parser, scope)
+}
+
+/*
+	Parse an implement block
+*/
+func (im *AstImplement) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+	im.ImplementExp = parser.Expression(scope, 0)
+	if parser.Is(TK_LBRACKET) {
+		im.parseTypeDeclBody(parser, scope)
+	}
 }
 
 /*
