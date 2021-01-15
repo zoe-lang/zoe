@@ -4,17 +4,18 @@ package zoe
 
 
 
-func (parser *Parser) createAstFile() *AstFile {
+func (parser *Parser) createAstFile(scope *Scope) *AstFile {
   var res = &AstFile{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstImport() *AstImport {
+func (parser *Parser) createAstImport(scope *Scope) *AstImport {
   var res = &AstImport{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
@@ -25,17 +26,17 @@ func (n *AstImport) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstImportModuleName() *AstImportModuleName {
+func (parser *Parser) createAstImportModuleName(scope *Scope) *AstImportModuleName {
   var res = &AstImportModuleName{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstVarDecl() *AstVarDecl {
+func (parser *Parser) createAstVarDecl(scope *Scope) *AstVarDecl {
   var res = &AstVarDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
@@ -46,9 +47,10 @@ func (n *AstVarDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstNamespaceDecl() *AstNamespaceDecl {
+func (parser *Parser) createAstNamespaceDecl(scope *Scope) *AstNamespaceDecl {
   var res = &AstNamespaceDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
@@ -59,17 +61,18 @@ func (n *AstNamespaceDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstImplement() *AstImplement {
+func (parser *Parser) createAstImplement(scope *Scope) *AstImplement {
   var res = &AstImplement{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstTemplateParam() *AstTemplateParam {
+func (parser *Parser) createAstTemplateParam(scope *Scope) *AstTemplateParam {
   var res = &AstTemplateParam{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
@@ -80,9 +83,10 @@ func (n *AstTemplateParam) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstEnumDecl() *AstEnumDecl {
+func (parser *Parser) createAstEnumDecl(scope *Scope) *AstEnumDecl {
   var res = &AstEnumDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
@@ -93,9 +97,10 @@ func (n *AstEnumDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstUnionDecl() *AstUnionDecl {
+func (parser *Parser) createAstUnionDecl(scope *Scope) *AstUnionDecl {
   var res = &AstUnionDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
@@ -106,9 +111,10 @@ func (n *AstUnionDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstStructDecl() *AstStructDecl {
+func (parser *Parser) createAstStructDecl(scope *Scope) *AstStructDecl {
   var res = &AstStructDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
@@ -119,9 +125,10 @@ func (n *AstStructDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstTraitDecl() *AstTraitDecl {
+func (parser *Parser) createAstTraitDecl(scope *Scope) *AstTraitDecl {
   var res = &AstTraitDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
@@ -132,9 +139,10 @@ func (n *AstTraitDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstTypeAliasDecl() *AstTypeAliasDecl {
+func (parser *Parser) createAstTypeAliasDecl(scope *Scope) *AstTypeAliasDecl {
   var res = &AstTypeAliasDecl{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
+  res.membered.create(parser, scope)
   return res
 }
 
@@ -145,9 +153,9 @@ func (n *AstTypeAliasDecl) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstFn() *AstFn {
+func (parser *Parser) createAstFn(scope *Scope) *AstFn {
   var res = &AstFn{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
@@ -158,329 +166,346 @@ func (n *AstFn) GetName() *AstIdentifier {
 }
 
 
-func (parser *Parser) createAstBlock() *AstBlock {
+func (parser *Parser) createAstBlock(scope *Scope) *AstBlock {
   var res = &AstBlock{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstFnCall() *AstFnCall {
+func (parser *Parser) createAstFnCall(scope *Scope) *AstFnCall {
   var res = &AstFnCall{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIndexCall() *AstIndexCall {
+func (parser *Parser) createAstIndexCall(scope *Scope) *AstIndexCall {
   var res = &AstIndexCall{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstDerefOp() *AstDerefOp {
+func (parser *Parser) createAstDerefOp(scope *Scope) *AstDerefOp {
   var res = &AstDerefOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstPointerOp() *AstPointerOp {
+func (parser *Parser) createAstPointerOp(scope *Scope) *AstPointerOp {
   var res = &AstPointerOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstReturnOp() *AstReturnOp {
+func (parser *Parser) createAstReturnOp(scope *Scope) *AstReturnOp {
   var res = &AstReturnOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstTakeOp() *AstTakeOp {
+func (parser *Parser) createAstTakeOp(scope *Scope) *AstTakeOp {
   var res = &AstTakeOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIso() *AstIso {
+func (parser *Parser) createAstIso(scope *Scope) *AstIso {
   var res = &AstIso{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstMulBinOp() *AstMulBinOp {
+func (parser *Parser) createAstMulBinOp(scope *Scope) *AstMulBinOp {
   var res = &AstMulBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstDivBinOp() *AstDivBinOp {
+func (parser *Parser) createAstDivBinOp(scope *Scope) *AstDivBinOp {
   var res = &AstDivBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstAddBinOp() *AstAddBinOp {
+func (parser *Parser) createAstAddBinOp(scope *Scope) *AstAddBinOp {
   var res = &AstAddBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstSubBinOp() *AstSubBinOp {
+func (parser *Parser) createAstSubBinOp(scope *Scope) *AstSubBinOp {
   var res = &AstSubBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstModBinOp() *AstModBinOp {
+func (parser *Parser) createAstModBinOp(scope *Scope) *AstModBinOp {
   var res = &AstModBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstPipeBinOp() *AstPipeBinOp {
+func (parser *Parser) createAstPipeBinOp(scope *Scope) *AstPipeBinOp {
   var res = &AstPipeBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstAmpBinOp() *AstAmpBinOp {
+func (parser *Parser) createAstAmpBinOp(scope *Scope) *AstAmpBinOp {
   var res = &AstAmpBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstLShiftBinOp() *AstLShiftBinOp {
+func (parser *Parser) createAstLShiftBinOp(scope *Scope) *AstLShiftBinOp {
   var res = &AstLShiftBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstRShiftBinOp() *AstRShiftBinOp {
+func (parser *Parser) createAstRShiftBinOp(scope *Scope) *AstRShiftBinOp {
   var res = &AstRShiftBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstAndBinOp() *AstAndBinOp {
+func (parser *Parser) createAstAndBinOp(scope *Scope) *AstAndBinOp {
   var res = &AstAndBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstOrBinOp() *AstOrBinOp {
+func (parser *Parser) createAstOrBinOp(scope *Scope) *AstOrBinOp {
   var res = &AstOrBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstGtBinOp() *AstGtBinOp {
+func (parser *Parser) createAstGtBinOp(scope *Scope) *AstGtBinOp {
   var res = &AstGtBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstGteBinOp() *AstGteBinOp {
+func (parser *Parser) createAstGteBinOp(scope *Scope) *AstGteBinOp {
   var res = &AstGteBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstLtBinOp() *AstLtBinOp {
+func (parser *Parser) createAstLtBinOp(scope *Scope) *AstLtBinOp {
   var res = &AstLtBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstLteBinOp() *AstLteBinOp {
+func (parser *Parser) createAstLteBinOp(scope *Scope) *AstLteBinOp {
   var res = &AstLteBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstEqBinOp() *AstEqBinOp {
+func (parser *Parser) createAstEqBinOp(scope *Scope) *AstEqBinOp {
   var res = &AstEqBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstNeqBinOp() *AstNeqBinOp {
+func (parser *Parser) createAstNeqBinOp(scope *Scope) *AstNeqBinOp {
   var res = &AstNeqBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIsBinOp() *AstIsBinOp {
+func (parser *Parser) createAstIsBinOp(scope *Scope) *AstIsBinOp {
   var res = &AstIsBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIsNotBinOp() *AstIsNotBinOp {
+func (parser *Parser) createAstIsNotBinOp(scope *Scope) *AstIsNotBinOp {
   var res = &AstIsNotBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstDotBinOp() *AstDotBinOp {
+func (parser *Parser) createAstDotBinOp(scope *Scope) *AstDotBinOp {
   var res = &AstDotBinOp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstNone() *AstNone {
+func (parser *Parser) createAstCastBinOp(scope *Scope) *AstCastBinOp {
+  var res = &AstCastBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstNone(scope *Scope) *AstNone {
   var res = &AstNone{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstTrue() *AstTrue {
+func (parser *Parser) createAstTrue(scope *Scope) *AstTrue {
   var res = &AstTrue{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstFalse() *AstFalse {
+func (parser *Parser) createAstFalse(scope *Scope) *AstFalse {
   var res = &AstFalse{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIntLiteral() *AstIntLiteral {
+func (parser *Parser) createAstIntLiteral(scope *Scope) *AstIntLiteral {
   var res = &AstIntLiteral{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstStringLiteral() *AstStringLiteral {
+func (parser *Parser) createAstStringLiteral(scope *Scope) *AstStringLiteral {
   var res = &AstStringLiteral{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstThisLiteral() *AstThisLiteral {
+func (parser *Parser) createAstThisLiteral(scope *Scope) *AstThisLiteral {
   var res = &AstThisLiteral{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstVoidLiteral() *AstVoidLiteral {
+func (parser *Parser) createAstVoidLiteral(scope *Scope) *AstVoidLiteral {
   var res = &AstVoidLiteral{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIdentifier() *AstIdentifier {
+func (parser *Parser) createAstCharLiteral(scope *Scope) *AstCharLiteral {
+  var res = &AstCharLiteral{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstIdentifier(scope *Scope) *AstIdentifier {
   var res = &AstIdentifier{}
-  res.nodeBase = parser.createNodeBase()
+  res.create(parser, scope)
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstStringExp() *AstStringExp {
+func (parser *Parser) createAstStringExp(scope *Scope) *AstStringExp {
   var res = &AstStringExp{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstIf() *AstIf {
+func (parser *Parser) createAstIf(scope *Scope) *AstIf {
   var res = &AstIf{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstWhile() *AstWhile {
+func (parser *Parser) createAstWhile(scope *Scope) *AstWhile {
   var res = &AstWhile{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstSwitch() *AstSwitch {
+func (parser *Parser) createAstSwitch(scope *Scope) *AstSwitch {
   var res = &AstSwitch{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 
 
 
-func (parser *Parser) createAstSwitchArm() *AstSwitchArm {
+func (parser *Parser) createAstSwitchArm(scope *Scope) *AstSwitchArm {
   var res = &AstSwitchArm{}
-  res.nodeBase = parser.createNodeBase()
+  res.nodeBase.create(parser, scope)
   return res
 }
 

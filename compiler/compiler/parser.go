@@ -14,8 +14,8 @@ type ledNode interface {
 	Parse parses the file.
 */
 func (f *File) Parse() {
-	var file = AstFileNew(f)
-	f.RootNode = file
+	// /var file = AstFileNew(f)
+	// f.RootNode = file
 
 	var scope = &Scope{Names: make(Names), Context: scopeFile}
 	f.RootScope = scope
@@ -25,6 +25,8 @@ func (f *File) Parse() {
 		prev: 0,
 		file: f,
 	}
+	var root = parser.createAstNamespaceDecl(scope)
+	f.RootNode = root
 
 	if parser.isSkippable() {
 		parser.Advance()
@@ -33,7 +35,7 @@ func (f *File) Parse() {
 
 	parser.parseUntilEof(func() {
 		var node = parser.Expression(scope, 0)
-		file.Register(node, scope)
+		root.Register(node, scope)
 	})
 
 }
@@ -171,34 +173,43 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 	switch parser.Kind() {
 
 	case KW_THIS:
-		node = parser.createAstThisLiteral()
+		node = parser.createAstThisLiteral(scope)
 
 	case KW_VOID:
-		node = parser.createAstVoidLiteral()
+		node = parser.createAstVoidLiteral(scope)
 
 	case TK_QUOTE:
-		node = parser.createAstStringExp()
+		node = parser.createAstStringExp(scope)
 
 	case TK_RAWSTR:
-		node = parser.createAstStringLiteral()
+		node = parser.createAstStringLiteral(scope)
+
+	case TK_CHAR:
+		node = parser.createAstCharLiteral(scope)
 
 	case KW_IF:
-		node = parser.createAstIf()
+		node = parser.createAstIf(scope)
+
+	case KW_ENUM:
+		node = parser.createAstEnumDecl(scope)
 
 	case KW_STRUCT:
-		node = parser.createAstStructDecl()
+		node = parser.createAstStructDecl(scope)
+
+	case KW_TRAIT:
+		node = parser.createAstTraitDecl(scope)
 
 	case KW_TYPE:
-		node = parser.createAstTypeAliasDecl()
+		node = parser.createAstTypeAliasDecl(scope)
 
 	case KW_SWITCH:
-		node = parser.createAstSwitch()
+		node = parser.createAstSwitch(scope)
 
 	case KW_WHILE:
-		node = parser.createAstWhile()
+		node = parser.createAstWhile(scope)
 
 	case KW_IMPORT:
-		node = parser.createAstImport()
+		node = parser.createAstImport(scope)
 
 	case TK_DOCCOMMENT:
 		var cmtpos = parser.pos
@@ -215,40 +226,40 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 		return nil
 
 	case KW_FN, KW_METHOD:
-		node = parser.createAstFn()
+		node = parser.createAstFn(scope)
 
 	case KW_VAR, KW_CONST:
-		node = parser.createAstVarDecl()
+		node = parser.createAstVarDecl(scope)
 
 	case TK_LPAREN:
 		// parenthesized expression has to be handled differently since the node it returns
 
 	case KW_NAMESPACE:
-		node = parser.createAstNamespaceDecl()
+		node = parser.createAstNamespaceDecl(scope)
 
 	case KW_RETURN:
-		node = parser.createAstReturnOp()
+		node = parser.createAstReturnOp(scope)
 	case KW_TAKE:
-		node = parser.createAstTakeOp()
+		node = parser.createAstTakeOp(scope)
 
 	case KW_NONE:
-		node = parser.createAstNone()
+		node = parser.createAstNone(scope)
 	case KW_FALSE:
-		node = parser.createAstFalse()
+		node = parser.createAstFalse(scope)
 	case KW_TRUE:
-		node = parser.createAstTrue()
+		node = parser.createAstTrue(scope)
 
 	case TK_NUMBER:
-		node = parser.createAstIntLiteral()
+		node = parser.createAstIntLiteral(scope)
 
 	case TK_ID:
-		node = parser.createAstIdentifier()
+		node = parser.createAstIdentifier(scope)
 
 	case TK_LBRACKET:
-		node = parser.createAstBlock()
+		node = parser.createAstBlock(scope)
 
 	case TK_AT:
-		node = parser.createAstPointerOp()
+		node = parser.createAstPointerOp(scope)
 
 	default:
 		parser.reportError("unexpected token '", parser.GetText(), "'")
@@ -280,50 +291,65 @@ func (parser *Parser) Led(scope *Scope, left Node) Node {
 
 	switch parser.Kind() {
 
+	case TK_COLCOL:
+		node = parser.createAstCastBinOp(scope)
+
 	case TK_AT:
-		node = parser.createAstDerefOp()
+		node = parser.createAstDerefOp(scope)
 
 	case TK_DOT:
-		node = parser.createAstDotBinOp()
+		node = parser.createAstDotBinOp(scope)
 
 	case TK_LBRACE:
-		node = parser.createAstIndexCall()
+		node = parser.createAstIndexCall(scope)
 
 	case TK_LPAREN:
-		node = parser.createAstFnCall()
+		node = parser.createAstFnCall(scope)
+
+	case TK_GT:
+		node = parser.createAstGtBinOp(scope)
+
+	case TK_GTE:
+		node = parser.createAstGteBinOp(scope)
+
+	case TK_LT:
+		node = parser.createAstLtBinOp(scope)
+
+	case TK_LTE:
+		node = parser.createAstLteBinOp(scope)
 
 	case TK_EQ, TK_AMPEQ, TK_PIPEEQ, TK_RSHIFTEQ, TK_LSHIFTEQ, TK_DIVEQ, TK_PLUSEQ, TK_STAREQ, TK_MINEQ, TK_MODEQ:
-		node = parser.createAstEqBinOp()
+		node = parser.createAstEqBinOp(scope)
 
 	case TK_AMP:
-		node = parser.createAstAmpBinOp()
+		node = parser.createAstAmpBinOp(scope)
 	case TK_PIPE:
-		node = parser.createAstPipeBinOp()
+		node = parser.createAstPipeBinOp(scope)
 	case TK_RSHIFT:
-		node = parser.createAstRShiftBinOp()
+		node = parser.createAstRShiftBinOp(scope)
 	case TK_LSHIFT:
-		node = parser.createAstLShiftBinOp()
+		node = parser.createAstLShiftBinOp(scope)
 
 	case TK_DIV:
-		node = parser.createAstDivBinOp()
+		node = parser.createAstDivBinOp(scope)
 	case TK_PLUS:
-		node = parser.createAstAddBinOp()
+		node = parser.createAstAddBinOp(scope)
 	case TK_STAR:
-		node = parser.createAstMulBinOp()
+		node = parser.createAstMulBinOp(scope)
 	case TK_MIN:
-		node = parser.createAstSubBinOp()
+		node = parser.createAstSubBinOp(scope)
 	case TK_MOD:
-		node = parser.createAstModBinOp()
+		node = parser.createAstModBinOp(scope)
 
 	case TK_AMPAMP:
-		node = parser.createAstAndBinOp()
+		node = parser.createAstAndBinOp(scope)
 	case TK_PIPEPIPE:
-		node = parser.createAstOrBinOp()
+		node = parser.createAstOrBinOp(scope)
 
 	case KW_IS:
-		node = parser.createAstIsBinOp()
+		node = parser.createAstIsBinOp(scope)
 	case KW_ISNOT:
-		node = parser.createAstIsNotBinOp()
+		node = parser.createAstIsNotBinOp(scope)
 
 	default:
 		parser.reportError("unexpected token '", parser.GetText(), "'")
@@ -362,7 +388,6 @@ func (n *noopNud) nud(parser *Parser, _ *Scope) {
 	Identifier
 */
 func (id *AstIdentifier) nud(parser *Parser, _ *Scope) {
-	id.Name = SaveInternedString(parser.GetText())
 	parser.Advance()
 }
 
@@ -397,7 +422,7 @@ func (blk *AstBlock) nud(parser *Parser, scope *Scope) {
 }
 
 func (parser *Parser) parseBlock(scope *Scope) *AstBlock {
-	var blk = parser.createAstBlock()
+	var blk = parser.createAstBlock(scope)
 	blk.nud(parser, scope)
 	blk.ExtendPos(parser.pos)
 	return blk
@@ -413,7 +438,7 @@ func (nm *AstNamespaceDecl) nud(parser *Parser, scope *Scope) {
 
 	// Try to parse the identifier
 	parser.expect(TK_ID, func() {
-		nm.Name = parser.createAstIdentifier()
+		nm.Name = parser.createAstIdentifier(scope)
 	})
 
 	if parser.should(TK_LBRACKET) {
@@ -425,7 +450,7 @@ func (nm *AstNamespaceDecl) nud(parser *Parser, scope *Scope) {
 
 }
 
-func (vl *varLike) parseAfterKeyworkd(parser *Parser, scope *Scope) {
+func (vl *varLike) parseAfterKeyword(parser *Parser, scope *Scope) {
 	var start = parser.pos
 	if parser.advanceIf(TK_ELLIPSIS) {
 		if !scope.isFunctionArguments() {
@@ -435,7 +460,7 @@ func (vl *varLike) parseAfterKeyworkd(parser *Parser, scope *Scope) {
 	}
 
 	parser.expect(TK_ID, func() {
-		vl.Name = parser.createAstIdentifier()
+		vl.Name = parser.createAstIdentifier(scope)
 	})
 
 	if parser.advanceIf(TK_COLON) {
@@ -463,7 +488,7 @@ func (vl *varLike) nud(parser *Parser, scope *Scope) {
 		parser.Advance()
 	}
 
-	vl.parseAfterKeyworkd(parser, scope)
+	vl.parseAfterKeyword(parser, scope)
 
 }
 
@@ -473,7 +498,7 @@ func (vl *varLike) nud(parser *Parser, scope *Scope) {
 func (fn *AstFn) nud(parser *Parser, scope *Scope) {
 
 	if parser.Is(KW_METHOD) {
-		if scope.isInstructions() {
+		if !scope.isType() {
 			fn.ReportError("methods can only be defined inside of types")
 		}
 		// This should not happen inside a regular block...
@@ -486,17 +511,13 @@ func (fn *AstFn) nud(parser *Parser, scope *Scope) {
 		fn.parseName(parser, scope)
 	}
 
-	if fn.Name != nil && scope.isInstructions() {
-		fn.Name.ReportError("functions cannot be named in function bodies")
-	}
-
 	var argscope = scope.subScope(scopeArguments)
 
 	fn.parseTemplate(parser, argscope)
 
 	if parser.should(TK_LPAREN) {
 		parser.parseEnclosedSeparatedByComma(func() {
-			var arg = parser.createAstVarDecl()
+			var arg = parser.createAstVarDecl(scope)
 			arg.nud(parser, argscope)
 			argscope.Add(arg)
 			fn.Args = append(fn.Args, arg)
@@ -519,15 +540,15 @@ func (tpl *templated) parseTemplate(parser *Parser, scope *Scope) {
 	}
 
 	parser.parseEnclosedSeparatedByComma(func() {
-		var tpl = parser.createAstTemplateParam()
+		var tpl = parser.createAstTemplateParam(scope)
 		tpl.nud(parser, scope)
 		scope.Add(tpl)
 	})
 }
 
-func (tpl *AstTemplateParam) nud(parser *Parser, _ *Scope) {
+func (tpl *AstTemplateParam) nud(parser *Parser, scope *Scope) {
 	if parser.Is(TK_ID) {
-		tpl.Name = parser.createAstIdentifier()
+		tpl.Name = parser.createAstIdentifier(scope)
 	}
 	parser.Advance()
 }
@@ -539,7 +560,7 @@ func (fn *AstImport) nud(parser *Parser, scope *Scope) {
 	parser.Advance()
 
 	if parser.Is(TK_RAWSTR) {
-		var name = parser.createAstImportModuleName()
+		var name = parser.createAstImportModuleName(scope)
 		name.ModuleName = parser.GetText() // FIXME we may need to remove quotes !
 		fn.Resolver = name
 		parser.Advance()
@@ -550,33 +571,43 @@ func (fn *AstImport) nud(parser *Parser, scope *Scope) {
 	if parser.advanceIf(KW_AS) {
 		// import 'whatever' as name
 		parser.expect(TK_ID, func() {
-			fn.Name = parser.createAstIdentifier()
+			fn.Name = parser.createAstIdentifier(scope)
 		})
 	} else {
 		// import 'whatever' ( symbol, exp as name )
 		if !parser.should(TK_LPAREN) {
 			return
 		}
+
+		parser.parseEnclosedSeparatedByComma(func() {
+			var _ = parser.Expression(scope, 0)
+			parser.consume(KW_AS)
+			if parser.should(TK_ID) {
+				var _ = parser.createAstIdentifier(scope)
+				parser.Advance()
+			}
+		})
 	}
 }
 
-func (as *AstTypeDecl) parseTypeDecl(parser *Parser, scope *Scope) {
+func (as *AstTypeDecl) parseTypeDeclBody(parser *Parser, scope *Scope) {
 	if !parser.Is(TK_LBRACKET) {
 		return
 	}
 
+	var typescope = scope.subScope(scopeType)
 	// Will parse everything inside the type.
 	parser.parseEnclosed(func() {
-		_ = parser.Expression(scope, 0)
+		_ = parser.Expression(typescope, 0)
 	})
 }
 
 /*
 	Try to parse a name for a named component
 */
-func (nam *named) parseName(parser *Parser, _ *Scope) {
+func (nam *named) parseName(parser *Parser, scope *Scope) {
 	if parser.should(TK_ID) {
-		nam.Name = parser.createAstIdentifier()
+		nam.Name = parser.createAstIdentifier(scope)
 		parser.Advance()
 	}
 }
@@ -596,9 +627,30 @@ func (typ *AstTypeAliasDecl) nud(parser *Parser, scope *Scope) {
 		})
 	}
 
-	if parser.Is(TK_RBRACKET) {
-		typ.parseTypeDecl(parser, scope)
+	if parser.Is(TK_LBRACKET) {
+		typ.parseTypeDeclBody(parser, scope)
 	}
+}
+
+/*
+	Parse an enum
+*/
+func (en *AstEnumDecl) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+
+	en.parseName(parser, scope)
+	// enums may not have templates ?
+
+	if parser.should(TK_LPAREN) {
+		parser.parseEnclosedSeparatedByComma(func() {
+			var v = parser.createAstVarDecl(scope)
+			v.parseAfterKeyword(parser, scope)
+			en.Fields = append(en.Fields, v)
+			en.AddMember(v)
+		})
+	}
+
+	en.parseTypeDeclBody(parser, scope)
 }
 
 /*
@@ -612,12 +664,31 @@ func (st *AstStructDecl) nud(parser *Parser, scope *Scope) {
 
 	if parser.Is(TK_LPAREN) {
 		parser.parseEnclosedSeparatedByComma(func() {
-			var v = parser.createAstVarDecl()
-			v.parseAfterKeyworkd(parser, scope)
+			var v = parser.createAstVarDecl(scope)
+			v.parseAfterKeyword(parser, scope)
 		})
 	}
 
-	st.parseTypeDecl(parser, scope)
+	st.parseTypeDeclBody(parser, scope)
+}
+
+/*
+	Parse a trait statement
+*/
+func (st *AstTraitDecl) nud(parser *Parser, scope *Scope) {
+	parser.Advance()
+
+	st.parseName(parser, scope)
+	st.parseTemplate(parser, scope)
+
+	if parser.Is(TK_LPAREN) {
+		parser.parseEnclosedSeparatedByComma(func() {
+			var v = parser.createAstVarDecl(scope)
+			v.parseAfterKeyword(parser, scope)
+		})
+	}
+
+	st.parseTypeDeclBody(parser, scope)
 }
 
 /*
@@ -643,7 +714,7 @@ func (wh *AstWhile) nud(parser *Parser, scope *Scope) {
 	parser.Advance()
 	wh.ConditionExp = parser.Expression(scope, 0)
 	if parser.should(TK_LBRACKET) {
-		var blk = parser.createAstBlock()
+		var blk = parser.createAstBlock(scope)
 		blk.nud(parser, scope)
 		wh.Body = blk
 	}
@@ -663,7 +734,7 @@ func (swi *AstSwitch) nud(parser *Parser, scope *Scope) {
 				parser.consume(TK_ARROW)
 				swi.ElseArm = parser.Expression(sc, 0)
 			} else {
-				var arm = parser.createAstSwitchArm()
+				var arm = parser.createAstSwitchArm(scope)
 				arm.ConditionExp = parser.Expression(sc, 0)
 				parser.consume(TK_ARROW)
 				arm.Body = parser.Expression(sc, 0)
@@ -714,24 +785,24 @@ func (eq *AstEqBinOp) led(parser *Parser, scope *Scope, left Node) {
 
 	switch kind {
 	case TK_AMPEQ:
-		rnode = parser.createAstAmpBinOp()
+		rnode = parser.createAstAmpBinOp(scope)
 	case TK_PIPEEQ:
-		rnode = parser.createAstPipeBinOp()
+		rnode = parser.createAstPipeBinOp(scope)
 	case TK_RSHIFTEQ:
-		rnode = parser.createAstRShiftBinOp()
+		rnode = parser.createAstRShiftBinOp(scope)
 	case TK_LSHIFTEQ:
-		rnode = parser.createAstLShiftBinOp()
+		rnode = parser.createAstLShiftBinOp(scope)
 
 	case TK_DIVEQ:
-		rnode = parser.createAstDivBinOp()
+		rnode = parser.createAstDivBinOp(scope)
 	case TK_PLUSEQ:
-		rnode = parser.createAstAddBinOp()
+		rnode = parser.createAstAddBinOp(scope)
 	case TK_STAREQ:
-		rnode = parser.createAstMulBinOp()
+		rnode = parser.createAstMulBinOp(scope)
 	case TK_MINEQ:
-		rnode = parser.createAstSubBinOp()
+		rnode = parser.createAstSubBinOp(scope)
 	case TK_MODEQ:
-		rnode = parser.createAstModBinOp()
+		rnode = parser.createAstModBinOp(scope)
 
 	default:
 		// no rnode !

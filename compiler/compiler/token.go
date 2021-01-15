@@ -424,7 +424,3 @@ func (parser *Parser) Debug() string {
 	}
 	return fmt.Sprintf(`T[%s '%s' @%v:%v]`, tokstr[parser.ref().Kind], parser.GetText(), parser.Line()+1, parser.Column()+1)
 }
-
-func (parser *Parser) CreateIdentifier() *AstIdentifier {
-	return parser.createAstIdentifier()
-}

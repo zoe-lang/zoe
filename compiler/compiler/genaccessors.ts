@@ -67,6 +67,27 @@ class Type {
     return this.all_members.map(m => `${m.name} ${m.type}`).join(', ')
   }
 
+  get all_types(): Set<Type> {
+    var res = new Set<Type>()
+    function process(t: Type) {
+      res.add(t)
+      for (var s of t.supers.values()) process(s)
+    }
+    process(this)
+    return res
+  }
+
+  get creators(): Func[] {
+    var res: Func[] = []
+    for (var s of this.all_types) {
+      var create = s.methods.get('create')
+      if (create) {
+        res.push(create)
+      }
+    }
+    return res
+  }
+
   get conflict_methods(): Func[] {
     var already_seen = new Map<string, Func>()
     var overriden = new Map<string, Func>()
@@ -74,6 +95,7 @@ class Type {
 
     function process(t: Type) {
       for (let f of t.methods.values()) {
+        if (f.name === 'create') continue
         if (!already_seen.has(f.name)) {
           already_seen.set(f.name, f)
         } else {
@@ -162,10 +184,10 @@ while (match = re_func.exec(input)) {
 }
 
 const tpl_creates = Template(`
-func (parser *Parser) create{{v.name}}() {{ !v.is_super ? '*' : '' }}{{v.name}} {
+func (parser *Parser) create{{v.name}}(scope *Scope) {{ !v.is_super ? '*' : '' }}{{v.name}} {
   var res = {{ !v.is_super ? '&' : '' }}{{ v.name }}{}
-  %%- if (v.hasSuper('nodeBase')) { %%
-  res.nodeBase = parser.createNodeBase()
+  %%- for (let c of v.creators) { %%
+  res.{{ c.self !== v.name ? (c.self + '.') : '' }}create(parser, scope)
   %%- } %%
   return res
 }

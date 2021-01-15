@@ -43,6 +43,16 @@ type nodeBase struct {
 	TkRange   TkRange
 }
 
+func (l *nodeBase) create(parser *Parser, scope *Scope) {
+	l.TkRange = parser.AsRange()
+	l.File = parser.file
+	l.Scope = scope
+}
+
+// func (parser *Parser) createNodeBase() nodeBase {
+// 	return nodeBase{TkRange: parser.AsRange(), File: parser.file}
+// }
+
 func (l *nodeBase) GetScope() *Scope {
 	return l.Scope
 }
@@ -167,6 +177,10 @@ type membered struct {
 	Members Names
 }
 
+func (m *membered) create(_ *Parser, _ *Scope) {
+	m.Members = make(Names)
+}
+
 func (m *membered) AddMember(n Node) {
 	if n == nil {
 		// ??
@@ -187,6 +201,13 @@ type AstFile struct {
 	nodeBase
 	membered
 	File *File
+}
+
+func AstFileNew(file *File) *AstFile {
+	return &AstFile{
+		File:     file,
+		nodeBase: nodeBase{TkRange: newTkRange(), File: file},
+	}
 }
 
 ///////////////////////////////////////////////////////////
@@ -244,6 +265,7 @@ type AstTypeDecl struct {
 
 type AstEnumDecl struct {
 	AstTypeDecl
+	Fields []*AstVarDecl
 }
 
 type AstUnionDecl struct {
@@ -353,6 +375,7 @@ type AstIsBinOp struct{ binaryOperation }
 type AstIsNotBinOp struct{ binaryOperation }
 
 type AstDotBinOp struct{ binaryOperation }
+type AstCastBinOp struct{ binaryOperation }
 
 /////////////////////////////////////////////////////////////////////////
 //  IDENTIFIER
@@ -369,10 +392,15 @@ type AstIntLiteral struct{ Literal }
 type AstStringLiteral struct{ Literal }
 type AstThisLiteral struct{ Literal }
 type AstVoidLiteral struct{ Literal }
+type AstCharLiteral struct{ Literal }
 
 type AstIdentifier struct {
 	nodeBase
 	Name Name
+}
+
+func (id *AstIdentifier) create(parser *Parser, _ *Scope) {
+	id.Name = SaveInternedString(parser.GetText())
 }
 
 func (id *AstIdentifier) GetName() *AstIdentifier {

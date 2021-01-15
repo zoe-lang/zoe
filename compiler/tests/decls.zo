@@ -23,7 +23,7 @@ struct Toto(field: String) {
 # var a = 1
 var c: String = "toto"
 
-fn test(a: String, b: ...String = "pouet",) -> void {
+fn test(a: String, ...b: String = "pouet",) -> void {
   return a + a
 }
 
@@ -45,7 +45,7 @@ struct Toto(field: String) {
 # var a = 1
 var c: String = "toto"
 
-fn test(a: String, b: ...String = "pouet",) -> void {
+fn test(a: String, ...b: String = "pouet",) -> void {
   return a + a
 }
 
@@ -67,7 +67,7 @@ struct Toto(field: String) {
 # var a = 1
 var c: String = "toto"
 
-fn test(a: String, b: ...String = "pouet",) -> void {
+fn test(a: String, ...b: String = "pouet",) -> void {
   return a + a
 }
 
