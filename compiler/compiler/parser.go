@@ -10,6 +10,17 @@ type ledNode interface {
 	led(iter *Parser, scope *Scope, left Node)
 }
 
+// type Context struct {
+// 	*Parser
+// 	scope *Scope
+// 	rbp   int
+// }
+
+// type LedContext struct {
+// 	*Context
+// 	left Node
+// }
+
 /*
 	Parse parses the file.
 */
@@ -251,6 +262,7 @@ func (parser *Parser) Nud(scope *Scope, rbp int) Node {
 
 	case TK_LPAREN:
 		// parenthesized expression has to be handled differently since the node it returns
+		node = parser.createAstTuple(scope)
 
 	case KW_NAMESPACE:
 		node = parser.createAstNamespaceDecl(scope)
@@ -348,6 +360,10 @@ func (parser *Parser) Led(scope *Scope, left Node) Node {
 	case TK_LSHIFT:
 		node = parser.createAstLShiftBinOp(scope)
 
+	case TK_PLUSPLUS:
+		node = parser.createAstPlusPlus(scope)
+	case TK_MINMIN:
+		node = parser.createAstMinMin(scope)
 	case TK_DIV:
 		node = parser.createAstDivBinOp(scope)
 	case TK_PLUS:
@@ -446,6 +462,16 @@ func (parser *Parser) parseBlock(scope *Scope) *AstBlock {
 	return blk
 }
 
+func (tup *AstTuple) nud(parser *Parser, scope *Scope) {
+	var first = false
+	parser.parseEnclosedSeparatedByComma(func() {
+		tup.Exps = append(tup.Exps, parser.Expression(scope, 0))
+		if !first && parser.Is(TK_COMMA) {
+			tup.IsTuple = true
+		}
+	})
+}
+
 /*
 	Parse a namespace declaration
 */
@@ -489,6 +515,10 @@ func (vl *varLike) parseAfterKeyword(parser *Parser, scope *Scope) {
 		vl.DefaultExp = parser.Expression(scope, 0)
 	}
 
+	if vl.TypeExp == nil && vl.DefaultExp == nil && vl.Name != nil {
+		vl.Name.ReportError("name needs at least a type or an assignment")
+	}
+
 	if parser.pos == start {
 		parser.Advance()
 	}
@@ -499,14 +529,22 @@ func (vl *varLike) parseAfterKeyword(parser *Parser, scope *Scope) {
 */
 func (vl *varLike) nud(parser *Parser, scope *Scope) {
 
+	var should_name = false
 	if parser.Is(KW_CONST) {
 		vl.IsConst = true
 		parser.Advance()
+		should_name = true
 	} else if parser.Is(KW_VAR) {
 		parser.Advance()
+		should_name = true
 	}
 
 	vl.parseAfterKeyword(parser, scope)
+
+	if should_name {
+		vl.Name.MustBeVariable()
+
+	}
 
 }
 
@@ -532,13 +570,14 @@ func (fn *AstFn) nud(parser *Parser, scope *Scope) {
 	var argscope = scope.subScope(scopeArguments)
 
 	fn.parseTemplate(parser, argscope)
+	fn.Args = parser.createAstFnArgs(scope)
 
 	if parser.should(TK_LPAREN) {
 		parser.parseEnclosedSeparatedByComma(func() {
 			var arg = parser.createAstVarDecl(scope)
 			arg.nud(parser, argscope)
 			argscope.Add(arg)
-			fn.Args = append(fn.Args, arg)
+			fn.Args.Args = append(fn.Args.Args, arg)
 		})
 	}
 
@@ -690,6 +729,7 @@ func (st *AstStructDecl) nud(parser *Parser, scope *Scope) {
 	parser.Advance()
 
 	st.parseName(parser, scope)
+	st.Name.MustBeTypename()
 	st.parseTemplate(parser, scope)
 
 	if parser.Is(TK_LPAREN) {

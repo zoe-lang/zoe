@@ -45,3 +45,25 @@ func (s *Scope) Add(node Node) {
 
 	}
 }
+
+func (s *Scope) ResolveSymbolForName(name Name) Node {
+	return nil
+}
+
+/*
+	Resolve an expression and get the node that is described by a symbol
+*/
+func (s *Scope) ResolveSymbolForExpression(exp Node) Node {
+	switch v := exp.(type) {
+	case *AstIdentifier:
+		// If it is an identifier, get its name
+		return v.Scope.ResolveSymbolForName(v.Name)
+	case *AstDotBinOp:
+		var left = s.ResolveSymbolForExpression(v.Left)
+		if left == nil {
+			return nil
+		}
+		// Once we have left, we treat it as a namespace
+	}
+	return nil
+}

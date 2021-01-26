@@ -391,6 +391,14 @@ func (n *AstFn) GetName() *AstIdentifier {
 }
 
 
+func (parser *Parser) createAstFnArgs(scope *Scope) *AstFnArgs {
+  var res = &AstFnArgs{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
 func (parser *Parser) createAstBlock(scope *Scope) *AstBlock {
   var res = &AstBlock{}
   res.nodeBase.create(parser, scope)
@@ -449,6 +457,22 @@ func (parser *Parser) createAstTakeOp(scope *Scope) *AstTakeOp {
 
 func (parser *Parser) createAstIso(scope *Scope) *AstIso {
   var res = &AstIso{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstPlusPlus(scope *Scope) *AstPlusPlus {
+  var res = &AstPlusPlus{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstMinMin(scope *Scope) *AstMinMin {
+  var res = &AstMinMin{}
   res.nodeBase.create(parser, scope)
   return res
 }
@@ -575,6 +599,14 @@ func (parser *Parser) createAstLteBinOp(scope *Scope) *AstLteBinOp {
 
 
 
+func (parser *Parser) createAstNeqBinOp(scope *Scope) *AstNeqBinOp {
+  var res = &AstNeqBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
 func (parser *Parser) createAstEqBinOp(scope *Scope) *AstEqBinOp {
   var res = &AstEqBinOp{}
   res.nodeBase.create(parser, scope)
@@ -583,8 +615,48 @@ func (parser *Parser) createAstEqBinOp(scope *Scope) *AstEqBinOp {
 
 
 
-func (parser *Parser) createAstNeqBinOp(scope *Scope) *AstNeqBinOp {
-  var res = &AstNeqBinOp{}
+func (parser *Parser) createAstPipeEqBinOp(scope *Scope) *AstPipeEqBinOp {
+  var res = &AstPipeEqBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstAmpEqBinOp(scope *Scope) *AstAmpEqBinOp {
+  var res = &AstAmpEqBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstLShiftEqBinOp(scope *Scope) *AstLShiftEqBinOp {
+  var res = &AstLShiftEqBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstRShiftEqBinOp(scope *Scope) *AstRShiftEqBinOp {
+  var res = &AstRShiftEqBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstAndEqBinOp(scope *Scope) *AstAndEqBinOp {
+  var res = &AstAndEqBinOp{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstOrEqBinOp(scope *Scope) *AstOrEqBinOp {
+  var res = &AstOrEqBinOp{}
   res.nodeBase.create(parser, scope)
   return res
 }
@@ -696,6 +768,14 @@ func (parser *Parser) createAstIdentifier(scope *Scope) *AstIdentifier {
 
 
 
+func (parser *Parser) createAstTuple(scope *Scope) *AstTuple {
+  var res = &AstTuple{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
 func (parser *Parser) createAstArrayOrSlice(scope *Scope) *AstArrayOrSlice {
   var res = &AstArrayOrSlice{}
   res.nodeBase.create(parser, scope)
@@ -722,6 +802,14 @@ func (parser *Parser) createAstIf(scope *Scope) *AstIf {
 
 func (parser *Parser) createAstWhile(scope *Scope) *AstWhile {
   var res = &AstWhile{}
+  res.nodeBase.create(parser, scope)
+  return res
+}
+
+
+
+func (parser *Parser) createAstFor(scope *Scope) *AstFor {
+  var res = &AstFor{}
   res.nodeBase.create(parser, scope)
   return res
 }

@@ -48,10 +48,22 @@ type nodeBase struct {
 	TkRange   TkRange
 }
 
+func (l *nodeBase) RegisterDeclaration(node Node) {
+	node.ReportError("unexpected statement in this context")
+}
+
 func (l *nodeBase) create(parser *Parser, scope *Scope) {
 	l.TkRange = parser.AsRange()
 	l.File = parser.file
 	l.Scope = scope
+}
+
+func (l *nodeBase) IsSymbolExpression() bool {
+	return false
+}
+
+func (l *nodeBase) IsTypeSymbolExpression() bool {
+	return false
 }
 
 func (l *nodeBase) IsLocal() bool {
@@ -329,9 +341,14 @@ type AstFn struct {
 	named
 	templated
 	IsMethod   bool
-	Args       []*AstVarDecl
+	Args       *AstFnArgs
 	ReturnType Node
 	Definition Node
+}
+
+type AstFnArgs struct {
+	nodeBase
+	Args []*AstVarDecl
 }
 
 //////////////
@@ -364,6 +381,8 @@ type AstPointerOp struct{ unaryOperation }
 type AstReturnOp struct{ unaryOperation }
 type AstTakeOp struct{ unaryOperation }
 type AstIso struct{ unaryOperation }
+type AstPlusPlus struct{ unaryOperation }
+type AstMinMin struct{ unaryOperation }
 
 //////////////////////////////
 
@@ -397,15 +416,23 @@ type AstPipeBinOp struct{ binaryOperation }
 type AstAmpBinOp struct{ binaryOperation }
 type AstLShiftBinOp struct{ binaryOperation }
 type AstRShiftBinOp struct{ binaryOperation }
-
 type AstAndBinOp struct{ binaryOperation }
 type AstOrBinOp struct{ binaryOperation }
+
 type AstGtBinOp struct{ binaryOperation }
 type AstGteBinOp struct{ binaryOperation }
 type AstLtBinOp struct{ binaryOperation }
 type AstLteBinOp struct{ binaryOperation }
-type AstEqBinOp struct{ binaryOperation }
 type AstNeqBinOp struct{ binaryOperation }
+
+type AstEqBinOp struct{ binaryOperation }
+
+type AstPipeEqBinOp struct{ binaryOperation }
+type AstAmpEqBinOp struct{ binaryOperation }
+type AstLShiftEqBinOp struct{ binaryOperation }
+type AstRShiftEqBinOp struct{ binaryOperation }
+type AstAndEqBinOp struct{ binaryOperation }
+type AstOrEqBinOp struct{ binaryOperation }
 
 type AstIsBinOp struct{ binaryOperation }
 type AstIsNotBinOp struct{ binaryOperation }
@@ -443,6 +470,52 @@ func (id *AstIdentifier) GetName() *AstIdentifier {
 	return id
 }
 
+func (id *AstIdentifier) MustBeTypename() {
+	if id == nil {
+		return
+	}
+	var name = id.Name.GetText()
+	if len(name) == 0 || name[0] < 'A' || name[0] > 'Z' {
+		id.ReportError("type identifiers must start with an upper-case letter")
+	}
+}
+
+func (id *AstIdentifier) MustBeVariable() {
+	if id == nil {
+		return
+	}
+	var name = id.Name.GetText()
+	if len(name) == 0 || (name[0] != '_' && (name[0] < 'a' || name[0] > 'z')) {
+		id.ReportError("variable identifiers must start with a lower-case letter or an underscore")
+	}
+}
+
+func (id *AstIdentifier) MustBeComptimeType() {
+	if id == nil {
+		return
+	}
+	var name = id.Name.GetText()
+	if len(name) < 2 || name[0] != '$' || name[1] < 'A' || name[1] > 'Z' {
+		id.ReportError("compile-time types must start with '$' and be followed by an upper-case letter")
+	}
+}
+
+func (id *AstIdentifier) MustBeComptimeVariable() {
+	if id == nil {
+		return
+	}
+	var name = id.Name.GetText()
+	if len(name) < 2 || name[0] != '$' || name[1] < 'a' || name[1] > 'z' {
+		id.ReportError("compile-time variables must start with '$' and be followed by a lower-case letter")
+	}
+}
+
+type AstTuple struct {
+	nodeBase
+	IsTuple bool
+	Exps    []Node
+}
+
 type AstArrayOrSlice struct {
 	nodeBase
 	Items []Node
@@ -467,6 +540,13 @@ type AstWhile struct {
 	nodeBase
 	ConditionExp Node
 	Body         Node
+}
+
+type AstFor struct {
+	nodeBase
+	Identifiers []*AstIdentifier
+	InExp       Node
+	Body        Node
 }
 
 type AstSwitch struct {

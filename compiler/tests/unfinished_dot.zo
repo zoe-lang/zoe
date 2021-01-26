@@ -1,19 +1,27 @@
 
 import 'io' as io
 
+struct Test() {
+  method toto()
+  method tata()
+}
+
 local fn some_fn(arg: Something) -> Opt[Something] {
   # var res = arg?.prop('something').toto or 3
   var a = "hello !"
+  var b = (1, 2, 3)
   arg is not none
-  arg is Type1 | Type2 | Type3 {
+
+  if (arg is Type1 | Type2 | Type3) {
 
   }
+
   # this is the same !
-  if arg is Type1 || arg is Type2 || arg is Type3 {
+  if (arg is Type1 || arg is Type2 || arg is Type3) {
 
   }
 
-  if arg is not none {
+  if (arg is not none) {
 
   }
 
