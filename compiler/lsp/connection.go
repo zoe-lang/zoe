@@ -62,7 +62,10 @@ func NewConnection(conn io.ReadWriteCloser) *LspConnection {
 	}
 
 	l.Server = jrpc2.NewServer(mp,
-		&jrpc2.ServerOptions{AllowPush: true, Logger: log.New(os.Stderr, "-- ", 0)})
+		&jrpc2.ServerOptions{
+			AllowPush: true,
+			Logger:    jrpc2.StdLogger(log.New(os.Stderr, "-- ", 0)),
+		})
 
 	return l
 }
