@@ -2,13 +2,13 @@
 // templates are introduced with the of operator
 // their names is always $Uppercase
 
-type LinkedListItem[$T](struct (
+type LinkedListItem[$T](
   value: $T,
   next: @LinkedListItem | Null,
-))
+)
 
 // it is possible to restrict which types can be instanciated by specifying traits on generic types
-type BinaryTree[$T#compare](
+type BinaryTree[$T #compare](
   | Node(left: @Self, right: @Self, value: $T)
   | Leaf($T)
   | Null

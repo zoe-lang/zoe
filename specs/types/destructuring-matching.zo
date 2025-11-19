@@ -9,12 +9,12 @@ fn test() {
 
   var person_or_cat: Person | Cat = get()
 
-  if (Person(name) = person_or_cat) {
-    // use name which is of type String
-  }
-
-  if (person_or_cat is Person) {
+  if (person_or_cat is Person(name)) {
     // type of person_or_get is narrowed inside the block
+    // it also created the name variable
+
+    // this only works if person_or_cat is an enum
+    // or if it is a trait fat pointer that is indeed implemented by said type
   }
 
   match person_or_cat with
