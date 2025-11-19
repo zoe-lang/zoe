@@ -1,0 +1,96 @@
+// named types are always declared using the type keyword
+
+// A type can have fields. This is a "struct" in other languages
+type Person(
+  name: String
+  age: Int
+)
+
+// As functions are first-class citizen, they have a corresponding type
+type Callback(fn (arg: Int) -> Result)
+
+// A type can just be an alias if it specifies just one type. This is useful to define new traits outside of the type's origin
+type OtherPerson(Person)
+
+// When giving more than one type, separating them with |, you have sum types, also known as tagged enumerations.
+type Union(Number | String | Null)
+
+// An empty type can be used as both a type and a value
+// It is mostly useful in unions
+type Tag()
+
+// The leading | is optional but nice for readability when using multiple lines.
+type Flag(
+  // When using a const value, the type is both the type and the value.
+  | DoStuff(0)
+  // If the last specified type was an Int, then it is possible to add to it. There is no minus.
+  | DoMore(+1)
+  | DoWayMore(+1)
+)
+
+type Unary (
+  | Not()
+  | BitNot()
+)
+
+type Binary(
+  // Or it can associate an empty type with a const value, which can be helpful for debugging / other
+  | Plus("+")
+  | Minus("-")
+)
+
+local type BinOpStruct(
+  op: Operator,
+  left: @Exp | null = null,
+  right: @Exp | null = null,
+) {
+  // some specialized functions
+}
+
+
+type Exp(
+  // An enum can refer to an existing type
+  | String
+  | Number
+
+  // it can declare new types
+  | @BinOp(op: Operator, left: @Exp, right: @Exp)
+  | @Unary(op: Unary, left: @Exp)
+  | @FnCall(func: @Exp, args: []@Exp = []) {
+    // that can have inline implementations, although this is not encouraged
+  }
+
+  // it can create an empty type that is both a type and a value
+  | Null()
+
+  // or create a type that is tied to a const value
+  | True("true")
+  | False("false")
+
+)
+
+// an anonymous union
+fn num_or_str() -> Number | String {
+  return 0
+}
+
+// function returning an inline struct
+fn inline_struct() -> (age: Number, str: String) {
+  // the . operator knows what struct we refer to
+  return .(age = 10, str = "toto")
+}
+
+fn caller() {
+  // functions have compile time methods and members
+  // in this case however the type is optional as it can be inferred
+  var is: inline_struct.$ReturnType = inline_struct()
+  const nm = inline_struct.$name // const String
+}
+
+fn instanciate() {
+  var node = Exp.String("hello world!")
+
+  // A variable or argument whose type resolves to an enum can use the .Notation without ambiguity
+  var un = Exp.Unary(op = .Not, left = node)
+  var bin = Exp.Binary(op = .Plus, left = node, right = @.Number(3))
+}

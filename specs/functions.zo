@@ -1,0 +1,20 @@
+
+// functions start with the fn keyword
+// by convention, we use lowercase only and underscores for function names, just like for identifiers
+fn my_function(arg1: Type1) -> ReturnType {
+  // function body.
+}
+
+// a function may be templated
+fn my_function[$compile_value, $Type]() {
+
+}
+
+// calling a templated function
+my_function[1, MyStruct]()
+
+// functions may become closures
+
+// a function that is exposed to C is done so through the extern keyword
+// only non templated functions that have base types arguments and return base types can be extern
+extern fn do_something() { }

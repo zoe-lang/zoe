@@ -1,0 +1,19 @@
+
+// templates are introduced with the of operator
+// their names is always $Uppercase
+
+type LinkedListItem[$T](struct (
+  value: $T,
+  next: @LinkedListItem | Null,
+))
+
+// it is possible to restrict which types can be instanciated by specifying traits on generic types
+type BinaryTree[$T#compare](
+  | Node(left: @Self, right: @Self, value: $T)
+  | Leaf($T)
+  | Null
+)
+
+fn test() {
+  const nd = BinaryTree.Leaf(13) // BinaryTree of Int
+}

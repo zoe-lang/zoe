@@ -1,0 +1,3 @@
+// all comments start with // at the beginning of the line
+// there are no multiline comments
+// the intent is to discourage code commenting : this is what source control tools are for

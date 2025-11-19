@@ -1,0 +1,51 @@
+// iso variables live in their own memory pages.
+// they may be given or taken
+// the compiler prevents pointers to cross region boundaries
+// it is possible to hold iso references, but they must be given or taken
+//   idea : giving sets the value holding the address to null, making iso an automatic | Null type
+//   returning an iso pointer from a function always gives it
+
+// idea : an iso pointer is a fat (potentially super fat) pointer that points to the page, and then the data
+// idea : iso can be used as a form of arena allocation. since it is a root that may have only one pointer, losing it means everything inside dies immediately
+// idea : pointers on the stack should declare themselves to the garbage collector and unregister themselves so that compacting is made easier
+// question : how to do the "one writer but many readers"
+
+// Functions that have `this` use the region of the `this`
+
+// The compiler tracks pointer assignment to know if boundary crossing is happening. For structs, it also tracks if it embeds pointers itself. Functions that 
+
+type Map[$Key, $Value] = struct (
+  OtherStruct,
+  slc: []@*$Value,
+) #debug #send
+{
+  fn new(self) -> Self {
+
+  }
+
+  fn get(self, key: $Key) -> $Value? {
+    if !this.has(key) {
+      return null
+    }
+
+    if $Value.is_iso {
+      // Getting an iso value removes it from the map, because we don't want null values to stay there.
+    }
+  }
+
+  fn templated[$A]() -> Error? {
+    var v = this.can_error() or null
+    var v2 = this.can_error() or (err) {
+      match err {
+        NotFoundError => {  }
+      }
+    }
+  }
+}
+
+fn main () {
+  var other = iso { get_other() }
+  var mp: Map[Int] = Map[Int].new()
+  var mp3: Int[] = [1, 2, 3, 4]
+}
+

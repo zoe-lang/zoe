@@ -1,0 +1,42 @@
+
+// structs can be destructured into variables
+fn test() {
+  var person = Person(name = "toto", age = 10)
+  // a field can be renamed
+  var (name, age2 = age) = person
+  // fields can be omitted
+  var (age) = person
+
+  var person_or_cat: Person | Cat = get()
+
+  if (Person(name) = person_or_cat) {
+    // use name which is of type String
+  }
+
+  if (person_or_cat is Person) {
+    // type of person_or_get is narrowed inside the block
+  }
+
+  match person_or_cat with
+    | Person(age) when age < 10 { }
+    | Person(name) {
+      // person_or_cat is of type Person
+      // name is of type String
+    },
+    | Cat when person_or_cat.fur.is_fluffy {
+      // person_or_cat is of type Cat
+    }
+
+  // [...]
+  var node: Exp = parse(some_file)
+
+  // match can be used as a quick switch-like structure if not going anywhere
+  match node with
+    | BinOp { }
+    | UnaryOp { }
+
+  // but if going into a variable or an argument, it needs to define all cases
+  match node with
+    | BinOp { 2 }
+    else 10
+}
