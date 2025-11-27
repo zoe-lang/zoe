@@ -1,0 +1,22 @@
+
+
+type Json(
+  | Undefined()
+  | Null()
+  | Boolean
+  | Number
+  | BigInt
+  | String
+  | []Json
+  | Map[String, JsonValue]
+)
+
+impl Json {
+  fn from_string(str: String) -> Json {
+    // ??
+  }
+
+  fn parse(str: String) {
+
+  }
+}
