@@ -7,36 +7,34 @@ fn test() {
   // fields can be omitted
   var (age) = person
 
-  var person_or_cat: Person | Cat = get()
+  //
+  var person_or_cat: (Person | Cat) = get()
 
-  if (person_or_cat is Person(name)) {
-    // type of person_or_get is narrowed inside the block
-    // it also created the name variable
-
-    // this only works if person_or_cat is an enum
-    // or if it is a trait fat pointer that is indeed implemented by said type
+  if (person_or_cat is Person) {
+    // type of person_or_get is narrowed inside the block to Person
+    // we can now destructurize the person_or_cat variable
+    var (name, age) = person_or_cat
   }
 
-  match person_or_cat with
-    | Person(age) when age < 10 { }
-    | Person(name) {
-      // person_or_cat is of type Person
-      // name is of type String
-    },
-    | Cat when person_or_cat.fur.is_fluffy {
-      // person_or_cat is of type Cat
-    }
+  var something_that_says: #says = get_says()
+
+  // The following will error if Person does not implement #says
+  if (something_that_says is Person) {
+    // something_that_says is narrowed to type Person in that block
+  }
 
   // [...]
   var node: Exp = parse(some_file)
 
-  // match can be used as a quick switch-like structure if not going anywhere
-  match node with
-    | BinOp { }
-    | UnaryOp { }
+  // This is more compact than doing a series of if ... else if ... else ...
+  // and it can be optimized at compile time to switch jumps
+  // It also errors if not all cases are covered when the switch is on a sum type
+  // It will not error when the switch is on a trait and not all cases are covered because the compiler can't know if they are
+  switch node
+    // In a switch arm, there is no need to respecify Exp. everywhere
+    | BinOp -> { 2 }
+    | UnaryOp -> { 1 }
+    | else -> 10
 
-  // but if going into a variable or an argument, it needs to define all cases
-  match node with
-    | BinOp { 2 }
-    else 10
+  var int = 10
 }

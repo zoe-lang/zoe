@@ -28,6 +28,12 @@ type Flag(
   | DoWayMore(+1)
 )
 
+type MoreFlags(
+  | EnsureWhatever(0b00000001)
+  | EnsureSomethingElse(0b00000010)
+  | EnsureSomethingElse2(0b00000100)
+)
+
 type Unary (
   | Not()
   | BitNot()
@@ -69,8 +75,8 @@ type Exp(
 
 )
 
-// an anonymous union
-fn num_or_str() -> Number | String {
+// function returning an anonymous union
+fn num_or_str() -> (Number | String) {
   return 0
 }
 
