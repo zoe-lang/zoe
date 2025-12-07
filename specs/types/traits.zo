@@ -1,0 +1,10 @@
+
+
+trait #compare(
+  type Result(
+    | Less(-1)
+    | Equal(0)
+    | Greater(1)
+  ),
+  fn compare(self, other: @Self) -> Result
+)

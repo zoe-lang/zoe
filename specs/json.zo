@@ -1,22 +1,24 @@
 
-
+#debug #send
 type Json(
-  | Undefined()
-  | Null()
+  | Null
   | Boolean
   | Number
   | BigInt
   | String
-  | []Json
-  | Map[String, JsonValue]
+  | Slice[Json]
+  | Map[String, Json]
 )
 
-impl Json {
-  fn from_string(str: String) -> Json {
-    // ??
-  }
-
-  fn parse(str: String) {
-
+fn Json.to_string(@self) -> Result[String, SerializeError] {
+  return switch self {
+    | Null => { "null" }
+    | Boolean => { "true" if self else "false" }
+    | Number => { self.to_string() }
+    | BigInt => { self.to_string() }
+    | String => { self.to_string() }
+    | Slice[Json] => { self.to_string() }
+    | Map[String, Json] => { self.to_string() }
+    | else => { SerializeError(msg = "Unknown json type") }
   }
 }

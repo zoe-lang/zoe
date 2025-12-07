@@ -1,0 +1,23 @@
+
+#debug #compare
+type Node (
+  @BinOp(left: @Node, right: @Node, op: Operator)
+  @Unary(node: @Node, op: Unary)
+  @FnCall(func: @Node, args: []@Node)
+  | Null
+  | Number
+  | String
+  | Boolean
+  | BigInt
+  | Slice[Node]
+  | Map[String, Node]
+)
+
+// defining a method is just about naming a function <Type>.<method_name> with self as the first argument
+fn Node.do_stuff(self) { }
+
+// It is possible to define methods on sum types-defined types
+fn Node.BinOp.do_stuff(self) { }
+
+// When implementing a trait, it has to be called
+fn Node.compare#compare(self, other: @Node) -> #compare.Result { return #compare.Equal }

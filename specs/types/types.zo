@@ -72,7 +72,6 @@ type Exp(
   // or create a type that is tied to a const value
   | True("true")
   | False("false")
-
 )
 
 // function returning an anonymous union

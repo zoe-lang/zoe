@@ -12,16 +12,22 @@
 
 // Functions that have `this` use the region of the `this`
 
-// The compiler tracks pointer assignment to know if boundary crossing is happening. For structs, it also tracks if it embeds pointers itself. Functions that 
+// The compiler tracks pointer assignment to know if boundary crossing is happening. For structs, it also tracks if it embeds pointers itself. Functions that
 
-type Map[$Key, $Value] = struct (
-  OtherStruct,
+#debug #send #safe
+type Map[$Key, $Value](
   slc: []@*$Value,
-) #debug #send
-{
-  fn new(self) -> Self {
+)
 
+fn Map.new() -> Self {
+
+}
+
+fn Map.get(@self, key: $Key) -> $Value? {
+  if !this.has(key) {
+    return null
   }
+}
 
   fn get(self, key: $Key) -> $Value? {
     if !this.has(key) {
